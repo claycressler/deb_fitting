@@ -1,0 +1,954 @@
+\documentclass[12pt,reqno,final]{amsart}
+\usepackage[round,numbers,sort&compress]{natbib}
+\usepackage{graphicx}
+\usepackage{times}
+\usepackage{rotating}
+\usepackage{subfig}
+
+\title[DEB fitting notes]{Fitting Dynamic Energy Budget Models: Notes}
+
+\setlength{\textwidth}{6.25in}
+\setlength{\textheight}{8.75in}
+\setlength{\evensidemargin}{0in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\topmargin}{-.35in}
+\setlength{\parskip}{.1in}
+\setlength{\parindent}{0.0in}
+
+\theoremstyle{plain}
+\newtheorem{thm}{Theorem}
+\newtheorem{corol}[thm]{Corollary}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem{lemma}[thm]{Lemma}
+\newtheorem{defn}[thm]{Definition}
+\newtheorem{hyp}[thm]{Hypothesis}
+\newtheorem{example}[thm]{Example}
+\newtheorem{conj}[thm]{Conjecture}
+\newtheorem{algorithm}[thm]{Algorithm}
+\newtheorem{remark}{Remark}
+\renewcommand\thethm{\arabic{thm}}
+\renewcommand{\theremark}{}
+
+\numberwithin{equation}{part}
+\renewcommand\theequation{\arabic{equation}}
+\renewcommand\thesection{\arabic{section}}
+\renewcommand\thesubsection{\thesection.\arabic{subsection}}
+\renewcommand\thefigure{\arabic{figure}}
+\renewcommand\thetable{\arabic{table}}
+\renewcommand\thefootnote{\arabic{footnote}}
+
+\begin{document}
+
+\maketitle
+
+\section{13 Nov 2012}
+I am working on fitting the DEB models to the growth and reproduction
+trajectories obtained by Adriana and Stefan.
+
+The first issue that I have to deal with is the choice of model. In
+particular, can I fit a full-blown DEB model, or do I need to modify
+the model in some way to make it more tractable? Simpler versions,
+e.g. Ross and Nisbet 1990, have been proposed, so perhaps one of these
+might be better. We definitely cannot move to a reserve-less model
+because the experimental design is guaranteed to put the Daphnia into
+starvation.
+
+Starvation is really the biggest issue that we have to deal with. DEB
+theory does not specify how starvation should be dealt with. Kooijman
+suggests a number of different rules related to how physiology may (or
+may not) be modified in times of prolonged starvation. \emph{Prolonged
+  starvation} refers to anytime where the mobilization out of reserves
+is not enough to meet the physiological requirements (especially for
+somatic maintenance) of the individual.
+
+Bill and I, during our meeting yesterday, kicked around the idea of
+having rules for starvation, in particular, for having the parameter
+$\kappa$ be adjusted to cover somatic maintenance. That is, as long as
+$\kappa_{min}$ (the baseline allocation to growth) times the
+mobilization $p_C$ is enough to cover somatic maintenance $k_M V$,
+that is a ``normal'' energetic state. Whenever $\kappa_{min} p_C < k_M
+V$, then increase $\kappa$ to a level such that $\kapa_{min} p_C = k_M
+V$. The consequence of such an allocation rule would be that growth
+would shut down first, and then reproduction. Upon reentry to good
+food, $\kappa$ would gradually decrease back down to $\kappa_{min}$,
+so reproduction would turn on first, and then growth. This is actually
+the opposite pattern to what is seen in Daphnia, and thus cannot be
+correct. Daphnia shut down reproduction first and can continue to grow
+even during periods where no reproduction is happening. Thus it must
+be the case that reproduction gets shut down first.
+
+Another thing that we thought was a problem yesterday, but does not
+seem to be such today, is that $\kappa$ occurs in the equation
+determining mobilization $p_C$. Yesterday I thought that made the
+calculation of the $\kappa$ value during starvation recursive, but I
+don't think so anymore, it just means that $\kappa \nequal k_M V/p_C$
+during starvation. Instead, you have to solve the equation $\kappa p_C
+= k_M V$ for $\kappa$, recognizing that it is a term in the $p_C$
+equation.
+
+I wanted to go back and look at Ben Martin's Am. Nat. paper, since
+they were able to fit the full DEB model for that study. It turns out
+that this was because they could ignore the starvation dynamics. The
+data that they were using to estimate the DEB parameters was of
+Daphnia magna growth and reproduction in a in 500ml chemostat with
+densities of 100000, 25000, 5000, and 1000 cells/ml. Initially, they
+did the fitting letting the constant functional response $f = X/(K+X)$
+be estimated as a parameter. They used other data to estimate the
+half-saturation constant $K$ and also the maximum surface
+area-specific ingestion rate $J_{Am}$. The units of $K$ are number of
+cells times length of the environment in centimeters cubed (i.e. the
+volume of the container). I guess this makes sense, since the algae is
+recorded as cells/ml, or equivalently as cells/cm^3.
+
+One thing that is curious, and that I hadn't picked up on before, is
+that they fit the parameter $g$ in the paper, even though $g$ is
+actually a compound parameter in DEB theory, $g = (EG v)/(\kappa
+p_{Am})$. In addition to fitting $g$, they also fit $v$ and
+$\kappa$. They found (not unexpectedly) that $g$ and $v$ positively
+covaried and could not be independently estimated. However, they did
+not find such a relationship with $\kappa$. Interesting. Not sure what
+to make of that, exactly. It is definitely food for thought,
+however. They did point out that the ratio of $g/v$ was estimable,
+although I never saw any clear evidence for that. I haven't tried to
+reparameterize the model in terms of $g/v$, so I'm not sure if it is
+possible or not.
+
+In re-reading Martin et al., I noticed that in addition to using
+experiments conducted in flow-through chemostats, they also tested the
+individual DEB model's ability to predict the growth and reproduction
+of individuals raised in batch culture (see the Appendix of Martin et
+al.) at levels of 0.05, 0.075, and 0.2 mgC/day. This data comes from
+Coors et al. 2004. The fact that the DEB model, parameterized for the
+flow-through system, does a pretty good job of fitting the Coors et
+al. data suggests that I will probably be okay when it comes time to
+fit my data. That is, it suggests that starvation dynamics may not be
+all that important in my experiment, since I was using food levels of
+0.1 and 0.2 mgC/day. The Coors et al. protocol was individual Daphnia
+magna in vials with 80 ml of artificial medium, fed every day
+and transferred every other day. That doesn't really help to resolve
+the starvation problem for Adriana's and Stefan's data, but it is
+suggestive for my own data fitting.
+
+To further explore the results of Martin et al., I have written two R
+functions 'deb.model.chemostat()' and 'deb.model.batch()' that
+simulate the DEB model of Martin et al., with their parameter values,
+under either chemostat or batch culture conditions identical to those
+of Coors et al. 2004. I want to verify that starvation (i.e., failure
+to meet maintenance requirements) never occurs under the conditions
+they explored, and also never under the batch transfer conditions of
+Coors et al.
+
+My initial attempts to do this have not worked - starvation conditions
+set in almost immediately, and the organism ends up burning a lot of
+structure to pay for reserves. For details, see the R-file
+'Simulating_DEB_under_Coors_et_al_batch_conditions.R'.
+
+<<echo=F>>=
+require(deSolve)
+source('Martin_et_al_exploration.R')
+
+## the algae densities from Sokull-Kluettgen 1998
+X0 <- c(1000,5000,25000,100000)
+times <- seq(0,50,0.1)
+## initial conditions - the calculation of the initial UE value is based on the assumption that e=v*E/L^3=1
+y0 <- c(0.851^3/18.1,0.851,0.111,0)
+## the only parameter is the algal density in the chemostat
+pars <- c(X=X0[1])
+
+## simulate the system
+out <- lsoda(y0, times, func=deb.model.chemostat,parms=pars)
+
+## There were no problems. Even at the lowest food level, under continuous culture, starvation never occurs with these parameter values.
+
+
+## Calculate the Coors et al. 2004 algae densities from the container volume and the amounts added in mgC/day.
+vol <- 80 ## volume of containers housing individual Daphnia
+cc <- 1.9e-8 ## carbon content per cell of Desmodesmus
+X0 <- c(0.05,0.075,0.2)/cc/vol
+
+## initial conditions - same as above but with the addition of an algal density state variable
+y0 <- c(0.851^3/18.1,0.851,0.111,0,X0[1])
+## parameters
+pars <- c(X=X0[1])
+
+## Break the simulation into feeding and transfer intervals - state variables change continuously (as required by lsoda) between feedings/transfers, but the food level changes discretely at feedings/transfers
+no.transfers <- 5
+out <- vector()
+for (i in 1:no.transfers) {
+    ## simulate up the first feeding
+    out1 <- lsoda(y0,seq(0,1,0.1),deb.model.batch,pars)
+    ## save the results (except the last row, which is initial conditions for the next simulation)
+    out <- rbind(out,out1[1:(nrow(out1)-1),])
+    ## change the initial conditions
+    y0 <- unname(out1[nrow(out1),2:6])
+    y0[5] <- y0[5]+X0[1]
+    ## simulate up to the transfer
+    out2 <- lsoda(y0,seq(0,1,0.1),deb.model.batch,pars)
+    ## save the results (except the last row, which is initial conditions for the next simulation)
+    out <- rbind(out,out2[1:(nrow(out2)-1),])
+    ## change the initial condition
+    y0 <- unname(out2[nrow(out2),2:6])
+    y0[5] <- X0[1]
+}
+
+@
+
+\section{19 Nov 2012}
+Bill and I met today to discuss DEB fitting again. I thought we
+figured out what was going on with the non-reproducibility of the
+model predictions under batch conditions - there seemed to be a
+missing parameter. This can be seen by the fact that the units of
+their assimilation rate $S_A$ don't work out - it ends up having units
+of $t mm^2$, not energy per time. What is missing is an $I_{max}$
+term. If you multiply the food concentration by 10-100, you end up
+with something that looks much more reasonable.
+
+However, further reading of the Martin et al. paper suggests this is
+not correct. I forgot that the DEB model they were working with was
+dealing with ``scaled'' reserves - that is, all parameters measured in
+energy (reserves and maturity) are divided by the maximum surface-area
+specific assimilation rate, so the units of reserves and maturity are
+actually $t L^2$. So that doesn't actually work.
+
+Reading through the DEB-IBM documentation on the web, it looks like
+possibly the prey have growth dynamics of their own that are not being
+properly accounted for. This might help explain why food depletion is
+happening so fast. The DEB-IBM documentation suggests that the prey
+dynamics submodel assumes a logistically-growing prey population,
+implying two additional parameters ($r$ and carrying capacity) for the
+prey that are not specified in the paper. Going back to the original
+data paper (Coors et al. 2004), it is clear from their experimental
+description that the experiments were conducted in the light, so the
+prey would have been growing. The ODD accompanying Martin et al. does
+not mention anything but consumption driving prey dynamics - I should
+have caught that oversight. Martin et al. mentions that the logistic
+growth parameters used were $r=1.5$ and $K=5e-5$ mgC/ml in their
+discussion of how they used the DEB model to capture the
+small-amplitude and large-amplitude cycles of McCauley et
+al. 2008. However, that cannot be quite right, because the batch
+transfer conditions fed individuals with 0.05 mgC at the low end,
+which corresponds to $0.05 mgC * 1 cell/1.95e-8 mgC * 1/80 ml = 32051
+cells/ml$, which is much, much higher than the carrying capacity of
+$5e-5 mgC/ml * cell/1.95e-8 mgC = 2564 cells/ml$. This would suggest
+that the population growth rate in the \emph{absence} of any feeding
+would be negative - strongly so, in fact. So the fact of algal
+population growth doesn't ameliorate the problem of rapid food
+depletion. Anyway, it wouldn't with those parameter values anyhow -
+the maximum surface-area specific ingestion rate is 380,000
+cells/mm$^2$/day, so unless the algal growth rate was something a hell
+of a lot faster than 1.5, there is no way that algal growth can even
+\emph{begin} to make up for ingestion.
+
+The reason this is problematic is that we want to simulate growth and
+reproduction trajectories and use a simple trajectory matching
+approach to try to recovery the DEB parameters. But I don't know what
+parameters to choose that won't produce ridiculous growth trajectories
+under batch transfer conditions. Bill and I need to discuss this further.
+
+Anyway, for most of the meeting we talked about the DEB model and what
+we wanted to use as the DEB model. The major take-away points were the
+following:
+\begin{itemize}
+  \item We want to use the standard DEB as the starting point, rather
+    than moving to some kind of a net production model with reserves.
+  \item The first change that we are making to the standard DEB model
+    is dropping maturity maintenance. The idea of maturity maintenance
+    is a bit weird, as it seems very unlikely that an individual could
+    actually regress in maturity (without doing something like
+    consuming their gonads). Moreover, the starvation rules suggested
+    by Kooijman never really mention what is supposed to be happening
+    to maturity - for example, Martin et al. allow individuals to burn
+    structure (``shrink'') to pay somatic maintenance, but they never
+    mention whether individuals burn reproduction to pay maturity
+    maintenance. Moreover, energy that has been used to produce an egg
+    is unrecoverable - the best they could do is just not produce the
+    next clutch. Given all of this, we thought it best to simply
+    eliminate maturity maintenance, which drops the parameter $k_J$
+    from the model.
+  \item The second major change we wanted to consider were the
+    starvation rules. Given the high quality of Adriana's data, it
+    seems likely that we can use her data to arbitrate between
+    different starvation models, rather than try to specify one
+    version \emph{a priori}. Thus, we are going to consider three
+    different starvation rules.
+    \begin{enumerate}
+    \item Hold $\kappa$ constant and burn structure to meet somatic
+      maintenance requirements. This suggests that individuals can
+      keep reproducing, possibly even as they shrink. At the outset,
+      this seems unreasonable.
+    \item Hold $\kappa$ constant until $\kappa p_C$ is not enough to
+      meet somatic maintenance, then set $\kappa$ equal to whatever
+      value causes $\kappa p_C$ to be exactly equal to somatic
+      maintenance, bearing in mind that $\kappa$ shows up in the
+      $p_C$ equation. If $\kappa = 1$ still doesn't meet
+      maintenance, then burn structure to meet maintenance. Under
+      this model, growth stops before reproduction, as
+      before. Reproduction may cease at some point. On a return to
+      food, both growth and reproduction will restart at the same time.
+    \item Make $\kappa$ a smooth function of reserve density
+      $E/V$. When $E/V$ is near its maximum, $\kappa$ is at a
+      minimum. As $E/V$ drops (because the reserve is being depleted
+      faster than it is replenished by ingestion), $\kappa$
+      increases. Depending on the shape of the $\kappa(E/V)$ curve,
+      reproduction may shut down before growth (that is, $\kappa =
+      1$ and $\kappa p_C > k_M V$) and, on return to food, growth
+      may restart before reproduction. This would satisfy the
+      weight-for-length rule suggested by Ed McCauley. It also has a
+      nice symmetry with the fact that we will likely want to make
+      mortality rate a function of $E/V$ to capture starvation
+      mortality.
+    \item The last thing we wanted to consider was how to handle
+      ingestion. Bill points out that we will not be able to
+      estimate the ingestion rate or half-saturation constant from
+      the data we currently have. (I don't think this is necessarily
+      the case, as Martin et al. use data from batch culture
+      experiments to estimate the ingestion rate, at the very
+      least - of course, I cannot replicate their results, so take
+      this comment with a grain of salt). We discussed assuming that
+      ingestion was a step function - for some fraction $\theta$ of
+      the transfer period, the ingestion rate was $F/(\theta*\tau)$,
+      where $F$ is the food treatment and $\theta*tau$ is the amount
+      of time food is present in the vial; for the remaining
+      $(1-\theta)*tau$, ingestion would be zero. We decided this
+      would be excessively complicated because it introduces a
+      second discontinuity into the model (the allocation rules may
+      introduce a first discontinuity). I am not sure yet about this
+      - I think it might be okay. But for now we are going to just
+      assume that the ingestion rate is $F/\tau$, as a first pass.
+    \end{enumerate}
+  \item We decided we would do simulation-recovery experiments. I am
+    going to generate simulated data using different starvation
+    allocation rules and different ingestion functions. Bill will
+    use a simple trajectory matching approach with optim() to try to
+    recapture the parameters. This exercise will tell us a lot about
+    model identifiability, I hope.
+\end{itemize}
+
+\section{21 Nov 2012}
+I started coding up the R-functions for simulating data for the
+parameter recovery experiments. The R-functions can be found (along
+with an extended commentary) in the file ``Cressler_Nelson_style_DEB.R''. Based on our previous discussions and
+my own thoughts, I am coding up four versions of the DEB model:
+\begin{enumerate}
+  \item deb.ingest1.starve1() models ingestion as a Type II functional
+    response, but with a constant food level, so it models ingestion
+    in a chemostat. The starvation rules are to hold $\kappa$ constant
+    and burn structure to meet maintenance.
+  \item deb.ingest1.starve2() has the same ingestion model but assumes
+    that $\kappa$ is a function of reserve density
+    ($e=E/V$). Specifically, I am assuming that $\kappa(e)$ is
+    sigmoid, varying between $\kappa_{min}$ and 1. The inflection
+    point of the sigmoid curve occurs when $e$ is half of $e_{max}$,
+    where $e_{max}$, according to DEB theory, is the maximum
+    surface-area specific assimilation rate $p_{Am}$ divided by energy
+    conductance $\nu$.
+  \item deb.ingest2.starve1() models ingestion as a Type II functional
+    response with a variable food level. Therefore, the larger an
+    individual is, the more likely it is to deplete all of the food
+    prior to the next transfer. The starvation rule is constant $\kappa$.
+  \item deb.ingest2.starve2() assumes a Type II functional response
+    with depletion and a starvation rule of $\kappa(e)$.
+\end{enumerate}
+There are two reasons I am ignoring all of the discussion in the notes from 19
+Nov regarding ingestion. First, it seems to me that the
+discussion was really about how we want to try to \emph{capture}
+ingestion, not how we think ingestion actually works. So what we
+really want to know is, if ingestion is really a Type II functional
+response with size-dependent food depletion, how much does modeling it
+in a simpler way compromise our ability to estimate the DEB parameters
+that we are really interested in? Second, the maximum reserve density,
+an important compound parameter, depends on the ratio of maximum
+SA-specific assimilation rate and energy conductance. Some of the
+models we were discussing don't consider assimilation rate to be
+SA-specific, so I could no longer estimate maximum reserve density.
+
+\section{22 Nov 2012}
+I have figured out what was going wrong with my attempts to recreate
+Figure 6 in Martin et al. The problem was that I was modeling the food
+dynamics as
+\begin{equation}
+  \frac{dXdt} = -J_{XAm}\frac{X}{K+X}L^2,
+\end{equation}
+so the right-hand side of the equation has units of cells/day, but $X$
+has units of cells/ml. All I needed to do was divide the right-hand
+side by the container volume (80ml) and the numerics worked out just
+fine. The new R-file
+``Simulating_DEB_under_Coors_et_al_batch_conditions_2.R'' documents
+the new efforts.
+
+This is good, because it means I can use the Martin et al. parameters
+as a jumping off point for the simulation-recovery
+experiment. However, in trying to work out these parameters, I have
+realized a potential difficulty with the model Bill and I derived:
+many of the parameters of the standard DEB model are in terms of
+volumes - for example, the cost of growth ($[E_G]$ in Kooijman's
+terrible notation) has units of energy/mm$^3$ - but we have written
+the equation in terms of length, as has Martin et al. This makes the
+relationship between, for example, Martin et al.'s fitted value of $g$
+and the cost of growth problematic. In standard DEB theory, $g$ is a
+compound parameter quantifying the energy investment ratio, and is
+equal to $[E_G]/(\kappa*[E_m]$, where $[E_m]$ is the maximum reserve
+density. $g$ is therefore dimensionless in standard DEB theory, and
+Martin et al. assume it is dimensionless as well. This is fine for
+them, because they never use the parameter $[E_G]$, but it is
+potentially problematic for me. In particular, the mobilization rate
+has units of mgC/day. The growth equation that Bill and I wrote down was
+\begin{equation}
+  \frac{dL}{dt} = \frac{\kappa p_C-k_m L^3)/(3 \epsilon_G L^2),
+\end{equation}
+which has units of (mgC/day-mm^3/day)/(mgC/mm^3*mm^2). Okay, the
+problem isn't with $\epsilon_G$, the problem is with the somatic
+maintenance rate $k_m$. I had forgotten: in the standard DEB model,
+what I am calling $k_m$ Kooijman calls $p_m = k_m \epsilon_G$, so my
+$k_m$ actually has units of mgC mm$^{-3}$day$^{-1}$, so the numerator
+of the growth equation has units of mgC/day and the denominator has
+units of mgC/mm, so the growth equation has the proper units again.
+
+The $k_m$ of Martin et al. is the same as Kooijman's $k_m$. So I have
+modified the DEB models of ``Cressler_Nelson_style_DEB.R'' to correct
+this mistake. That should allow me to estimate everything. I just have
+to bear in mind that $\epsilon_G$ is the cost of new structural
+volume, not new structural length.
+
+Also, I found that I needed to adjust the $\kappa(e)$ function. I need
+to add the additional constraint that $\kappa$ should equal
+$\kappa_{min}$ if $E/V$ is at or near its maximum. Right now, that is
+not happening because the slope parameter $w$ needs to be much
+larger - the minimum $E/V$ is zero but the maximum is $p_{Am}/v$,
+which for the parameters I am choosing, is only 2.9e-4. If $w$ is
+small, $\kappa$ will be nearly constant over this range at halfway
+between the high and low values.
+
+I have all of the parameter values, so I am playing around with
+simulating data. What jumps out right away is that burning structure
+(shrinking) is really common no matter what rule for starvation I
+choose. The two are basically indistinguishable from one another. The
+reason is because $E/V$ changes very quickly, causing $\kappa$ to vary
+a lot. If you plot the dynamics of $\kappa$ through time, you see that
+it spends about half the time at $\kappa=\kappa_{min}$ and about half
+the time at $\kappa = 1$. But when it is at $\kappa=1$ the total
+mobilization flux is low, so it doesn't contribute much to growth. My
+guess is that the inflection point needs to be much closer to the
+maximum reserve density (right now the inflection point is at 0.5*$E_m$, so that the allocation to growth might speed
+up \emph{before} it becomes necessary to burn structure to pay
+maintenance. My overall sense is that the dynamics of reserve are
+very, very fast and that is going to obscure a lot. Of course, it may
+very well be the case that \emph{Daphnia} have very fast reserve
+dynamics - Martin et al.'s analysis certainly suggests that is the
+case. I can do two things - I can slow reserve dynamics by making $v$
+smaller and I can make the inflection point a bit closer to reserve
+density, say at 0.75*$E_m$. Bumping up the inflection point
+approximately doubled the size difference between the two starvation
+rule datasets (under batch culture conditions), but that means that
+the largest possible size is 3.22 versus 3.1 - not a huge
+difference. Moreover, this starvation rule really doesn't change the
+\emph{dynamics} of starvation - the individual is still forced to burn
+structure to pay maintenance, and it doesn't change the amount of
+starvation that occurs. So I can conclude, with some certainty, that
+the rules for starvation don't really affect the dynamics of
+starvation much, at least with these fast reserve dynamics.
+
+What happens if I reduce the value of $v$?  The first thing to keep in
+mind is that I am getting parameter values from Martin et al., and
+these were fitted by choosing a value of the parameter $g$, which they
+found they were essentially free to choose. Based on DEB theory, I
+would expect that $g$ and $v$ should be positively correlated. The
+other parameters, in theory, should be independent. So I will create a
+``slow-reserve'' parameter set that keeps all parameters constant
+except $v$, which will be 1/10 of the Martin et al. $v$ value. What I
+find is very interesting - if reserve dynamics are slow, there is a
+\emph{huge} difference between the two starvation rules. The
+difference in maximum size between the constant $\kappa$ and
+$\kappa(E/V)$ is over 0.5 mm. The amount of shrinking doesn't change
+much (if anything, individuals growing under the $\kappa(E/V)$ rule
+shrink a bit more, because they have more to burn), but there is much
+less shrinking that with the fast reserve dynamics parameter
+set. \textbf{Batch culture conditions should provide data
+  that can much more clearly distinguish the value of $v$, if not the
+  starvation rules - this early exploration would seem to support a
+  much smaller $v$ value, since we don't see a lot of incredible
+  shrinking \emph{Daphnia}!}
+
+I have simulated 32 different datasets (4 models * 2 parameter sets *
+4 food levels) and saved the data.
+
+\section{26 Nov 2012}
+Bill has successfully been able to recover parameters from simulated
+data (not my simulated data, but some of his own) using only
+trajectory matching with optim(). He showed me the fits of
+simulated deterministic trajectories - optim() was able to recover the
+\emph{exact} parameter values. This is a really good sign, and it
+bodes well for our ability to recover the parameter values from other
+non-deterministic trajectories.
+
+Today I am working on getting the model coded into pomp(). I want to
+encode the deterministic skeleton and the measurement model. I am
+going to assume normally distributed errors in length measurement and
+Poisson distributed errors in neonate counts. I will also encode a
+stochastic version of the model that includes process noise. One
+obvious source of process noise is in the feeding - the amount of food
+added per transfer is always stochastic. If we wanted, we could also
+include process noise in the mobilization rate.
+
+\section{27 Nov 2012}
+I have written C code that implements the deterministic skeleton, and
+I can use it to reproduce the trajectories simulated using the code
+``Simulation\_recovery\_expt\_data\_generation.R''. I also want to
+implement a stochastic version of the model. This requires a bit more
+work, because the model is continuous-time, and adding stochasticity
+to a continuous time model requires a bit more care than adding
+stochasticity to a discrete time model. Right now, I have done the
+first simple-minded thing I could think of, which was to make the
+assimilation rate and mobilization rate stochastic random variables
+with means given by the determininistic rates and standard deviations
+set by the user. My initial effort at this didn't work,
+unsurprisingly. I believe that the problem was that the term $dt$
+never shows up in the equations, which is essentially like assuming a
+$dt$ equal to 1. That is, of course, wrong. So the individual grows
+and reproduces way, way too much. I will come back to this problem
+later. First, I want to try out some simulation-recovery experiments.
+
+Okay, I have gotten these up and running. To do:
+\begin{enumerate}
+  \item Get different DEB models with different starvation rules and
+    different ingestion rules up and running.
+  \item Write a stochastic process simulator, likely using the
+    tau-leap method.
+  \item Start writing an algorithm to perform an integrated search,
+    beginning with a broad sweep of parameter space and continuing
+    down until I find the ``best'' parameters.
+  \item Try fitting incorrect models to different datasets to see how
+    parameter esimates change.
+\end{enumerate}
+
+The ingestion rules will be problematic because pomp() uses lsoda()
+for solving the deterministic skeleton numerically, and lsoda()
+doesn't work for discontinuous changes in state variables, which I
+need to implement for the batch culture conditions. Okay, looking at
+the documentation, it looks like I just have to specify
+method=''lsodar'' to use that solver - the default is just to use
+lsoda. I haven't used lsodar before. It is easy enough to figure out,
+but the problem is that it requires a few extra functions to make it
+work properly. The example code below shows a simple case where every
+2 days the y-variable is augmented by a random amount
+<<echo=T>>=
+derivfun <- function (t,y,parms)
+    list (-0.05 * y)
+
+rootfun <- function (t,y,parms)
+    return(sin(pi/2*t))
+
+eventfun <- function(t,y,parms)
+    return(y + runif(1))
+
+yini <- 0.8
+times <- seq(0,20,0.1)
+
+out <- lsodar(func=derivfun, y = yini, times=times,
+              rootfunc = rootfun, events = list(func=eventfun, root = TRUE))
+@
+The question is how to implement rootfun and eventfun in the compiled
+C-code. I tried doing it the naive way, creating C-code to be compiled
+with the pompBuilder command, e.g.,
+<<echo=T>>=
+" sin(pi/2*t) " -> rootfn
+" F = F_0 " -> eventfn
+pompBuilder(
+            name='DEB_batch_constantK',
+            data=obsdata,
+            times='Age',
+            t0=0,
+            step.fn=stepfn,
+            step.fn.delta.t=0.1,
+            dmeasure=dmeas,
+            rmeasure=rmeas,
+            skeleton.type='vectorfield',
+            skeleton=skel,
+            parameter.transform=trans,
+            parameter.inv.transform=untrans,
+            statenames=c('E','L','Re','R','F'),
+            paramnames=c('K','km','eG','eR','v','Rmbar','pam','Fh','ea','vol','E.0','L.0','Re.0','R.0','F.0','L_sd','PA_sd','PC_sd'),
+            rootfun=rootfn,
+            eventfun=eventfn) -> deb
+@
+
+pompBuilder just ignores the rootfun and eventfun arguments and
+compiles the C code without these functions. I have discovered,
+furthermore, that pomp does not allow you to specify the method. If I
+try to run
+<<echo=T>>=
+x <- trajectory(deb, as.data.frame=TRUE, times=seq(0,75,by=0.1), method='lsodar')
+@
+with ``method'' specified, I get an error telling me that the formal
+argument ``method'' was matched by multiple actual arguments. That is,
+when the pomp function trajectory() makes a call to the deSolve
+integrator function ode(), it does so with method='lsoda' already
+specified. So my attempt to call it something else generates an
+error. This is problematic for my efforts to use pomp() to simulate
+batch culture transfer conditions. I suppose that is true only for the
+trajectory matching case, however, because the stochastic model will
+be in discrete time and won't have any problems with discontinuous
+updating. I suppose that gives me one alternate way to handle the
+problem. I could write a stochastic version using the tau-leap
+algorithm that doesn't have any process or demographic stochasticity
+other than the stochasticity inherent in the method. Or I could write
+my own trajectory matching algorithm, which probably wouldn't be too
+difficult to do. I guess I will try writing my own trajectory matching
+algorithm. This shouldn't present too much difficulty and would likely
+be a good exercise anyway.
+
+The first thing to do is write C-code that I can compile into a DLL
+that lsodar can use to compute the trajectories outside of pomp. I
+have this running. However, I have discovered a problem with the data
+I generated previously under batch conditions. The updating of food
+was incorrect - looking more closely at the data, the food was updated
+every 4 days, not every three days. This is no big deal really, but it
+does mess with things. I have deleted all of the data and will go in
+and fix later. It will definitely affect the growth dynamics,
+however.
+
+\section{30 Nov 2012}
+I have a trajectory matching algorithm that will work for the batch
+culture conditions of our experiment. The details can be found in
+``Simulation_recovery_expts_batch_pomp.R''.
+
+Now I want to get to work on designing an algorithm for actually
+finding the optimal parameter values, when you start from near
+ignorance. This requires initializing with a ``global'' search, and
+then narrowing in on interesting (high likelihood) parts of parameter
+space and exploring them more carefully. Aaron lays out such an
+integrated search strategy at the end of his notes. In that, he begins
+with many randomly distributed parameter values and he computes the
+likelihood of each parameter set using particle filtering. This
+requires having the ``step.fn'' argument of pompBuilder correctly
+specified - pomp() uses the stochastic model for calculating
+likelihoods using particle filtering.
+
+I could, as a first pass, just calculate the likelihood assuming only
+observation error with trajectory.matching(eval.only=TRUE). That is
+probably a good way to go for now. I will chart my progress here, but
+the R-code here will also be found in
+``Simulation_recovery_expts_batch_pomp.R''.
+
+First, start with an initial search of parameter space by bounding our
+ignorance of parameter values with a box (lower bounds and upper
+bounds for all estimated parameters). For real data, it will probably
+be necessary to do some exploration to figure out these bounds. Here I
+can simply pick parameter values that are far (up to an order of
+magnitude on either side) from the truth. I can then use pomp to
+create a Sobol low discrepancy sequence of points across this bounding
+box. I am going to fit 11 parameters: $\kappa$, $k_m$, $\epsilon_G$,
+$\epsilon_R$, $\nu$, $\bar{R_e}$, $p_{am}$, $F_h$, $\epsilon_A$,
+$E(0)$, ane $L(0)$. I created a Sobol low discrepancy sequence with
+10,000 variations of these parameters across the bounding box of
+uncertainty. I then estimated the likelihood of each of these
+parameter sets using trajectory.matching(eval.only=TRUE). The data to
+be fit and a dataframe with all parameter values and their
+log-likelihoods are saved as ``Sample_batch_transfer_data.rda'' and
+``Sample_batch_data_stage_one.rda''.
+
+Note to self: one other possibility is to see if fitting multiple
+datasets at the same time would improve the fit. This is easy enough
+to do - the objective function for trajectory matching does not depend
+on the length of the dataset, so I can simulate a trajectory and
+evaluate the likelihood of the model on either dataset separately, and
+then sum the likelihoods to get a likelihood for both datasets at the
+same time. I wonder if this would improve the likelihood. I will check
+that next.
+
+There was a huge amount of variation - most of the parameter sets were
+absolute crap, with negative log-likelihoods of infinity. About 1000
+of the datasets produced NA log-likelihoods because the numerical
+integrator couldn't carry them to completion. Even the top 1\% of
+parameter sets have huge variation in log-likelihood (greater than
+25000 log-likelihood units difference). However, the best seem to
+actually be in the neighborhood of the true parameter values. The next
+stage of the optimization is to use trajectory matching to refine
+these parameter estimates.
+
+This has also been implemented - I took the top 100 datasets and used
+Nelder-Mead optimization to trajectory match. The results of this have
+also been saved, as ``Sample_batch_data_stage_two.rda''.
+
+Another note to self: I can add extra-demographic stochasticity
+without having to implement a more complicated model or do anything
+more than trajectory matching, if I assume that the only sources of
+this stochasticity have to do with food addition. In particular, I can
+create variation in the \emph{amount} of food added at each transfer
+and in the exact \emph{timing} of the food addition, by adding two
+parameters that determine the amount of variation around food density
+and transfer timing. Essentially, all I am ignoring is demographic
+stochasticity related to the acquisition, mobilization, and
+utilization of energy. That might be totally okay for now.
+
+To ask Aaron: How do you deal with the fact that the timepoints of the
+observation are only weakly related to the equivalent timepoint in the
+simulation? That is, I say that I measured Daphnia on days 1, 4, 7,
+etc., but I didn't measure them at the \emph{exact} moment they were 1, 4, 7,
+etc. days old. I just measured them \emph{at some point} on their
+first, fourth, seventh, etc. day of life. How do you deal with that
+source of variation?
+
+So, a short to-do list:
+\begin{enumerate}
+  \item Continue to hone in on the parameter values found above by
+    adding variation around each of the ``good'' parameter sets and
+    redoing the trajectory matching, possibly letting each parameter
+    set run for a bit longer (I think that many, if not most, of the
+    fittings did not converge, but simply maxed out the optimization
+    iterations).
+  \item Try trajectory matching on multiple datasets generated from
+    the same underlying true parameter set and see if the extra data
+    improves the ability to fit the parameters.
+  \item Add extra-demographic stochasticity in the amount of food and
+    timing of transfers.
+  \end{enumerate}
+
+\section{4 Dec 2012}
+I am finding a lot of covariation between parameters in the fitted
+datasets. This is very troubling, but also potentially provides an
+avenue for further simplification of the model, as it appears that
+certain parameter combinations are well-estimated. I am breaking this
+exploration out into its own file.
+
+Also, I have noticed a potential problem with assuming
+Poisson-distributed sampling error of neonates: because the variance
+is equal to the mean for the Poisson distribution, it is possible that
+the ``observed'' births are not strictly increasing in the sample
+data. I noticed this in the data that has already been fit, so I am
+going to regenerate new data for fitting.
+
+Also, I have noticed that 'subplex' does a better job at parameter
+estimation than does 'optim', so I am going to redo the analyses using
+only subplex.
+
+The long and the short of it is this: I am going to generate 4
+parameter sets with a single set of observed data with non-decreasing
+reproduction values, and then I am going to estimate the parameters of
+those four datasets, and then look at parameter correlations. All of
+this is going to be written up in
+``Simulation_recovery_expts_batch_culture.R'', with previous versions
+of this R-file and its produced .rda data files archived.
+
+\section{5 Dec 2012}
+I have generated four observed datasets using four different parameter
+combinations, and fit the DEB model to each. All of the data can be
+found in the directory ``Batch_culture_simulation_recovery''. The
+first thing I did was plot the correlations among parameters for each
+fitting, which can be found in
+``Correlations_among_parameters.pdf''. Many of the parameters appear
+to be highly correlated with one another. Each fitting is explored in
+more detail in the four versions of
+``Solving_the_problem_of_parameter_covariation_#.pdf''. I am a little
+troubled by what I have found thus far. For the first dataset, it
+appeared that, although many of the parameters were not
+well-identified, some combinations of parameters were. But in the
+fittings of datasets 2-4, even though the correlations among
+parameter estimates were even stronger than before, none of the
+parameter combinations that were previously well-estimated are still
+well-estimated now. I am wondering if, somehow, the observed datasets
+were produced using different parameter values than ones that were
+saved as ``true_parameters.rda''. I am also wondering if the Poisson
+sampling error is really a good choice, given how the variance scales
+with the mean. That doesn't really make any sense, biologically. And
+the procedure that I went through to generate the observed data (where
+I required the number of births to be non-decreasing), almost
+guarantees that it will have a hard time figuring out what is going on
+with births, because non-decreasing Poisson sequences are very
+low-probability. What I am going to do is delete the current observed
+datasets, regenerate these without the non-decreasing requirement, and
+then start the fittings over again. Then we'll see where we get.
+
+\section{7 Dec 2012}
+Aaron King visited and had some great ideas. In particular, since the
+question we are really interested is the correlations among life
+history traits, as represented by DEB parameters, and the connection
+between life history and ecological and evolutionary dynamics, which
+depends on how variability and constraint. Given the huge amount of
+intraclonal variability that seems not to depend on maternal effects,
+epigenetics, or anything else easily diagnosable (Olijnyk and Nelson
+2012 call this ``developmental noise''), it seems very reasonable to
+consider the DEB parameters of each individual as a random draw from a
+multivariate normal distribution with means and variance-covariance
+matrix. Then what we are really trying to fit is not the specific
+parameters of each individual, but rather the means and var-covar
+matrix for each genotype and environment. This kind of suggests a
+shift in thinking from an adaptive dynamics to a quantitative genetics
+approach to evolution.
+
+A useful approach to this problem is data cloning (see papers by
+Subhash Lele and Brian Dennis on this topic), since what we have is a
+hierarchical model: that is, we have the DEB model that we use to
+generate simulated data that we compare against the observed data; and
+we have a higher-level probability distribution that describes the
+probability of generating any particular set of parameter values. That
+is, the parameters of the DEB model are now random variables, drawn
+from a distribution whose parameters we are trying to estimate. The
+data cloning method uses Bayes' theorem to calculate posterior
+probability distributions, but does this for many copies (clones) of
+the data. After each calculation of the posterior, the posterior
+becomes the prior distribution for a new calculation. In this way, the
+posterior converges to the MLE. Very slick.
+
+How would this work? Basically, like this:
+\begin{enumerate}
+  \item Choose mean and variance-covariance matrix parameters.
+  \item Draw DEB parameters from the proposal distribution.
+  \item Simulate a DEB trajectory.
+  \item Compare the trajectory against the observed data (calculate
+    the likelihood given the measurement model, if we are assuming
+    only measurement error).
+  \item Accept/reject the proposed distribution.
+  \item Repeat. This is a Markov chain Monte Carlo integration method.
+  \end{enumerate}
+Clearly I am not quite sure what I am talking about. I need to do some
+additional reading to focus this problem, because while I have some
+clue as to what is going on, its only a clue.
+
+The basic problem, as Aaron sort of explained it, is the following:
+say you use MCMC (like Metropolis-Hastings or some such) to figure out
+the DEB parameter distribution - how do you know that you have
+converged to the MLE distribution parameters? If you have a prior then
+you can use a Bayesian approach. The point of data cloning is that you
+use the estimates returned by the MCMC as a prior for another
+iteration of MCMC. Aaron pointed out that some Bayesians would freak
+out about this, because you are using your data to specify a prior,
+and using that same data to calculate the posterior. Of course, the
+idea of a prior is sort of weird anyway, but he just wanted us to
+know.
+
+So, to start, I need to implement the ``draw DEB parameters from a
+distribution, compute the trajectory, and compare against data'' part
+of the algorithm. Then I can worry about the Metropolis-Hastings
+wrapper, etc.
+
+
+To do:
+Develop histograms for all 13 genotypes: histograms of means for each
+genotype for each parameter and histograms for all individuals (on raw
+scale).
+
+F-ratios for each parameter (s^2_genotype/s^2_individual|genotype)
+
+Why a positive LH correlation between Linf*K and mean egg rate?
+i) C = correlation; calculate dC/dparameters (as an elasticity rather
+than sensitivity). This tells us which parameters contribute the most
+to the correlation.
+ii) Also, where (on the pairwise paramter scatterplot) are winners
+(i.e., fast growers and reproducers) and losers? Do we see that, in
+some parameters, winners and losers are spread out among the parameter
+estimates, and for others the winners are clustered far away from the
+losers?
+
+Wait, how to calculate the correlation? The correlation is among
+individuals, who vary in parameter values, so how can I calculate how
+a change in one of those parameter values? Answer is fairly
+simple. Take the true parameter values for each individual, and for
+each individual, calculate Linf*k by fitting von B parameters, and
+compute mean daily egg rate. The calculate correlation between Linf*k
+and mean daily egg rate across all individuals. Then vary parameters,
+one at a time, by a tiny amount and repeat. Calculate the change in
+the correlation and get dCorrelation/dParameters.
+
+\section{4 March 2013}
+I want to return, with more care, to the fitting of simulated
+datasets. All of this will take place in the folder
+Batch\_culture\_simulation\_recovery. In particular, I want to address
+a number of questions:
+\begin{enumerate}
+  \item Does the nondimensionalized model return better estimates than
+    the dimensional model?
+  \item If the simulated data was generated with ``real'' feeding
+    (i.e. a Type II functional response), how does approximating this
+    by assuming constant feeding affect the estimates of all other
+    parameters?
+  \item How do different starvation rules affect parameter estimates?
+  \item How does variation in parameter estimates from fitting a
+    single dataset compare to the variation across datasets. This will
+    help me to get a sense of whether, when I look at real data, the
+    variation among individuals within a genotype will \emph{always}
+    be greater than variation across genotypes, by creating a
+    situation where the ``genotypes'' differ (i.e. by fitting datasets
+    that differ either only because of stochasticity, or because they
+    have different parameter values).
+  \item How does adding process noise affect the parameter estimates?
+    In particular, can adding this noise improve or constrain
+    parameter estimates? For example, in my early attempts at fitting
+    real trajectories, I noticed that it was often the case that
+    $\kappa$ was estimated to be near 0 or near 1, and that the model
+    compensated for this by having either the cost of growth or the
+    cost of reproduction be very, very small. However, if there is
+    stochasticity in, say, mobilization flux, then with $\kappa$ near
+    0 or 1, it would be very easy to have a situation where the
+    individual is either not growing or not reproducing. In other
+    words, stochasticity might force $\kappa$ away from extreme
+    values.
+  \end{enumerate}
+
+The first order of business is to decide on the models I want to use
+to generate the simulated data, and then to fit these using only
+trajectory matching. This will help address most of the questions I
+list. I will have to write nondimensionalized versions of most of
+these models, as right now I believe I only have a nondimensionalized
+version of the constant ingestion, constant $\kappa$ model. I could
+start there, but I think a very immediate concern is how treating
+ingestion as a constant, compared to allowing it to vary through time,
+affects parameter estimates.
+
+\section{22 July 2013}
+Returning to this problem again, after so long.
+
+Leah Johnson and I chatted at EEID. Her very strong feeling was that
+the choice of feeding model makes a huge difference for the estimates
+of every other parameter. I need to see to what extent that is
+correct. That is the first order of business.
+
+Bill had the interesting idea of fitting several different models of
+ontogeny, ranging in complexity. We then look at the parameter
+covariation within each model, and across the models, to understand
+how the inferences drawn about life history covariation change. Leah
+also mentioned, and I cannot believe that I forgot this, that with
+constant feeding rate (as we used for the initial parameters), the
+growth model is exactly the von Bertalanffy model (once the reserve
+density hits its equilibrium value, anyway). Duh. No wonder it can be
+reduced to so few parameters when you non-dimensionalize.
+
+So, what to do?
+\begin{enumerate}
+  \item Write down dimensional (not non-dimensional) versions of the
+    DEB model with both types of feeding (chemostat and batch
+    culture).
+  \item Use trajectory matching to fit Adriana's data from the high food
+    treatment.
+  \item Look at the parameter estimates for each individual and see
+    how they differ using the two feeding models.
+  \item There is also the issue of the starvation rules. Right now, I
+    am using a model where $\kappa$ does not vary - if individuals
+    cannot meet maintenance, they shrink. If there is time, I really
+    need to see how changing these starvation rules might affect the
+    model fitting.
+\end{enumerate}
+
+I have created a new directory, ``Comparing_fits_batch_vs_chemostat''
+and put everything I am working on in that directory.
+
+Some particulars about this fitting:
+\begin{enumerate}
+\item Bill had come up with the bright idea of keeping track of two lenth
+  variables: ``structural'' length and ``measured length''. The
+  dynamics of structural length are exactly as described by DEB
+  theory. Measured length follows the dynamics of structural length as
+  long as growth rate is positive. If growth rate is ever negative,
+  structural length will decrease but measured length will stay
+  constant. I had forgotten that was how we were dealing with
+  starvation. It is an effective approach, for sure.
+\item I cannot use the nondimensionlized version of the model because
+  the batch culture model would need a new nondimensionalization. This
+  means that the parameters would not have the same interpretation, so
+  it would be very difficult to understand the patterns of covariation
+  among the parameters.
+\end{enumerate}
+
+In the new directory, there are two .c files for doing the actual
+simulation, deb\_batch.c and and deb\_constant.c.
+\end{document}

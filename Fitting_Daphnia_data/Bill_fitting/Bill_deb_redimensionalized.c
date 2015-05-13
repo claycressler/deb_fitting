@@ -1,0 +1,33 @@
+#include <R.h>
+#include <stdio.h>
+
+static double parms[5];
+
+#define alpha parms[0]
+#define kappa parms[1]
+#define beta parms[2]
+#define f parms[3]
+#define T_M parms[4]
+
+/* initializer */
+void initmod(void (* odeparms)(int *, double *)) {
+  int N=5;
+  odeparms(&N, parms);
+}
+
+/* derivatives */
+void derivs (int *neq, double *t, double *y, double *ydot) {
+
+  // state variables: energy density, length
+  double W = y[0];
+  double L = y[3];
+  double Lobs = y[1]; // the . has special meaning in C
+
+  // balance the equations
+  ydot[0] = (f/T_M)*(alpha/(L*L*L))-(W/L);
+  ydot[3] = (kappa*W-L)/(3*(1+kappa*W));
+  ydot[1] = 0; if(ydot[3]>0 && L>=Lobs){ydot[1] = ydot[3];}
+  ydot[2] = ((1-kappa)*L*L*(1+L)*W)/(1+kappa*W);
+
+}
+

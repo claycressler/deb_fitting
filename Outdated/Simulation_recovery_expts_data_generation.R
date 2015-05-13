@@ -1,0 +1,113 @@
+## This code simulates the four different DEB models of Cressler_Nelson_style_DEB.R.
+
+## I am using PBSddesolve to do the simulation because it allows state variables to change discontinuously, which I want for the models with food depletion due to ingestion and transfers every two days. The switch function is a sine wave with period of 2 days - the sine function switches from positive to negative every two days (the transfer period), triggering food to be reset to the predefined level.
+mySwitch <- function(t,y,parms) { c(sin(pi/2*(t-1))) }
+myMap <- function(t,y,sid,parms) { c(y[1],y[2],y[3],y[4],parms$F0) }
+
+## Parameter values
+## Minimum allocation to growth
+## Martin et al. report a K value of 0.678; I will assume a lower
+## starting point of 0.6.
+Kmin <- 0.6
+## Somatic maintenance rate (1/day)
+## I am using Martin et al.'s estimate of 0.33
+km <- 0.33
+## Cost of growth (mgC/mm^3)
+## This was not estimated by Martin et al. Instead, they estimate the
+## compound parameter g, which in standard DEB theory equals
+## eG*v/(K*pam). Using Martin's estimate of g and v and my Kmin and
+## pam, eG is 10*(0.6*0.005187)/18.1=0.0017
+eG <- 0.0017
+## Cost of reproduction/conversion of energy (mgC/egg)
+## Martin et al. jump through a lot of hoops to estimate this
+## cost. The explicitly model molts, and assume that the energy in the
+## reproduction buffer is converted to offspring at a molt so that the
+## number of offspring produced is equal to U_R (the amt of energy in
+## the buffer) * K_R (conversion efficiency = 0.95) / U_E^0, the
+## amount of energy required to produce an offspring that will be born
+## with reserve density at its maximum. The estimate the reserve
+## density at birth as equal to 0.111, but because they have divided
+## everything by maximum surface-area specific assimilation rate, the
+## reserve density at birth has the odd units of t*L^2. I am going to
+## assume that U_E^0 is equal to the amount of energy in a newborn,
+## multiplied by the maximum SA-specific assimilation rate they
+## report. So, U_E^0 = 0.111*0.00741/0.95=0.008658 mgC. ## incorrect - 0.00741 is the maximum *ingestion* rate - see below, also should be 0.0008658 anyway - forgot a 0
+eR <- 0.00868
+## Energy conductance (mm/day)
+## I want to explore two possibilities. The first uses Martin et al's
+## value of 18.1, which produces very fast reserve dynamics. I will
+## also explore a "slow-reserve" value that is 1/10 of the fast value.
+v.fast <- 18.1
+v.slow <- 1.81
+## Maturation requirement (mgC)
+## Again, Martin et al's estimate has units of day*L^2, so I will take
+## their esimate (2.547) and multiply by the max. SA-specific
+## assimilation rate (0.00741) # incorrect-0.00741 is the max *ingestion* rate
+Rmbar <- 0.0189
+## Maximum surface area-specific assimilation rate (mgC/mm^2/day)
+## Martin et al. report an ingestion rate of 3.8e5 cells/mm^2/day. The
+## algae had a carbon content of 1.95e-8 mgC/cell, so the ingestion
+## rate in mgC/mm^2/day was 0.00741. Assuming an assimilation
+## efficiency (ea) of 0.7 (Nisbet et al. 2004), my parameter pam =
+## 0.005187
+pam <- 0.005187
+## Half-saturation constant (mgC/ml)
+## Martin et al. report 1585 cells/ml, a carbon equivalent of
+## 1585*1.95e-8 = 3.09e-5 mgC/ml
+Fh <- 3.09e-5
+## Assimilation efficiency
+## Based on Nisbet et al. 2004
+ea <- 0.7
+## "Speed" of increase in K as E/V decreases
+w <- 20000
+## Container volume (ml)
+Vol <- 20
+## Food treatment (mgC)
+F0 <- c(0.00625, 0.0125, 0.025, 0.05)
+
+## Load what we need
+require(PBSddesolve)
+source('Cressler_Nelson_style_DEB.R')
+
+## For each model structure, simulate under four food levels and save
+## the output.
+for (i in 1:4) {
+  ## Parameters
+  parameters.fast <- list(Kmin=Kmin,km=km,eG=eG,eR=eR,v=v.fast,Rmbar=Rmbar,pam=pam,Fh=Fh,ea=ea,w=w,Vol=Vol,F0=F0[i])
+  parameters.slow <- list(Kmin=Kmin,km=km,eG=eG,eR=eR,v=v.slow,Rmbar=Rmbar,pam=pam,Fh=Fh,ea=ea,w=w,Vol=Vol,F0=F0[i])
+
+  ## Initial conditions
+  ## Reserves = pam/v*L0^3
+  ## Initial conditions for chemostat-like ingestion
+  y1.fast <- c(parameters.fast$pam/parameters.fast$v*0.85^3,0.85,0,0)
+  y1.slow <- c(parameters.slow$pam/parameters.slow$v*0.85^3,0.85,0,0)
+  ## Initial conditions for batch-like ingestion
+  y2.fast <- c(y1,parameters.fast$F0)
+  y2.slow <- c(y1,parameters.slow$F0)
+
+  ## Simulate a single long-lived individual
+  times <- seq(0,75,0.1)
+
+  ## Simulate all four models under the two parameter sets (fast and
+  ## slow reserve dynamics)
+  out11.fast <- dde(y=y1.fast, times=times, func=deb.ingest1.starve1, parms=parameters.fast)
+  out12.fast <- dde(y=y1.fast, times=times, func=deb.ingest1.starve2, parms=parameters.fast)
+  out21.fast <- dde(y=y2.fast, times=times, func=deb.ingest2.starve1, parms=parameters.fast, switchfunc=mySwitch, mapfunc=myMap)
+  out22.fast <- dde(y=y2.fast, times=times, func=deb.ingest2.starve2, parms=parameters.fast, switchfunc=mySwitch, mapfunc=myMap)
+
+  out11.slow <- dde(y=y1.slow, times=times, func=deb.ingest1.starve1, parms=parameters.slow)
+  out12.slow <- dde(y=y1.slow, times=times, func=deb.ingest1.starve2, parms=parameters.slow)
+  out21.slow <- dde(y=y2.slow, times=times, func=deb.ingest2.starve1, parms=parameters.slow, switchfunc=mySwitch, mapfunc=myMap)
+  out22.slow <- dde(y=y2.slow, times=times, func=deb.ingest2.starve2, parms=parameters.slow, switchfunc=mySwitch, mapfunc=myMap)
+
+  save(out11.fast, file=paste('LH_chemostat_constantK_fastE_F',sub('0.','',as.character(F0[i])),'.rda',sep=''))
+  save(out12.fast, file=paste('LH_chemostat_variableK_fastE_F',sub('0.','',as.character(F0[i])),'.rda',sep=''))
+  save(out21.fast, file=paste('LH_batch_constantK_fastE_F',sub('0.','',as.character(F0[i])),'.rda',sep=''))
+  save(out22.fast, file=paste('LH_batch_variableK_fastE_F',sub('0.','',as.character(F0[i])),'.rda',sep=''))
+
+  save(out11.slow, file=paste('LH_chemostat_constantK_slowE_F',sub('0.','',as.character(F0[i])),'.rda',sep=''))
+  save(out12.slow, file=paste('LH_chemostat_variableK_slowE_F',sub('0.','',as.character(F0[i])),'.rda',sep=''))
+  save(out21.slow, file=paste('LH_batch_constantK_slowE_F',sub('0.','',as.character(F0[i])),'.rda',sep=''))
+  save(out22.slow, file=paste('LH_batch_variableK_slowE_F',sub('0.','',as.character(F0[i])),'.rda',sep=''))
+
+}

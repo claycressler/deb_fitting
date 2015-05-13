@@ -1,0 +1,16 @@
+load('Clay_2C-AA_take2_best_fit_parameters.rda')
+
+## Compute the correlation between growth and reproduction in the
+## following way: (1) numerically simulate the best fit parameter
+## values; (2) fit a von Bertalanffy model to the growth trajectory
+## using NLS to estimate the produce Linf*k; (3) compute the mean
+## daily egg rate; (4) compute the correlation between all of the
+## individual Linf*k measurements and the individual mean daily egg
+## rate measurements.
+require(deSolve)
+dyn.load('nondim_deb_take2.so')
+
+
+## Compute an elasticity dCorr/dParams by adjusting the best-fit
+## parameters by a fixed amount and computing how much this changes
+## the correlation.

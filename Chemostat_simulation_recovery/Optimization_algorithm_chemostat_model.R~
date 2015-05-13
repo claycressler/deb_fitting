@@ -1,0 +1,159 @@
+## I want to use an algorithm that allows me to hone in on the best
+## parameter combinations, starting from near complete ignorance. The
+## algorithms of pomp, liked iterated filtering and trajectory
+## matching, are really only intended to work locally. Run by
+## themselves, they do not guarantee finding the global optimum. So it
+## is necessary to go through a many-step process.
+
+## Begin by loading a pomp object with data.
+source('DEB_chemostat_constantK_C-code.R')
+load('LH_chemostat_constantK_fastE_F05.rda')
+simdata <- out11.fast[seq(11,751,20),c('time','y2','y4')]
+colnames(simdata) <- c('Age','Lobs','Robs')
+obsdata <- simdata
+L_sd <- 0.05
+obsdata$Lobs <- rnorm(length(simdata$Lobs),simdata$Lobs,L_sd)
+obsdata$Robs <- rpois(length(simdata$Robs),simdata$Robs)
+
+pompBuilder(
+            name='DEB_chemostat_constantK',
+            data=obsdata,
+            times='Age',
+            t0=0,
+            step.fn=stepfn,
+            step.fn.delta.t=0.1,
+            dmeasure=dmeas,
+            rmeasure=rmeas,
+            skeleton.type='vectorfield',
+            skeleton=skel,
+            parameter.transform=trans,
+            parameter.inv.transform=untrans,
+            statenames=c('E','L','Re','R'),
+            paramnames=c('K','km','eG','eR','v','Rmbar','f','E.0','L.0','Re.0','R.0','L.sd','PA_sd','PC_sd')) -> deb
+
+## True parameter values
+if(!file.exists('true_parameters.rda')) {
+  true.parameters <- vector(mode='list',length=4)
+  F <- 0.05
+  true.parameters[[1]] <- c(K=0.6, km=0.33, eG=0.0017, eR=0.00868, v=18.1, Rmbar=0.0189, f=(0.005187*F/(3.09e-5+F)), E.0=0.005187/18.1*0.85^3, L.0=0.85, Re.0=0, R.0=0, L.sd=0.02, PA_sd=0.1, PC_sd=0.1)
+  F <- 0.025
+  true.parameters[[2]] <- c(K=0.7, km=0.23, eG=0.0017, eR=0.00868, v=3.1, Rmbar=0.0189, f=(0.005187*F/(3.09e-5+F)), E.0=0.005187/3.1*0.75^3, L.0=0.75, Re.0=0, R.0=0, L.sd=0.02, PA_sd=0.1, PC_sd=0.1)
+  F <- 0.05
+  true.parameters[[3]] <- c(K=0.4, km=0.1, eG=0.001, eR=0.0048, v=10, Rmbar=0.0189, f=(0.005187*F/(3.09e-5+F)), E.0=0.005187/10*0.5^3, L.0=0.5, Re.0=0, R.0=0, L.sd=0.02, PA_sd=0.1, PC_sd=0.1)
+  F <- 0.025
+  true.parameters[[4]] <- c(K=0.5, km=0.15, eG=0.001, eR=0.005, v=5, Rmbar=0.0189, f=(0.005187*F/(3.09e-5+F)), E.0=0.005187/5*1^3, L.0=1, Re.0=0, R.0=0, L.sd=0.02, PA_sd=0.1, PC_sd=0.1)
+  save(true.parameters, file='true_parameters.rda')
+} else load('true_parameters.rda')
+
+cummin <- function(x) sapply(2:length(x), function(y) x[y]-x[y-1])
+## Generate data (to overwrite the data currently in the pomp object deb
+if (!file.exists('observed_data.rda')) {
+    observed.data <- vector(mode='list',length=4)
+    for (i in 1:4) {
+        x <- trajectory(deb, params=true.parameters[[i]], as.data.frame=TRUE, times=seq(0,75,1))
+
+        ## simulate measurements, assuming data observation every 2 days
+        Lobs <- rnorm(length(x[seq(1,75,2)+1,2]),
+                      mean=x[seq(1,75,2)+1,2],
+                      sd=unname(true.parameters[[i]]['L.sd']))
+        Robs <- rpois(length(x[seq(1,75,2)+1,4]),
+                      x[seq(1,75,2)+1,4])
+        observed.data[[i]] <- as.data.frame(cbind(time=seq(1,75,2),
+                                                  cbind(Lobs,Robs)))
+    }
+}
+
+estimated.pars <- c('K','km','eG','eR','v','Rmbar','f','E.0','L.0')
+
+for (i in 1:4) {
+    pompBuilder(
+                name='DEB_chemostat_constantK',
+                data=observed.data[[i]],
+                times='time',
+                t0=0,
+                step.fn=stepfn,
+                step.fn.delta.t=0.1,
+                dmeasure=dmeas,
+                rmeasure=rmeas,
+                skeleton.type='vectorfield',
+                skeleton=skel,
+                parameter.transform=trans,
+                parameter.inv.transform=untrans,
+                statenames=c('E','L','Re','R'),
+                paramnames=c('K','km','eG','eR','v','Rmbar','f','E.0','L.0','Re.0','R.0','L.sd','PA_sd','PC_sd')) -> deb
+
+    ## Encompass our initial ignorance of the estimated parameter values by a box
+    box <- cbind(
+                 lower=c(K=0.1, km=0.01, eG=0.0001, eR=0.0001, v=1, Rmbar=0.001, f=0.0001, E.0=0.00001, L.0=0.5, Re.0=0, R.0=0, L.sd=0.02, PA_sd=0.1, PC_sd=0.1),
+                 upper=c(K=0.9, km=1, eG=0.01, eR=0.01, v=25, Rmbar=0.1, f=0.01, E.0=0.0001, L.0=1.2, Re.0=0, R.0=0, L.sd=0.02, PA_sd=0.1, PC_sd=0.1)
+                 )
+    ## Create a Sobol low discrepancy sequence of length 10000
+    guesses <- sobolDesign(lower=box[,'lower'],upper=box[,'upper'],nseq=10000)
+    guesses$id <- seq_len(nrow(guesses))
+    joblist <- dlply(guesses, ~id, unlist)
+
+    workfn <- function(start, po) {
+        tm <- traj.match(po, start=start, transform=TRUE, est=estimated.pars,
+                         method='subplex',maxit=2000, eval.only=TRUE)
+        list(par=start,
+             lik=tm$value,
+             conv=tm$convergence)
+    }
+
+    ## calculate the logliklihood of each parameter combination
+    lik <- lapply(joblist, workfn, po=deb)
+    results = ldply(lik, function(x) c(x$par,loglik=x$lik))
+    ## sort by log-likelihood
+    results = results[order(results$loglik,decreasing=TRUE),]
+    save(results, file=paste0('estimation_results_',i,'_stage_one.rda'))
+
+    ## run subplex on the top 100 parameter sets to hone in more
+    tm.results <- vector(mode='list', length=100)
+    jvec <- vector()
+    for (j in 1:100) {
+        jvec <- c(jvec, as.character(j))
+        write(jvec, file='progress.txt')
+        pars <- as.numeric(results[j,2:15])
+        names(pars) <- names(results[j,2:15])
+        y <- traj.match(deb, start=pars, transform=TRUE,
+                        est=estimated.pars,
+                        method='subplex',maxit=2000)
+        tm.results[[j]] <- y
+    }
+    ## extract the parameter values
+    tm.results <- cbind(t(sapply(tm.results, function(x) x$params)),
+                        sapply(tm.results, function(x) logLik(x)))
+    colnames(tm.results)[ncol(tm.results)] <- 'loglik'
+    tm.results <- tm.results[order(tm.results[,'loglik'],decreasing=TRUE),]
+    save(tm.results, file=paste0('estimation_results_',i,'_stage_two.rda'))
+
+    ## I am going to take the top 50, create novel variation around each
+    ## putative optimal parameter set, and then run subplex again
+    tm.vary <- array(NA, dim=c(500,14))
+    for (q in 1:50) {
+        tm.vary[((q-1)*10+1):(q*10),] <-
+            t(sapply(1:10, function(x) {
+                n <- names(tm.results[q,1:14])
+                w <- which(n%in%estimated.pars)
+                p <- as.numeric(tm.results[q,1:14])
+                p[w] <- rnorm(length(p[w]),mean=p[w],sd=p[w]/10)
+                p
+            }))
+    }
+    colnames(tm.vary) <- colnames(tm.results)[1:14]
+    tm.vary[which(tm.vary[,'K'] > 1),'K'] <- 0.99
+
+    tm.vary.results <- vector(mode='list', length=500)
+    jvec <- vector()
+    for (j in 1:500) {
+        jvec <- c(jvec,as.character(j))
+        write(jvec, file='progress.txt')
+        pars <- as.numeric(tm.vary[j,])
+        names(pars) <- names(tm.vary[j,])
+        y <- traj.match(deb, start=pars, transform=TRUE,
+                        est=estimated.pars,
+                        method='subplex',maxit=5000)
+        tm.vary.results[[j]] <- y
+        save(tm.vary.results, file=paste0('estimation_results_',i,'_stage_three.rda'))
+    }
+}

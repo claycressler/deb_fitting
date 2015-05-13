@@ -1,0 +1,7 @@
+## Remove the variation in single parameter by fixing at the mean,
+## then refit all other parameters. Then calculate the correlation
+## between growth and reproduction for the new parameters.
+
+load('Clay_2C-AA_take2_best_fit_parameters.rda')
+source('trajectory.matching.take2.R')
+

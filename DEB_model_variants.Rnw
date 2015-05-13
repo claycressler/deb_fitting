@@ -1,0 +1,58 @@
+\documentclass[12pt,reqno,final]{amsart}
+\usepackage[round,numbers,sort&compress]{natbib}
+\usepackage{graphicx}
+\usepackage{times}
+\usepackage{rotating}
+\usepackage{subfig}
+
+\title[DEB variants]{Dynamic enery budget model variants: ingestion,
+  starvation, and nondimensionalization}
+
+\setlength{\textwidth}{6.25in}
+\setlength{\textheight}{8.75in}
+\setlength{\evensidemargin}{0in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\topmargin}{-.35in}
+\setlength{\parskip}{.1in}
+\setlength{\parindent}{0.0in}
+
+\theoremstyle{plain}
+\newtheorem{thm}{Theorem}
+\newtheorem{corol}[thm]{Corollary}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem{lemma}[thm]{Lemma}
+\newtheorem{defn}[thm]{Definition}
+\newtheorem{hyp}[thm]{Hypothesis}
+\newtheorem{example}[thm]{Example}
+\newtheorem{conj}[thm]{Conjecture}
+\newtheorem{algorithm}[thm]{Algorithm}
+\newtheorem{remark}{Remark}
+\renewcommand\thethm{\arabic{thm}}
+\renewcommand{\theremark}{}
+
+\numberwithin{equation}{part}
+\renewcommand\theequation{\arabic{equation}}
+\renewcommand\thesection{\arabic{section}}
+\renewcommand\thesubsection{\thesection.\arabic{subsection}}
+\renewcommand\thefigure{\arabic{figure}}
+\renewcommand\thetable{\arabic{table}}
+\renewcommand\thefootnote{\arabic{footnote}}
+
+\begin{document}
+
+\maketitle
+
+In this file, I lay out all of the model variants that we are
+considering, and that will be used, at various times, for model
+fitting and data simulation. Begin with the standard dynamic energy
+budget model. Bill and I have made one modification to the standard
+model, namely, we have removed the maturity maintenance
+parameter. This implies that maturity cannot be taxed to pay
+maintenance; that is, individuals cannot regress in maturity
+level. This seems reasonable for most animals, and simplifies the
+model structure somewhat. I specify the model using only ``basal''
+parameters, but the standard DEB model is typically presented in terms
+of compound parameters. One of the goals of this study will be to
+determine whether such compound parameters might be easier to study.
+
+\end{document}

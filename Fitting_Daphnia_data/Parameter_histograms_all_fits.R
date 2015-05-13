@@ -1,0 +1,152 @@
+## Load all of the datasets
+for (geno in c('2C','4B','GLEN','RAMSEY')) {
+    load(paste0('Clay_',geno,'-AA_take2_best_fit_parameters.rda'))
+    assign(paste0('p',geno), p)
+}
+
+for (geno in c('113','322','324','715','725','815','822')) {
+    load(paste0('Clay_',geno,'-A_best_fit_parameters.rda'))
+    assign(paste0('p',geno), p)
+}
+
+geno.seq <- c('2C','4B','GLEN','RAMSEY','113','322','324','715','725','815','822')
+require(RColorBrewer)
+col.seq <- brewer.pal(length(geno.seq), 'Set3')
+
+p2C <- p2C[-c(37,
+hist(log(p2C[,'alpha']))
+
+
+## Create histograms showing the distributions of mean parameter values
+fit.pars <- c('alpha','kappa','beta','W.scalar','L.scalar','Rm.scalar','time.scalar')
+mean.pars <- array(NA, dim=c(length(geno.seq), length(fit.pars)))
+colnames(mean.pars) <- fit.pars
+for (i in 1:length(geno.seq)) {
+    for (j in 1:length(fit.pars)) {
+        g <- geno.seq[i]
+        par <- fit.pars[j]
+        p <- get(paste0('p',g))
+        if (par=='kappa')
+            mean.pars[i,j] <- mean(p[,par],na.rm=T)
+        else # take logarithms
+            mean.pars[i,j] <- mean(log(p[,par]),na.rm=T)
+    }
+}
+
+
+
+
+load('Clay_2C-AA_best_fit_parameters_transformed_scale.rda')
+p.b.2C <- read.csv('2C-AA-p.firstrun-food_0.05.csv') # Bill's fits
+## remove the first row of Bill's fits
+p.b.2C <- p.b.2C[-1,]
+
+par(mfcol=c(3,3))
+hist(p.b.2C$Wo.dim, breaks=pretty(p.t.2C$Wo.dim,n=20), col=2, border=2, xlab='', main='Wo.dim')
+hist(p.t.2C$Wo.dim, breaks=pretty(p.t.2C$Wo.dim,n=20), add=T, xlab='')
+
+hist(p.b.2C$Lo.dim, breaks=pretty(p.t.2C$Lo.dim,n=20), col=2, border=2, xlab='', main='Lo.dim')
+hist(p.t.2C$Lo.dim, breaks=pretty(p.t.2C$Lo.dim,n=20), add=T, xlab='')
+
+hist(p.t.2C$alpha, breaks=pretty(p.t.2C$alpha,n=15), col=1, xlab='',main='alpha')
+hist(p.b.2C$alpha, breaks=pretty(p.t.2C$alpha,n=15), border=2, add=T, xlab='')
+
+hist(p.t.2C$kappa, breaks=pretty(p.b.2C$kappa,n=20), col=1, xlab='',main='kappa')
+hist(p.b.2C$kappa, breaks=pretty(p.b.2C$kappa,n=20), border=2, add=T, xlab='')
+
+hist(p.t.2C$beta, breaks=seq(-60,30,length=20), col=1, xlab='',main='beta')
+hist(p.b.2C$beta, breaks=seq(-60,30,length=20), border=2, add=T, xlab='')
+
+hist(p.b.2C$a, border=2, col=2, breaks=pretty(p.t.2C$a,n=20), xlab='',main='a')
+hist(p.t.2C$a, breaks=pretty(p.t.2C$a,n=20), add=T, xlab='')
+
+hist(p.b.2C$b, border=2, col=2, breaks=pretty(p.t.2C$b,n=20), xlab='',main='b')
+hist(p.t.2C$b, breaks=pretty(p.t.2C$b,n=20), add=T, xlab='')
+
+hist(p.t.2C$c, breaks=seq(-20,12,length=20), col=1, xlab='',main='c')
+hist(p.b.2C$c, breaks=seq(-20,12,length=20), border=2, add=T, xlab='')
+
+hist(p.t.2C$d, breaks=pretty(p.b.2C$d,n=20), col=1, xlab='',main='d')
+hist(p.b.2C$d, breaks=pretty(p.b.2C$d,n=20), border=2, add=T, xlab='')
+dev.copy2pdf(file='2C-AA-parameter-comparison-histograms.pdf')
+
+
+
+
+load('Clay_4B-AA_best_fit_parameters_transformed_scale.rda')
+p.b.4B <- read.csv('4B-AA-p.firstrun-food_0.05.csv') # Bill's fits
+## remove the first row of Bill's fits
+p.b.4B <- p.b.4B[-1,]
+
+par(mfcol=c(3,3))
+hist(p.b.4B$Wo.dim, breaks=pretty(p.t.4B$Wo.dim,n=20), col=2, border=2, xlab='', main='Wo.dim')
+hist(p.t.4B$Wo.dim, breaks=pretty(p.t.4B$Wo.dim,n=20), add=T, xlab='')
+
+hist(p.b.4B$Lo.dim, breaks=pretty(p.t.4B$Lo.dim,n=20), col=2, border=2, xlab='', main='Lo.dim')
+hist(p.t.4B$Lo.dim, breaks=pretty(p.t.4B$Lo.dim,n=20), add=T, xlab='')
+
+hist(p.t.4B$alpha, breaks=seq(-40,20,length=20), col=1, xlab='',main='alpha')
+hist(p.b.4B$alpha, breaks=seq(-40,20,length=20), border=2, add=T, xlab='')
+
+hist(p.t.4B$kappa, breaks=pretty(p.b.4B$kappa,n=20), col=1, xlab='',main='kappa')
+hist(p.b.4B$kappa, breaks=pretty(p.b.4B$kappa,n=20), border=2, add=T, xlab='')
+
+hist(p.t.4B$beta, breaks=seq(-60,20,length=20), col=1, xlab='',main='beta')
+hist(p.b.4B$beta, breaks=seq(-60,20,length=20), border=2, add=T, xlab='')
+
+hist(p.b.4B$a, border=2, col=2, breaks=pretty(p.t.4B$a,n=20), xlab='',main='a')
+hist(p.t.4B$a, breaks=pretty(p.t.4B$a,n=20), add=T, xlab='')
+
+hist(p.b.4B$b, border=2, col=2, breaks=pretty(p.b.4B$b,n=20), xlab='',main='b')
+hist(p.t.4B$b, breaks=pretty(p.b.4B$b,n=20), add=T, xlab='')
+
+hist(p.t.4B$c, breaks=pretty(p.b.4B$c,n=20), col=1, xlab='',main='c')
+hist(p.b.4B$c, breaks=pretty(p.b.4B$c,n=20), border=2, add=T, xlab='')
+
+hist(p.t.4B$d, breaks=pretty(p.b.4B$d,n=20), col=1, xlab='',main='d')
+hist(p.b.4B$d, breaks=pretty(p.b.4B$d,n=20), border=2, add=T, xlab='')
+dev.copy2pdf(file='4B-AA-parameter-comparison-histograms.pdf')
+
+
+## Plot them against one another
+par(mfcol=c(3,3), oma=rep(0.5,4), mar=c(5,5,1,1))
+plot(p.t.2C$Wo.dim,p.b.2C$Wo.dim,xlab='Clay Wo.dim',ylab='Bill Wo.dim')
+points(seq(-60,60,0.1),seq(-60,60,0.1),type='l',col=2)
+plot(p.t.2C$Lo.dim,p.b.2C$Lo.dim,xlab='Clay Lo.dim',ylab='Bill Lo.dim')
+points(seq(-60,60,0.1),seq(-60,60,0.1),type='l',col=2)
+plot(p.t.2C$alpha,p.b.2C$alpha,xlab='Clay alpha',ylab='Bill alpha')
+points(seq(-60,60,0.1),seq(-60,60,0.1),type='l',col=2)
+plot(p.t.2C$kappa,p.b.2C$kappa,xlab='Clay kappa',ylab='Bill kappa')
+points(seq(-60,60,0.1),seq(-60,60,0.1),type='l',col=2)
+plot(p.t.2C$beta,p.b.2C$beta,xlab='Clay beta',ylab='Bill beta')
+points(seq(-60,60,0.1),seq(-60,60,0.1),type='l',col=2)
+plot(p.t.2C$a,p.b.2C$a,xlab='Clay a',ylab='Bill a')
+points(seq(-60,60,0.1),seq(-60,60,0.1),type='l',col=2)
+plot(p.t.2C$b,p.b.2C$b,xlab='Clay b',ylab='Bill b')
+points(seq(-60,60,0.1),seq(-60,60,0.1),type='l',col=2)
+plot(p.t.2C$c,p.b.2C$c,xlab='Clay c',ylab='Bill c')
+points(seq(-60,60,0.1),seq(-60,60,0.1),type='l',col=2)
+plot(p.t.2C$d,p.b.2C$d,xlab='Clay d',ylab='Bill d')
+points(seq(-60,60,0.1),seq(-60,60,0.1),type='l',col=2)
+dev.copy2pdf(file='2C-AA-parameter-correlations.pdf')
+
+par(mfcol=c(3,3), oma=rep(0.5,4), mar=c(5,5,1,1))
+plot(p.t.4B$Wo.dim,p.b.4B$Wo.dim,xlab='Clay Wo.dim',ylab='Bill Wo.dim')
+points(seq(-60,60,0.1),seq(-60,60,0.1),type='l',col=2)
+plot(p.t.4B$Lo.dim,p.b.4B$Lo.dim,xlab='Clay Lo.dim',ylab='Bill Lo.dim')
+points(seq(-60,60,0.1),seq(-60,60,0.1),type='l',col=2)
+plot(p.t.4B$alpha,p.b.4B$alpha,xlab='Clay alpha',ylab='Bill alpha')
+points(seq(-60,60,0.1),seq(-60,60,0.1),type='l',col=2)
+plot(p.t.4B$kappa,p.b.4B$kappa,xlab='Clay kappa',ylab='Bill kappa')
+points(seq(-60,60,0.1),seq(-60,60,0.1),type='l',col=2)
+plot(p.t.4B$beta,p.b.4B$beta,xlab='Clay beta',ylab='Bill beta')
+points(seq(-60,60,0.1),seq(-60,60,0.1),type='l',col=2)
+plot(p.t.4B$a,p.b.4B$a,xlab='Clay a',ylab='Bill a')
+points(seq(-60,60,0.1),seq(-60,60,0.1),type='l',col=2)
+plot(p.t.4B$b,p.b.4B$b,xlab='Clay b',ylab='Bill b')
+points(seq(-60,60,0.1),seq(-60,60,0.1),type='l',col=2)
+plot(p.t.4B$c,p.b.4B$c,xlab='Clay c',ylab='Bill c')
+points(seq(-60,60,0.1),seq(-60,60,0.1),type='l',col=2)
+plot(p.t.4B$d,p.b.4B$d,xlab='Clay d',ylab='Bill d')
+points(seq(-60,60,0.1),seq(-60,60,0.1),type='l',col=2)
+dev.copy2pdf(file='4B-AA-parameter-correlations.pdf')

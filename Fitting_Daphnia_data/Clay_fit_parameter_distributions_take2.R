@@ -1,0 +1,177 @@
+
+## What I want is to plot the distributions of the best-fitting
+## parameter values for each animal. To make comparison with Bill's
+## results easier, I will convert my scalar parameters to the same as
+## his scalars (e.g., his 'a' is equal to my W.scalar*time.scalar
+## because he parameterized a as W/T), and I will put back on the
+## estimation scale.
+a <- log(p.2C[,'W.scalar']*p.2C[,'time.scalar'])
+b <- log(p.2C[,'L.scalar']*p.2C[,'time.scalar'])
+c <- log(p.2C[,'Rm.scalar']*p.2C[,'time.scalar'])
+d <- log(p.2C[,'time.scalar'])
+alpha <- log(p.2C[,'alpha'])
+kappa <- log(p.2C[,'kappa']/(1-p.2C[,'kappa']))
+beta <- log(p.2C[,'beta'])
+Wo.dim <- log(p.2C[,'W.0'])
+Lo.dim <- log(p.2C[,'L.0'])
+p.t.2C <- as.data.frame(array(NA, dim=c(length(a),9)))
+p.t.2C[,1] <- Wo.dim
+p.t.2C[,2] <- Lo.dim
+p.t.2C[,3] <- alpha
+p.t.2C[,4] <- kappa
+p.t.2C[,5] <- beta
+p.t.2C[,6] <- a
+p.t.2C[,7] <- b
+p.t.2C[,8] <- c
+p.t.2C[,9] <- d
+colnames(p.t.2C) <- c('Wo.dim','Lo.dim','alpha','kappa','beta','a','b','c','d')
+save(p.t.2C, file='Clay_2C-AA_take2_best_fit_parameters_transformed_scale.rda')
+
+require(GGally)
+p.t.2C.rm <- p.t.2C[-which(is.na(p.t.2C[,'alpha'])),]
+ggpairs(p.t.2C.rm, diag=list(continuous='density'), axisLabels='show')
+dev.copy2pdf(file='Clay_2C-AA_take2_p_correlations.pdf')
+
+
+############ 4B-AA ##############
+load('results-4B-AA-take2-stage-three.rda')
+p.4B <- array(NA, dim=c(length(results3),15))
+for (i in 1:length(results3)) {
+  if (length(results3[[i]])>0)
+    p.4B[i,] <- as.numeric(results3[[i]][order(results3[[i]][,'loglik']),][1,1:15])
+}
+colnames(p.4B) <- c('alpha','kappa','beta','W.scalar','L.scalar','Rm.scalar','time.scalar','f','T_M','W.0','Rm.0','L.0','L.sd','R.sd','loglik')
+save(p.4B, file='Clay_4B-AA_take2_best_fit_parameters.rda')
+
+a <- log(p.4B[,'W.scalar']*p.4B[,'time.scalar'])
+b <- log(p.4B[,'L.scalar']*p.4B[,'time.scalar'])
+c <- log(p.4B[,'Rm.scalar']*p.4B[,'time.scalar'])
+d <- log(p.4B[,'time.scalar'])
+alpha <- log(p.4B[,'alpha'])
+kappa <- log(p.4B[,'kappa']/(1-p.4B[,'kappa']))
+beta <- log(p.4B[,'beta'])
+Wo.dim <- log(p.4B[,'W.0'])
+Lo.dim <- log(p.4B[,'L.0'])
+p.t.4B <- as.data.frame(array(NA, dim=c(length(a),9)))
+p.t.4B[,1] <- Wo.dim
+p.t.4B[,2] <- Lo.dim
+p.t.4B[,3] <- alpha
+p.t.4B[,4] <- kappa
+p.t.4B[,5] <- beta
+p.t.4B[,6] <- a
+p.t.4B[,7] <- b
+p.t.4B[,8] <- c
+p.t.4B[,9] <- d
+colnames(p.t.4B) <- c('Wo.dim','Lo.dim','alpha','kappa','beta','a','b','c','d')
+save(p.t.4B, file='Clay_4B-AA_take2_best_fit_parameters_transformed_scale.rda')
+
+p.t.4B.rm <- p.t.4B[-which(is.na(p.t.4B[,'alpha'])),]
+ggpairs(p.t.4B.rm, diag=list(continuous='density'), axisLabels='show')
+dev.copy2pdf(file='Clay_4B-AA_take2_p_correlations.pdf')
+
+
+
+############ GLEN-AA ##############
+load('results-GLEN-AA-take2-stage-three.rda')
+p.GLEN <- array(NA, dim=c(length(results3),15))
+for (i in 1:length(results3)) {
+  if (length(results3[[i]])>0)
+    p.GLEN[i,] <- as.numeric(results3[[i]][order(results3[[i]][,'loglik']),][1,1:15])
+}
+colnames(p.GLEN) <- c('alpha','kappa','beta','W.scalar','L.scalar','Rm.scalar','time.scalar','f','T_M','W.0','Rm.0','L.0','L.sd','R.sd','loglik')
+save(p.GLEN, file='Clay_GLEN-AA_take2_best_fit_parameters.rda')
+
+a <- log(p.GLEN[,'W.scalar']*p.GLEN[,'time.scalar'])
+b <- log(p.GLEN[,'L.scalar']*p.GLEN[,'time.scalar'])
+c <- log(p.GLEN[,'Rm.scalar']*p.GLEN[,'time.scalar'])
+d <- log(p.GLEN[,'time.scalar'])
+alpha <- log(p.GLEN[,'alpha'])
+kappa <- log(p.GLEN[,'kappa']/(1-p.GLEN[,'kappa']))
+beta <- log(p.GLEN[,'beta'])
+Wo.dim <- log(p.GLEN[,'W.0'])
+Lo.dim <- log(p.GLEN[,'L.0'])
+p.t.GLEN <- as.data.frame(array(NA, dim=c(length(a),9)))
+p.t.GLEN[,1] <- Wo.dim
+p.t.GLEN[,2] <- Lo.dim
+p.t.GLEN[,3] <- alpha
+p.t.GLEN[,4] <- kappa
+p.t.GLEN[,5] <- beta
+p.t.GLEN[,6] <- a
+p.t.GLEN[,7] <- b
+p.t.GLEN[,8] <- c
+p.t.GLEN[,9] <- d
+colnames(p.t.GLEN) <- c('Wo.dim','Lo.dim','alpha','kappa','beta','a','b','c','d')
+save(p.t.GLEN, file='Clay_GLEN-AA_take2_best_fit_parameters_transformed_scale.rda')
+
+
+p.t.GLEN.rm <- p.t.GLEN[-which(is.na(p.t.GLEN[,'alpha'])),]
+ggpairs(p.t.GLEN.rm[-2,], diag=list(continuous='density'), axisLabels='show')
+dev.copy2pdf(file='Clay_GLEN-AA_take2_p_correlations.pdf')
+
+
+## where are the winners and losers in correlation plot winners and
+## losers based on Linf*K (adriana's fits) and mean daily egg rate
+## (from observed data)
+
+## remove individuals whose parameters fit the data poorly from all
+## the correlation plots (remove outliers) - for ex. ind'l 2 in this
+## dataset has really weird parameter values for almost all parameters
+## - I bet it doesn't fit well at all.
+
+
+############ RAMSEY-AA ##############
+load('results-RAMSEY-AA-take2-stage-three.rda')
+p.RAMSEY <- array(NA, dim=c(length(results3),15))
+for (i in 1:length(results3)) {
+  if (length(results3[[i]])>0)
+    p.RAMSEY[i,] <- as.numeric(results3[[i]][order(results3[[i]][,'loglik']),][1,1:15])
+}
+colnames(p.RAMSEY) <- c('alpha','kappa','beta','W.scalar','L.scalar','Rm.scalar','time.scalar','f','T_M','W.0','Rm.0','L.0','L.sd','R.sd','loglik')
+save(p.RAMSEY, file='Clay_RAMSEY-AA_take2_best_fit_parameters.rda')
+
+a <- log(p.RAMSEY[,'W.scalar']*p.RAMSEY[,'time.scalar'])
+b <- log(p.RAMSEY[,'L.scalar']*p.RAMSEY[,'time.scalar'])
+c <- log(p.RAMSEY[,'Rm.scalar']*p.RAMSEY[,'time.scalar'])
+d <- log(p.RAMSEY[,'time.scalar'])
+alpha <- log(p.RAMSEY[,'alpha'])
+kappa <- log(p.RAMSEY[,'kappa']/(1-p.RAMSEY[,'kappa']))
+beta <- log(p.RAMSEY[,'beta'])
+Wo.dim <- log(p.RAMSEY[,'W.0'])
+Lo.dim <- log(p.RAMSEY[,'L.0'])
+p.t.RAMSEY <- as.data.frame(array(NA, dim=c(length(a),9)))
+p.t.RAMSEY[,1] <- Wo.dim
+p.t.RAMSEY[,2] <- Lo.dim
+p.t.RAMSEY[,3] <- alpha
+p.t.RAMSEY[,4] <- kappa
+p.t.RAMSEY[,5] <- beta
+p.t.RAMSEY[,6] <- a
+p.t.RAMSEY[,7] <- b
+p.t.RAMSEY[,8] <- c
+p.t.RAMSEY[,9] <- d
+colnames(p.t.RAMSEY) <- c('Wo.dim','Lo.dim','alpha','kappa','beta','a','b','c','d')
+save(p.t.RAMSEY, file='Clay_RAMSEY-AA_take2_best_fit_parameters_transformed_scale.rda')
+
+
+p.t.RAMSEY.rm <- p.t.RAMSEY[-which(is.na(p.t.RAMSEY[,'alpha'])),]
+ggpairs(p.t.RAMSEY.rm[-36,], diag=list(continuous='density'), axisLabels='show')
+dev.copy2pdf(file='Clay_RAMSEY-AA_take2_p_correlations.pdf')
+
+## looks like 36 is poorly fit as well - check.
+
+which(p.t.RAMSEY.rm[,'c'] < -20)
+which(p.t.RAMSEY.rm[,'Lo.dim'] > 0.1)
+
+p.t.4B.rm$geno <- '4B'
+p.t.2C.rm$geno <- '2C'
+p.t.GLEN.rm$geno <- 'GLEN'
+p.t.RAMSEY.rm$geno <- 'RAMSEY'
+x <- rbind(rbind(p.t.4B.rm,p.t.2C.rm),rbind(p.t.GLEN.rm,p.t.RAMSEY.rm))
+x[,c('Wo.dim','Lo.dim','alpha','beta','a','b','c','d')] <- exp(x[,c('Wo.dim','Lo.dim','alpha','beta','a','b','c','d')])
+x[,'kappa'] <- exp(x[,'kappa'])/(1+exp(x[,'kappa']))
+
+
+ggpairs(data=x[-unique(which(x[,1:9] > 20, arr.ind=T)[,1]),], columns=c(1:9), diag=list(continuous='density'), axisLabels='show', color='geno')
+## On the natural scale, there are a lot of shitty points that really screw things up. Really shows why I need to check the fits and throw out datasets that fit poorly.
+
+
+

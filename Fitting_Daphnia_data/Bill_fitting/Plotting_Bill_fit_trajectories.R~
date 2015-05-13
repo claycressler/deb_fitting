@@ -1,0 +1,20 @@
+pars.2c <- read.csv('2C-AA-Bill_best_fit_parameters_food_0.05.csv')
+## calculate the median values for each parameter
+med.pars.2c <- apply(pars.2c, 2, function(x) median(x,na.rm=T))
+## transform the parameters to the natural scale
+med.pars.2c['kappa'] <- exp(med.pars.2c['kappa'])/(1+exp(med.pars.2c['kappa']))
+med.pars.2c[-which(names(med.pars.2c)=='kappa')] <- exp(med.pars.2c[-which(names(med.pars.2c)=='kappa')])
+## parameters needed by Bill_deb_redimensionalized
+sim.pars.2c <- med.pars.2c[c('alpha','kappa','beta',0.1,2)]
+## length of time to run the simulation
+sim.times.2c <- seq(0,50,0.1)*med.pars.2c['d']
+## initial conditions
+sim.y.2c <- c(med.pars.2c['Wo.nondim'],med.pars.2c['Lo.nondim'],0,med.pars.2c['Lo.nondim'])
+
+
+
+sim.y.2c <- c(med.pars.2c['Wo.nondim']*med.pars.2c['d']/med.pars.2c['a'],
+              med.pars.2c['Lo.nondim']*med.pars.2c['d']/med.pars.2c['b'],
+              0,
+              med.pars.2c['Lo.nondim']*med.pars.2c['d']/med.pars.2c['b'])
+

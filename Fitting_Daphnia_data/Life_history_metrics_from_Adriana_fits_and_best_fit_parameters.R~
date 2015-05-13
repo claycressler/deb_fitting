@@ -1,0 +1,33 @@
+
+## Add the Linf value Adriana computed using NLS, the observed
+## eggrate, and the observed age at death to the list of best fit
+## parameter values
+x <- read.csv('~/Dropbox/Cressler/DEB_fitting/Adriana_Daphnia_data/IndivData - WITH linf.csv')
+y <- read.csv('~/Dropbox/Cressler/DEB_fitting/Adriana_Daphnia_data/IndivData - NO linf.csv')
+
+for (geno in c('2C','4B','GLEN','RAMSEY')) {
+    size = read.csv(paste0('~/Dropbox/Cressler/DEB_fitting/Adriana_Daphnia_data/',geno,'-AA-GROWTH.csv'), header=F, na.strings='na', colClasses='character')
+    load(paste0('Clay_',geno,'-AA_take2_best_fit_parameters.rda'))
+
+    ## match ID in 'x' with ID in 'size' and then with row in 'p'
+    IDrow <- which(size[,1]=='ID')
+    Linf <- rep(NA, nrow(p))
+    aod <- rep(NA, nrow(p))
+    eggrate <- rep(NA, nrow(p))
+    for (i in 2:ncol(size)) {
+        tID <- size[IDrow,i]
+        rx <- which(x$ID==tID & x$Geno==geno & x$Treat==0.025)
+        ry <- which(y$ID==tID & y$Geno==geno & y$Treat==0.025)
+        if (length(rx) > 0 & length(ry) > 0) { ## Linf and Eggrate were computed for this individual
+            Linf[i-1] <- x$Linf[rx]
+            aod[i-1] <- x$AOD[rx]
+            eggrate[i-1] <- y$Eggrate[ry]
+        }
+    }
+    p <- as.data.frame(p)
+    p$Linf <- Linf
+    p$aod <- aod
+    p$eggrate <- eggrate
+
+    save(p, file=paste0('Clay_',geno,'-AA_take2_best_fit_parameters.rda'))
+}

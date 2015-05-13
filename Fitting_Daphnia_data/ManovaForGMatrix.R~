@@ -1,0 +1,34 @@
+library(car)
+## load parameter fits
+pars <- vector()
+for (geno in c('113-A','2C-AA_take2','322-A','324-A','413-A','4B-AA_take2','711-A','715-A','725-A','815-A','822-A','GLEN-AA_take2','RAMSEY-AA_take2')) {
+    name <- load(paste0('Clay_',geno,'_best_fit_parameters.rda'))
+    if (name!='p') stop(paste0('parameters called ',name))
+    print(sum(!is.na(p[,1])))
+    pars <- rbind(pars, cbind(p[!is.na(p[,1]),1:14], genotype=rep(geno,sum(!is.na(p[,1])))))
+}
+
+## Life history parameters as a matrix; including initial conditions
+## causes the calculation to crash
+boot.manova <- function(data, indices) {
+    pars <- data[indices,]
+    lh.pars <- cbind(pars$alpha,
+                     pars$kappa,
+                     pars$beta,
+                     pars$W.scalar,
+                     pars$L.scalar,
+                     pars$Rm.scalar)
+
+    ## fit the linear model
+    fit.lm <- lm(lh.pars~pars$genotype)
+    ## manova
+    fit.manova <- Manova(fit.lm)
+    ## G matrix
+    G <- fit.manova[[1]][[1]]/fit.manova$df
+    ## R matrix
+    R <- fit.manova$SSPE/fit.manova$error.df
+    c(as.vector(cov2cor(G)),as.vector(cov2cor(R)))
+}
+
+x <- boot(pars, boot.manova, 10000)
+

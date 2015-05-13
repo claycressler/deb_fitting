@@ -1,0 +1,230 @@
+\documentclass[12pt,reqno,final]{amsart}
+\usepackage[round,numbers,sort&compress]{natbib}
+\usepackage{graphicx}
+\usepackage{times}
+\usepackage{rotating}
+\usepackage{subfig}
+\usepackage{Sweave}
+
+\title[DEB fitting notes]{Fitting Dynamic Energy Budget Models:
+  Parameter Covariation Across Parameter Sets}
+
+\setlength{\textwidth}{6.25in}
+\setlength{\textheight}{8.75in}
+\setlength{\evensidemargin}{0in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\topmargin}{-.35in}
+\setlength{\parskip}{.1in}
+\setlength{\parindent}{0.0in}
+
+\theoremstyle{plain}
+\newtheorem{thm}{Theorem}
+\newtheorem{corol}[thm]{Corollary}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem{lemma}[thm]{Lemma}
+\newtheorem{defn}[thm]{Definition}
+\newtheorem{hyp}[thm]{Hypothesis}
+\newtheorem{example}[thm]{Example}
+\newtheorem{conj}[thm]{Conjecture}
+\newtheorem{algorithm}[thm]{Algorithm}
+\newtheorem{remark}{Remark}
+\renewcommand\thethm{\arabic{thm}}
+\renewcommand{\theremark}{}
+
+\numberwithin{equation}{part}
+\renewcommand\theequation{\arabic{equation}}
+\renewcommand\thesection{\arabic{section}}
+\renewcommand\thesubsection{\thesection.\arabic{subsection}}
+\renewcommand\thefigure{\arabic{figure}}
+\renewcommand\thetable{\arabic{table}}
+\renewcommand\thefootnote{\arabic{footnote}}
+
+\begin{document}
+
+\maketitle
+
+I want to make four plots of the correlation among all parameters for
+the four different parameter combinations I explored. Looking first at
+only the energetic parameters:
+
+<<echo=F>>=
+load('true_parameters.rda')
+estimated.pars <- c('kappa','km','eG','eR','nu','Rmbar')
+load('estimation_results_1_stage_three.rda')
+res <- tm.vary.results
+## Remove parameter combinations with NA logliklihoods
+res[-which(is.na(res$loglik)),] -> res
+## Show only data for parameter sets within 20 log-likelihood units of the best
+cutoff <- min(res$loglik)+20
+res[which(res$loglik < cutoff),] -> res
+i <- which(names(res)%in%estimated.pars)
+tres <- res
+tres[,'nu'] <- log(res[,'nu'])
+@
+
+\begin{figure}
+<<echo=T,fig=T>>=
+true.parameters[[1]]
+pairs(tres[,i],col=factor(res$loglik<(cutoff-15)))
+@ 
+\end{figure}
+
+<<echo=F>>=
+load('true_parameters.rda')
+estimated.pars <- c('kappa','km','eG','eR','nu','Rmbar')
+load('estimation_results_2_stage_three.rda')
+res <- tm.vary.results
+## Remove parameter combinations with NA logliklihoods
+res[-which(is.na(res$loglik)),] -> res
+## Show only data for parameter sets within 20 log-likelihood units of the best
+cutoff <- min(res$loglik)+20
+res[which(res$loglik < cutoff),] -> res
+i <- which(names(res)%in%estimated.pars)
+tres <- res
+tres[,'nu'] <- log(res[,'nu'])
+@
+
+\begin{figure}
+<<echo=T,fig=T>>=
+true.parameters[[2]]
+pairs(tres[,i],col=factor(res$loglik<(cutoff-15)))
+@ 
+\end{figure}
+
+<<echo=F>>=
+load('true_parameters.rda')
+estimated.pars <- c('kappa','km','eG','eR','nu','Rmbar')
+load('estimation_results_3_stage_three.rda')
+res <- tm.vary.results
+## Remove parameter combinations with NA logliklihoods
+res[-which(is.na(res$loglik)),] -> res
+## Show only data for parameter sets within 20 log-likelihood units of the best
+cutoff <- min(res$loglik)+20
+res[which(res$loglik < cutoff),] -> res
+i <- which(names(res)%in%estimated.pars)
+tres <- res
+tres[,'nu'] <- log(res[,'nu'])
+@
+
+\begin{figure}
+<<echo=T,fig=T>>=
+true.parameters[[3]]
+pairs(tres[,i],col=factor(res$loglik<(cutoff-15)))
+@ 
+\end{figure}
+
+<<echo=F>>=
+load('true_parameters.rda')
+estimated.pars <- c('kappa','km','eG','eR','nu','Rmbar')
+load('estimation_results_4_stage_three.rda')
+res <- tm.vary.results
+## Remove parameter combinations with NA logliklihoods
+res[-which(is.na(res$loglik)),] -> res
+## Show only data for parameter sets within 20 log-likelihood units of the best
+cutoff <- min(res$loglik)+20
+res[which(res$loglik < cutoff),] -> res
+i <- which(names(res)%in%estimated.pars)
+tres <- res
+tres[,'nu'] <- log(res[,'nu'])
+@
+
+\begin{figure}
+<<echo=T,fig=T>>=
+true.parameters[[4]]
+pairs(tres[,i],col=factor(res$loglik<(cutoff-15)))
+@ 
+\end{figure}
+
+<<echo=F>>=
+load('true_parameters.rda')
+estimated.pars <- c('pam','Fh','eA')
+load('estimation_results_1_stage_three.rda')
+res <- tm.vary.results
+## Remove parameter combinations with NA logliklihoods
+res[-which(is.na(res$loglik)),] -> res
+## Show only data for parameter sets within 20 log-likelihood units of the best
+cutoff <- min(res$loglik)+20
+res[which(res$loglik < cutoff),] -> res
+i <- which(names(res)%in%estimated.pars)
+tres <- res
+tres[,'nu'] <- log(res[,'nu'])
+tres[,'pam'] <- log(res[,'pam'])
+tres[,'Fh'] <- log(res[,'Fh'])
+@
+
+\begin{figure}
+<<echo=T,fig=T>>=
+true.parameters[[1]]
+pairs(tres[,i],col=factor(res$loglik<(cutoff-15)))
+@ 
+\end{figure}
+
+<<echo=F>>=
+load('estimation_results_2_stage_three.rda')
+res <- tm.vary.results
+## Remove parameter combinations with NA logliklihoods
+res[-which(is.na(res$loglik)),] -> res
+## Show only data for parameter sets within 20 log-likelihood units of the best
+cutoff <- min(res$loglik)+20
+res[which(res$loglik < cutoff),] -> res
+i <- which(names(res)%in%estimated.pars)
+tres <- res
+tres[,'nu'] <- log(res[,'nu'])
+tres[,'pam'] <- log(res[,'pam'])
+tres[,'Fh'] <- log(res[,'Fh'])
+@
+
+\begin{figure}
+<<echo=T,fig=T>>=
+true.parameters[[2]]
+pairs(tres[,i],col=factor(res$loglik<(cutoff-15)))
+@ 
+\end{figure}
+
+<<echo=F>>=
+load('estimation_results_3_stage_three.rda')
+res <- tm.vary.results
+## Remove parameter combinations with NA logliklihoods
+res[-which(is.na(res$loglik)),] -> res
+## Show only data for parameter sets within 20 log-likelihood units of the best
+cutoff <- min(res$loglik)+20
+res[which(res$loglik < cutoff),] -> res
+i <- which(names(res)%in%estimated.pars)
+tres <- res
+tres[,'nu'] <- log(res[,'nu'])
+tres[,'pam'] <- log(res[,'pam'])
+tres[,'Fh'] <- log(res[,'Fh'])
+@
+
+\begin{figure}
+<<echo=T,fig=T>>=
+true.parameters[[3]]
+pairs(tres[,i],col=factor(res$loglik<(cutoff-15)))
+@ 
+\end{figure}
+
+<<echo=F>>=
+load('estimation_results_4_stage_three.rda')
+res <- tm.vary.results
+## Remove parameter combinations with NA logliklihoods
+res[-which(is.na(res$loglik)),] -> res
+## Show only data for parameter sets within 20 log-likelihood units of the best
+cutoff <- min(res$loglik)+20
+res[which(res$loglik < cutoff),] -> res
+i <- which(names(res)%in%estimated.pars)
+tres <- res
+tres[,'nu'] <- log(res[,'nu'])
+tres[,'pam'] <- log(res[,'pam'])
+tres[,'Fh'] <- log(res[,'Fh'])
+@
+
+\begin{figure}
+<<echo=T,fig=T>>=
+true.parameters[[4]]
+pairs(tres[,i],col=factor(res$loglik<(cutoff-15)))
+@ 
+\end{figure}
+
+
+\end{document}
+

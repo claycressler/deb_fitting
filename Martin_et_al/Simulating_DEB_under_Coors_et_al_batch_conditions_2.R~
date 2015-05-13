@@ -1,0 +1,102 @@
+## This R-function computes the values of the derivatives of the ODE
+## system at time t. For simplicity, I focus on reserves, length, and
+## food density as the only state variables.
+deb.model.batch <- function(t,y,params) {
+    ## State variables
+    UE <- y[1] ## total reserves
+    L <- y[2] ## structural length
+    X <- y[3]  ## food density cells/ml
+
+    ## Parameters
+    km <- 0.3314 ## somatic maintenance rate
+    v <- 18.1 ## energy conductance
+    g <- 10 ## energy investment ratio
+    K <- 1585 ## half-saturation constant (cells/ml)
+    JAm <- 3.8e5 ## max. SA-specific ingestion rate (cells/d/mm^2)
+    Vol <- 80 ## container volume in ml
+
+    ## Calculate the scaled reserve density
+    e <- v*UE/L^3
+
+    ## Calculate the assimilation and mobilization fluxes
+    SA <- X/(K+X)*L^2 ## units are mm^2
+    SC <- L^2*g*e/(g+e)*(1+L*km/v) ## units are mm^2
+
+    ## Compute the derivatives of the ODE system
+    dUEdt <- SA-SC ## is this actually a rate? units of SA and SC do not involve time
+    dLdt <- 1/3*(v/(g*L^2)*SC-km*L)
+    dXdt <- -JAm*SA/Vol ## X is in units of cells/ml, JAm*SA has units of cells/day, so I must divide by the container volume so that units of dXdt = cells/ml/day
+
+    list(c(dUEdt,dLdt,dXdt))
+}
+
+## Structural length at birth
+L0 <- 0.851
+
+## Reserves at birth, from e=v*UE/L^3=1
+UE0 <- 0.851^3/18.1
+
+## Initial food density, assuming 0.05 mgC/daphnid/day, 1.95e-8
+## mgC/cell, and a container volume of 80 ml (Coors et al. 2004 low
+## food conditions). This is also the amount of food added each day.
+X0 <- 0.05/1.95e-8/80
+
+## Vector of initial conditions
+y0 <- c(UE0,L0,X0)
+
+## The numerical solver assumes that the state variables are
+## continuous and smooth with smooth derivatives. This assumption is
+## violated by the batch culture conditions, where a bolus of food is
+## added once per day and individuals are transferred to new vials and
+## fed a bolus of food every other day. A simple work-around for this
+## problem is to solve the ODE for one-day intervals, with
+## discontinuous changes in the food state between.
+require(deSolve)
+
+## Number of two-day transfers
+no.transfers <- 10
+## A vector to record the numerical solution results
+out <- vector()
+
+for (i in 1:no.transfers) {
+    ## Simulate the first day (up to the first feeding)
+    ## Times that explicit estimates of state variables are recorded
+    times <- seq(0,1,0.1)
+
+    ## Call to the numerical solver
+    out1 <- lsoda(y=y0, times=times, func=deb.model.batch)
+
+    ## Record the numerical solution in out - do not record the data
+    ## in the final row, as this data serves as the initial conditions
+    ## for the next simulation.
+    out <- rbind(out, out1[1:(nrow(out1)-1),])
+
+    ## Set the new initial conditions using the final state (the state
+    ## variables are recorded in columns 2-4)
+    y0 <- out1[nrow(out1),2:4]
+    ## Add the bolus of food
+    y0[3] <- y0[3]+X0
+
+    ## Simulate the second day (up to the transfer)
+    out2 <- lsoda(y=y0, times=times, func=deb.model.batch, parms=NULL)
+
+    ## Record
+    out <- rbind(out, out2[1:(nrow(out2)-1),])
+
+    ## Set the new initial conditions
+    y0 <- out2[nrow(out2),2:4]
+    ## Transfers reset the amount of food to X0
+    y0[3] <- X0
+
+    ## Continue until the required number of transfers have been
+    ## simulated.
+}
+
+## Plot length through time and compare to figure 6 in the appendix.
+plot(out[,3], type='l')
+
+## Plot food density through time
+plot(out[,4], type='l')
+
+## This matches with Figure 6 reasonably well - my individuals have to burn some structure each day, but the peak L value agrees very well with the observed maximum L in Coors et al.'s experiments.
+

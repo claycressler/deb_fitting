@@ -1,0 +1,148 @@
+\documentclass[12pt,reqno,final]{amsart}
+\usepackage[round,numbers,sort&compress]{natbib}
+\usepackage{graphicx}
+\usepackage{times}
+\usepackage{rotating}
+\usepackage{subfig}
+\usepackage{Sweave}
+
+\title[DEB fitting notes]{Fitting Dynamic Energy Budget Models:
+  Parameter Covariation Across Parameter Sets}
+
+\setlength{\textwidth}{6.25in}
+\setlength{\textheight}{8.75in}
+\setlength{\evensidemargin}{0in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\topmargin}{-.35in}
+\setlength{\parskip}{.1in}
+\setlength{\parindent}{0.0in}
+
+\theoremstyle{plain}
+\newtheorem{thm}{Theorem}
+\newtheorem{corol}[thm]{Corollary}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem{lemma}[thm]{Lemma}
+\newtheorem{defn}[thm]{Definition}
+\newtheorem{hyp}[thm]{Hypothesis}
+\newtheorem{example}[thm]{Example}
+\newtheorem{conj}[thm]{Conjecture}
+\newtheorem{algorithm}[thm]{Algorithm}
+\newtheorem{remark}{Remark}
+\renewcommand\thethm{\arabic{thm}}
+\renewcommand{\theremark}{}
+
+\numberwithin{equation}{part}
+\renewcommand\theequation{\arabic{equation}}
+\renewcommand\thesection{\arabic{section}}
+\renewcommand\thesubsection{\thesection.\arabic{subsection}}
+\renewcommand\thefigure{\arabic{figure}}
+\renewcommand\thetable{\arabic{table}}
+\renewcommand\thefootnote{\arabic{footnote}}
+
+\begin{document}
+
+\maketitle
+
+I want to make four plots of the correlation among all parameters for
+the four different parameter combinations I explored. Looking first at
+only the energetic parameters:
+
+<<echo=F>>=
+## Load the true parameters and the observed data, and the parameters that we are interested in.
+load('true_parameters.rda')
+load('observed_data.rda')
+estimated.pars <- c('kappa','km','eG','eR','nu','Rmbar')
+## Calculate the likelihood of the truth
+source('trajectory.matching.R')
+x <- trajectory.matching(data=observed.data[[1]], pars=true.parameters[[1]], est=estimated.pars, method='subplex', eval.only=TRUE)
+truth.loglik <- x$lik
+
+## Load the estimation results
+load('estimation_results_1_stage_three.rda')
+res <- tm.vary.results
+## Remove parameter combinations with NA logliklihoods
+res[-which(is.na(res$loglik)),] -> res
+## Show only data for parameter sets whose loglikelihood was better than the truth
+res[which(res$loglik < truth.loglik),] -> res
+i <- which(names(res)%in%c(estimated.pars,'loglik'))
+@
+
+\begin{figure}
+<<echo=T,fig=T>>=
+true.parameters[[1]]
+pairs(res[,i])
+@
+\end{figure}
+
+<<echo=F>>=
+## Calculate the likelihood of the truth
+source('trajectory.matching.R')
+x <- trajectory.matching(data=observed.data[[2]], pars=true.parameters[[2]], est=estimated.pars, method='subplex', eval.only=TRUE)
+truth.loglik <- x$lik
+
+## Load the estimation results
+load('estimation_results_2_stage_three.rda')
+res <- tm.vary.results
+## Remove parameter combinations with NA logliklihoods
+res[-which(is.na(res$loglik)),] -> res
+## Show only data for parameter sets whose loglikelihood was better than the truth
+res[which(res$loglik < truth.loglik),] -> res
+i <- which(names(res)%in%c(estimated.pars,'loglik'))
+@
+
+\begin{figure}
+<<echo=T,fig=T>>=
+true.parameters[[2]]
+pairs(res[,i])
+@
+\end{figure}
+
+<<echo=F>>=
+## Calculate the likelihood of the truth
+source('trajectory.matching.R')
+x <- trajectory.matching(data=observed.data[[3]], pars=true.parameters[[3]], est=estimated.pars, method='subplex', eval.only=TRUE)
+truth.loglik <- x$lik
+
+## Load the estimation results
+load('estimation_results_3_stage_three.rda')
+res <- tm.vary.results
+## Remove parameter combinations with NA logliklihoods
+res[-which(is.na(res$loglik)),] -> res
+## Show only data for parameter sets whose loglikelihood was better than the truth
+res[which(res$loglik < truth.loglik),] -> res
+i <- which(names(res)%in%c(estimated.pars,'loglik'))
+@
+
+\begin{figure}
+<<echo=T,fig=T>>=
+true.parameters[[3]]
+pairs(res[,i])
+@
+\end{figure}
+
+<<echo=F>>=
+## Calculate the likelihood of the truth
+source('trajectory.matching.R')
+x <- trajectory.matching(data=observed.data[[4]], pars=true.parameters[[4]], est=estimated.pars, method='subplex', eval.only=TRUE)
+truth.loglik <- x$lik ## likelihood is not a number!
+
+## Load the estimation results
+load('estimation_results_4_stage_three.rda')
+res <- tm.vary.results
+## Remove parameter combinations with NA logliklihoods
+res[-which(is.na(res$loglik)),] -> res
+## Show only data for parameter sets whose loglikelihood was better than the truth
+res[which(res$loglik < (min(res$loglik)+20)),] -> res
+i <- which(names(res)%in%c(estimated.pars,'loglik'))
+@
+
+\begin{figure}
+<<echo=T,fig=T>>=
+true.parameters[[4]]
+pairs(res[,i])
+@
+\end{figure}
+
+
+\end{document}
+
