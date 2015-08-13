@@ -1,0 +1,184 @@
+\documentclass[11pt,reqno,final,pdftex]{amsart}
+%% DO NOT DELETE OR CHANGE THE FOLLOWING TWO LINES!
+%% $Revision$
+%% $Date$
+\usepackage[round,sort,elide]{natbib}
+\usepackage{graphicx}
+\usepackage{times}
+\usepackage{rotating}
+\usepackage{subfig}
+\usepackage{color}
+\newcommand{\aak}[1]{\textcolor{cyan}{#1}}
+\newcommand{\mab}[1]{\textcolor{red}{#1}}
+\newcommand{\cec}[1]{\textcolor{blue}{#1}}
+
+\setlength{\textwidth}{6.25in}
+\setlength{\textheight}{8.75in}
+\setlength{\evensidemargin}{0in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\topmargin}{-.35in}
+\setlength{\parskip}{.1in}
+\setlength{\parindent}{0.3in}
+
+%% cleveref must be last loaded package
+\usepackage[sort&compress]{cleveref}
+\newcommand{\crefrangeconjunction}{--}
+\crefname{figure}{Fig.}{Figs.}
+\Crefname{figure}{Fig.}{Figs.}
+\crefname{table}{Table}{Tables}
+\Crefname{table}{Tab.}{Tables}
+\crefname{equation}{Eq.}{Eqs.}
+\Crefname{equation}{Eq.}{Eqs.}
+\crefname{appendix}{Appendix}{Appendices}
+\Crefname{appendix}{Appendix}{Appendices}
+\creflabelformat{equation}{#2#1#3}
+
+\theoremstyle{plain}
+\newtheorem{thm}{Theorem}
+\newtheorem{corol}[thm]{Corollary}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem{lemma}[thm]{Lemma}
+\newtheorem{defn}[thm]{Definition}
+\newtheorem{hyp}[thm]{Hypothesis}
+\newtheorem{example}[thm]{Example}
+\newtheorem{conj}[thm]{Conjecture}
+\newtheorem{algorithm}[thm]{Algorithm}
+\newtheorem{remark}{Remark}
+\renewcommand\thethm{\arabic{thm}}
+\renewcommand{\theremark}{}
+
+\numberwithin{equation}{part}
+\renewcommand\theequation{\arabic{equation}}
+\renewcommand\thesection{\arabic{section}}
+\renewcommand\thesubsection{\thesection.\arabic{subsection}}
+\renewcommand\thefigure{\arabic{figure}}
+\renewcommand\thetable{\arabic{table}}
+\renewcommand\thefootnote{\arabic{footnote}}
+
+\newcommand\scinot[2]{$#1 \times 10^{#2}$}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\pkg}[1]{\textsf{#1}}
+\newcommand{\dlta}[1]{{\Delta}{#1}}
+\newcommand{\Prob}[1]{\mathbb{P}\left[#1\right]}
+\newcommand{\Expect}[1]{\mathbb{E}\left[#1\right]}
+\newcommand{\Var}[1]{\mathrm{Var}\left[#1\right]}
+\newcommand{\dd}[1]{\mathrm{d}{#1}}
+\newcommand{\citetpos}[1]{\citeauthor{#1}'s \citeyearpar{#1}}
+
+\begin{document}
+
+<<setup,include=FALSE,cache=F>>=
+require(knitr)
+opts_chunk$set(
+               progress=T,prompt=F,tidy=F,highlight=T,
+               warning=F,message=F,error=F,
+               results='hide',echo=F,cache=T,
+               size='scriptsize',
+               fig.path='figure/',fig.lp="fig:",
+               fig.align='left',
+               fig.show='asis',
+               fig.height=4,fig.width=6.83,
+               out.width="\\linewidth",
+               dpi=150,
+               dev=c('png','tiff'),
+               dev.args=list(
+                 png=list(bg='transparent'),
+                 tiff=list(compression='lzw')
+                 )
+               )
+
+scinot <- function (x, digits = 2, type = c("expression","latex")) {
+  type <- match.arg(type)
+  x <- signif(x,digits=digits)
+  ch <- floor(log10(abs(x)))
+  mn <- x/10^ch
+  switch(type,
+         expression={
+           bquote(.(mn)%*%10^.(ch))
+         },
+         latex={
+           paste0("\\scinot{",mn,"}{",ch,"}")
+         }
+         )
+}
+
+require(xtable)
+
+options(scipen=-1)
+
+options(
+        xtable.caption.placement="top",
+        xtable.include.rownames=FALSE
+        )
+
+@
+
+\section*{Goals}
+The task here is to attempt to fit the growth, reproduction, and spore production data from Cat Searle's experiments with \emph{D. dentifera} and \emph{P. ramosa}.
+Her experiment used a sacrifice series to quantify spore production at different infection ages, but she also measured size, cumulative reproduction, and, most importantly, feeding rate for the animals sacrificed at each age.
+The clearance rate data is especially valuable, as it should allow us to forego needing to fit feeding rate parameters separately.
+Based on my previous efforts and conversations with other people, the feeding model is both the most difficult to fit, and the values of those parameters will critically affect the best-fit values of other parameters.
+
+The key question is what the model for parasite growth should look like.
+My Proc B paper suggested that parasites get energy from the allocation to growth.
+Simple carbon accounting in the Proc B paper suggested that the total carbon in spores+tissue was about equal to the amount of carbon liberated by castration (the carbon that should have ended up in eggs).
+Moreover, the paper suggested that about 45\% of the liberated carbon ended up in spores.
+These observations suggest some potential models for parasite growth, but it would be good to test those explicitly here, using fitting.
+
+The challenge will be figuring out how to model parasite growth/energy theft. A number of possibilities spring to mind:
+\begin{itemize}
+\item Parasites receive a constant fraction of energy allocated to growth, regardless of their population size. This is the model directly suggested by my results.
+\item Parasites have a Type I functional response on energy allocated to growth.
+\item Parasites have a Type II functional response on energy allocated to growth.
+\item Parasites growth rate is independent of energy, but the carrying capacity is determined by host size or allocation to growth.
+\end{itemize}
+There are also a lot of other issues to consider, such as
+\begin{itemize}
+\item Does the parasite suffer mortality within the host (maybe, but probably best left ignored for the moment)?
+\item Does the parasite actually get its energy from growth, or is Spencer's suggestion that the energy comes from reserves the better model?
+\item Do we need to consider stage structure for the parasite? The parasite is clearly stage-structured, and there is some limited evidence that the early stage might be the replicating stage, whereas the other stages are merely developing. The immediate suggestion from that observation is that replication should be more expensive than development. However, that is hard to reconcile with the dynamics of host growth and reproduction - the timing of things suggests that the early stage of parasite growth comes before castration. What's the point of castrating the host \emph{after} the most energetically expensive stage of life? Moreover, the total carbon ending up in tissue and spores is equal to the total carbon freed over the host's lifetime. If the primary energy demand for parasite growth came very early in infection, that should reveal itself as a significant reduction in host growth and reproduction during the energetically expensive replication phase. It is my belief that replication is actually rather ``cheap'' for Pasteuria, but development is expensive, possibly because of the cost of building the endospore. For now, I think we are safe to treat the parasite as homogeneous.
+\item On the other hand, what about a \emph{size}-structured model? That is, imagine that there is some initial proliferating stage, and then after that, the parasite transitions between size classes with no change in parasite numbers. This appears to be what the parasite is actually doing. But what sets the ``carrying capacity'' of the parasite? I might need to do some reanalysis of my experimental data to see if you can predict total spore load by some aspect of host growth/reproduction from early in infection - clearly the total carbon in spores/tissue equals the total freed by castration, but can I go further?
+\item How do we model the dynamics of food? I have the feeding rate calculation, but I do not yet know what the feeding protocol is. Can I safely assume (even if it is not quite correct) that feeding was frequent enough that the host can be treated as having lived in a chemostat rather than batch culture?
+\end{itemize}
+
+\textbf{One initial thought: I am kind of partial to the logistic growth parasite population model, with carrying capacity determined by the energy flux to growth post-castration.}
+Why?
+This model simply captures my assumptions about the parasite growth dynamics, which is that there is an initial period of replication, with no appreciable population growth after this initial period of replication.
+Differences among hosts in total parasite burden can be explained by differences in host allocation to growth, ingestion, or maintenance that are caused (maybe) by demographic heterogeneity.
+This demographic heterogeneity among hosts will be the primary challenge throughout this fitting exercise, as it was before.
+Any other model of parasite growth (for example, one incorporating stage structure) must somehow account for the fact that all the proliferation happens early.
+But perhaps that is not the best way to do it.
+We'll see.
+Hopefully we will be able to address most of those concerns throughout.
+
+\section*{DEB model}
+
+Let's begin by laying out the standard dynamic energy budget model, and then discuss ways to include parasitism into that model.
+The model begins with the dynamics of ``reserves'', a pool of metabolizable energy that is in temporary storage.
+The dynamics of reserves are simple to state, and complicated to derive: the dynamics are just the difference between assimilation rate $p_A$ and mobilization rate $p_C$ (the 'C' is for 'catabolization').
+\begin{equation}
+\frac{dE}{dt} = p_A - p_C.
+\end{equation}
+The dynamics of assimilation depend on the feeding model. For the surface-area-dependent Type II functional response common to DEB models,
+\begin{equation}
+p_A = \rho I_{max} \frac{F}{f_h + F} L^2.
+\end{equation}
+Here $\rho$ is the fraction of ingested food which is assimilated, $I_{max}$ is the surface-area-specific ingestion rate, $F$ is the density of food, $f_h$ is the half-saturation constant, and $L^2$ is surface area related to observed length.
+We can safely assume that the scaling of surface area from length is incorporated into the $I_{max}$ term.
+
+Cat has calculated the clearance rate as $\log(F_0/F_1)*V/T$, where $F_0$ is the initial number of algae cells, $F_1$ is the final number of algae cells, $V$ is the volume of the tube, and $T$ is the duration of the feeding trial (3 hours).
+This model is assuming an exponential decrease in the number of algae cells, with the rate of decrease determined by the ingestion rate of the daphnid; essentially, the daphnid has a linear functional response.
+Cat also calculates a size-corrected clearance rate as the observed clearance rate divided by the square of the length.
+\textbf{It will probably be desirable to fit a feeding model to all of this data to estimate its parameters, and also to compare alternative feeding models, although I believe that Spencer has done this to some extent already.}
+In the work I have seen, Spencer fits some models that allow feeding rate to depend on spore load/infection status.
+\emph{A key for this study is the ability to treat the feeding model parameters as fixed, rather than needing to estimate them}; even if feeding rate changes as the abundance of spores changes dynamically.
+One thing to consider: if all the parasite's replication happens early, then the change in feeding rate through infection time has more to do with the \emph{size} of the parasite spores than the
+
+
+\begin{align}
+\frac{dE}{dt} &= aL^2 \left(\frac{F/c}{h+F/c} - \frac{E}{e_M W}\right) + E\left(\frac{dW}{dt}\right), \\
+\frac{dW}{dt} &= W \left[\frac{\kappa\left(aL^2/e_M\right)\left(E/W\right)-mW}{\kappa E+gW}\right], \\
+\frac{dR}{dt} &=
+
+
+\end{document}
