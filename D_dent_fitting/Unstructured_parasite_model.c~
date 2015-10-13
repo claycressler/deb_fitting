@@ -1,0 +1,25 @@
+#include <R.h>
+#include <stdio.h>
+
+static double parms[5];
+
+#define theta parms[0]
+#define r parms[1]
+#define aP parms[2]
+#define hP parms[3]
+#define b parms[4]
+
+/* initializer */
+void initmod(void (* odeparms)(int *, double *)) {
+  int N=5;
+  odeparms(&N, parms);
+}
+
+/* derivatives */
+void derivs (int *neq, double *t, double *y, double *ydot) {
+  // balance the equations
+  ydot[0] = theta - r*y[0] - aP*y[0]*y[1]/(hP+y[0]);
+  ydot[1] = b*aP*y[0]*y[1]/(hP+y[0]);
+
+}
+
