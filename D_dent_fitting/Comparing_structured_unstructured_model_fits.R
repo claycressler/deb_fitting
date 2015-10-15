@@ -111,13 +111,13 @@ str_obj <- function(estpars, data, fixpars, parorder, transform) {
     ## to completely run, or if any of the variables take negative
     ## values, return -Inf for the likelihood.
     if (inherits(out, "try-error"))
-        lik <- NA #-Inf
+        lik <- -Inf
     else if (max(out[,"time"]) < max(data$time))
-        lik <- NA #-Inf
+        lik <- -Inf
     else if (any(is.nan(out)))
-        lik <- NA #-Inf
+        lik <- -Inf
     else if (any(out < 0))
-        lik <- NA #-Inf
+        lik <- -Inf
     else {
         out <- as.data.frame(out)
         ## calculate the log-likelihood of observing these data
@@ -239,9 +239,15 @@ str_transform <- rep("log",length(str_parorder)-1)
 str_transform[which(str_parorder=="t_rep")-1] <- "logit"
 unstr_transform <- rep("log",length(unstr_parorder)-1)
 
+str_parorder <- c("theta","r","aC","hC","aG","hG","b","m","t_rep","obs_sd")
+unstr_parorder <- c("theta", "r", "aP", "hP", "b", "P0", "obs_sd")
+unstr_fixpars <- str_fixpars <- c(theta=10)
+str_transform <- rep("log",length(str_parorder)-1)
+str_transform[which(str_parorder=="t_rep")-1] <- "logit"
+unstr_transform <- rep("log",length(unstr_parorder)-1)
+
 est_params <- vector(mode='list', length=10)
 for (i in 1:10) {
-    print(i)
     data <- datasets[[i]]$data
 
     ## STRUCTURED MODEL
@@ -267,9 +273,9 @@ for (i in 1:10) {
     guesses[order(guess_lik)[1:1000]] -> refine
     mclapply(refine,
              traj_match,
-             fixpars=fixpars,
-             parorder=parorder,
-             transform=transform,
+             fixpars=str_fixpars,
+             parorder=str_parorder,
+             transform=str_transform,
              obsdata=data,
              eval.only=FALSE,
              method="Nelder-Mead",
@@ -279,7 +285,7 @@ for (i in 1:10) {
             unlist %>%
                 matrix(., ncol=10, byrow=TRUE) %>%
                     as.data.frame -> refine_pars
-    colnames(refine_pars) = c(names(estpars), "lik")
+    colnames(refine_pars) = c("r","aC","hC","aG","hG","b","m","t_rep","obs_sd", "lik")
     str_refine_pars <- arrange(refine_pars, lik)
 
     ## STRUCTURED MODEL
@@ -317,7 +323,7 @@ for (i in 1:10) {
         unlist %>%
             matrix(., ncol=7, byrow=TRUE) %>%
                 as.data.frame -> refine_pars
-    colnames(refine_pars) = c(names(estpars), "lik")
+    colnames(refine_pars) = c( "r", "aP", "hP", "b", "P0", "obs_sd", "lik")
     arrange(refine_pars, lik) -> unstr_refine_pars
 
     est_params[[i]] <- list(str=str_refine_pars, unstr=unstr_refine_pars)
