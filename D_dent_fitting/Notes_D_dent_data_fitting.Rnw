@@ -228,7 +228,7 @@ This simpler model is just:
 In this model, parasites take up resources and convert them directly into new parasites.
 The question is whether the simpler model will be better supported than the true model because it has fewer parameters.
 
-<<echo=TRUE, eval=FALSE>>=
+<<echo=FALSE, eval=TRUE>>=
 library(deSolve)
 library(magrittr)
 library(subplex)
@@ -236,7 +236,6 @@ library(pomp)
 library(parallel)
 library(dplyr)
 
-dyn.load("Structured_parasite_model.so")
 ## Transform the parameters.
 ## The optimization routines work best if the parameter values are
 ## unconstrained. Most of the parameters vary between 0 and Inf; these
@@ -361,6 +360,87 @@ str_obj <- function(estpars, data, fixpars, parorder, transform) {
     return(-lik)
 }
 
+## trajectory matching function for the unstructured model
+traj_match2 <- function(estpars, fixpars, parorder, transform, obsdata, eval.only=FALSE, method="subplex") {
+    estpars <- par_transform(pars=estpars, transform=transform)
+    if (any(is.na(estpars)))
+        opt <- list(params=estpars,
+                    lik=NA)
+    else if (eval.only==TRUE) {
+        x <- unstr_obj(estpars=estpars,
+                     data=obsdata,
+                     fixpars=fixpars,
+                     parorder=parorder,
+                     transform=transform)
+        opt <- list(params=estpars,
+                    lik=x)
+    }
+    else {
+        if (method=="subplex")
+            x <- subplex(par=estpars,
+                         fn=unstr_obj,
+                         data=obsdata,
+                         fixpars=fixpars,
+                         parorder=parorder,
+                         transform=transform)
+        else
+            x <- optim(par=estpars,
+                       fn=unstr_obj,
+                       method=method,
+                       data=obsdata,
+                       fixpars=fixpars,
+                       parorder=parorder,
+                       transform=transform,
+                       control=list(maxit=5000))
+        opt <- list(params=par_untransform(x$par,transform),
+                    lik=x$value,
+                    conv=x$convergence)
+    }
+    return(opt)
+}
+## Objective function to minimize for the unstructured model
+unstr_obj <- function(estpars, data, fixpars, parorder, transform) {
+    ## Put the parameters back on the natural scale
+    estpars <- par_untransform(estpars, transform)
+    ## Parasite initial conditions will be estimated
+    y0 <- c(E=100, P=unname(estpars["P0"]))
+    ## combine the parameters to be estimated and the fixed parameters
+    ## into a single vector, with an order specified by parorder
+    pars <- c(estpars, fixpars)
+    pars[match(parorder, names(pars))] -> pars
+    if(any(names(pars)!=parorder)) stop("parameter are in the wrong order")
+    holdpars <<- pars
+    ## simulate the model at these parameters
+    try(ode(y0,
+            times=seq(0, max(data$time)),
+            func="derivs",
+            parms=pars,
+            dllname="Unstructured_parasite_model",
+            initfunc="initmod"
+            )) -> out
+    ## if this parameter set produces a simulation error, skip it
+    if (inherits(out, "try-error"))
+        lik <- -Inf
+    else if (max(out[,"time"]) < max(data$time))
+        lik <- -Inf
+    else if (any(is.nan(out)))
+        lik <- -Inf
+    else if (any(out < 0))
+        lik <- -Inf
+    else {
+        out <- as.data.frame(out)
+        ## calculate the log-likelihood of observing these data
+        ## assuming only observation error
+        sapply(data$time, function(t) out$P[out$time==t]) -> simspores
+        dnorm(data$spores, simspores, unname(pars["obs_sd"]), log=T) %>% sum(., na.rm=TRUE) -> lik
+    }
+    ## return the negative log-likelihood (because optimization methods minimize)
+    return(-lik)
+}
+@
+
+<<echo=FALSE, eval=FALSE>>=
+dyn.load("Structured_parasite_model.so")
 ## Simulate data
 y0 <- c(E=100, C=4000, G=0, T=0) ## Initial conditions
 str_params <- c(theta=10, r=0.1, aC=0.00005, hC=1, aG=0.00001, hG=0.5, b=200000, m=10000, t_rep=15, obs_sd=100000) ## True parameter values
@@ -426,7 +506,7 @@ saveRDS(refine_pars, file="Simulated_data_fits_Structured_parasite_model.RDS")
 
 @
 
-Using the code above, I generated a set of simulated data using the structured model, and then fit the structured model to that data to look at the best-fit parameter estimates.
+I generated a set of simulated data using the structured model, and then fit the structured model to that data to look at the best-fit parameter estimates.
 I visualize the parameter estimates using histograms (Fig. \ref{hist2}), focusing on the best-fit parameter values (shown as blue lines) and all parameter sets that had a log-likelhiood within ten units (which is quite a big range) of the best-fit likelihood.
 The true parameter values are shown by the red lines in the histograms (not all panels have the red lines, if all of the estimates were really far from the truth).
 One thing that jumps out immediately is the enormous spread in parameter estimates among datasets with similar likelihoods.
@@ -435,7 +515,8 @@ Interestingly, the mode for each parameter is often pretty close to the truth.
 However, just in reflecting on the true dataset, some problems occur to me.
 First, the true parameter values for the half-saturation constants were $h_C=1$ and $h_G=1$.
 If host resources $E$ are high (they start out at 100), this means that the parasite's functional responses were almost independent of host energy (because the Type II functional response $\frac{aEP}{h+E} \approx aP$ when $h << E$).
-This also explains why $r$ is so poorly estimated - there is simply not enough information in spore count data to estimate anything about host energy.
+And in fact, in the dataset that generated the simulated data, $E$ never drops below 79, meaning that the true model is almost independent of these two parameters.
+Moreover, $r$ is poorly estimated because there is simply not enough information in spore count data to estimate anything about host energy; in fact, many good-fitting parameter sets will cause $E$ to become negative, unless a catch is put in that prevents negative numbers.
 Of course, there is extra information that I will have in the real dataset: the size of the hosts.
 In fact, there is a whole other set of information that I will have, because I can use the fits of the growth and reproduction trajectories in healthy individuals to estimate many of the host-specific parameters of the model.
 The conversion efficiency is  $b$ and $m$ and the time until cauliflower stages stop producing new grapeseed stages $t_{\text{rep}}$ are also very poorly estimated.
@@ -490,88 +571,9 @@ abline(v=best_pars$obs_sd[1], col="blue")
 
 @
 
-So, for the moment, I will assume that this parameter non-identifiability is a problem that will go away somewhat with better data.
-
 The other issue was whether a simpler model would actually be able to fit the data better than the more complex, data-generating model.
 
-<<echo=FALSE>>=
-
-traj_match2 <- function(estpars, fixpars, parorder, transform, obsdata, eval.only=FALSE, method="subplex") {
-    estpars <- par_transform(pars=estpars, transform=transform)
-    if (any(is.na(estpars)))
-        opt <- list(params=estpars,
-                    lik=NA)
-    else if (eval.only==TRUE) {
-        x <- unstr_obj(estpars=estpars,
-                     data=obsdata,
-                     fixpars=fixpars,
-                     parorder=parorder,
-                     transform=transform)
-        opt <- list(params=estpars,
-                    lik=x)
-    }
-    else {
-        if (method=="subplex")
-            x <- subplex(par=estpars,
-                         fn=unstr_obj,
-                         data=obsdata,
-                         fixpars=fixpars,
-                         parorder=parorder,
-                         transform=transform)
-        else
-            x <- optim(par=estpars,
-                       fn=unstr_obj,
-                       method=method,
-                       data=obsdata,
-                       fixpars=fixpars,
-                       parorder=parorder,
-                       transform=transform,
-                       control=list(maxit=5000))
-        opt <- list(params=par_untransform(x$par,transform),
-                    lik=x$value,
-                    conv=x$convergence)
-    }
-    return(opt)
-}
-## Objective function to minimize for the structured model
-unstr_obj <- function(estpars, data, fixpars, parorder, transform) {
-    ## Put the parameters back on the natural scale
-    estpars <- par_untransform(estpars, transform)
-    ## Parasite initial conditions will be estimated
-    y0 <- c(E=100, P=unname(estpars["P0"]))
-    ## combine the parameters to be estimated and the fixed parameters
-    ## into a single vector, with an order specified by parorder
-    pars <- c(estpars, fixpars)
-    pars[match(parorder, names(pars))] -> pars
-    if(any(names(pars)!=parorder)) stop("parameter are in the wrong order")
-    holdpars <<- pars
-    ## simulate the model at these parameters
-    try(ode(y0,
-            times=seq(0, max(data$time)),
-            func="derivs",
-            parms=pars,
-            dllname="Unstructured_parasite_model",
-            initfunc="initmod"
-            )) -> out
-    ## if this parameter set produces a simulation error, skip it
-    if (inherits(out, "try-error"))
-        lik <- -Inf
-    else if (max(out[,"time"]) < max(data$time))
-        lik <- -Inf
-    else if (any(is.nan(out)))
-        lik <- -Inf
-    else if (any(out < 0))
-        lik <- -Inf
-    else {
-        out <- as.data.frame(out)
-        ## calculate the log-likelihood of observing these data
-        ## assuming only observation error
-        sapply(data$time, function(t) out$P[out$time==t]) -> simspores
-        dnorm(data$spores, simspores, unname(pars["obs_sd"]), log=T) %>% sum(., na.rm=TRUE) -> lik
-    }
-    ## return the negative log-likelihood (because optimization methods minimize)
-    return(-lik)
-}
+<<echo=FALSE, eval=FALSE>>=
 
 dyn.load("Unstructured_parasite_model.so")
 fixpars <- c(theta=10)
@@ -682,13 +684,121 @@ Importantly, however, the structured model outperforms the unstructured model.
 This at least gives me some confidence that data only on transmission stages might still provide enough information to support a structured over an unstructured model.
 
 <<echo=FALSE>>=
+dyn.load("Structured_parasite_model.so")
+## Simulate data
 y0 <- c(E=100, C=4000, G=0, T=0) ## Initial conditions
-str_params <- c(theta=10, r=0.1, aC=0.00005, hC=1, aG=0.00001, hG=0.5, b=200000, m=10000, t_rep=15, obs_sd=100000) ## True parameter values
-out <- ode(y0, times=seq(0, 50), func="derivs", parms=str_params, dllname="Structured_parasite_model", initfunc="initmod", events=list(func="event", time=str_params["t_rep"])) ## simulated data
-set.seed(100011011)
-data.frame(time=rep(seq(5,50,5), each=10),
-           spores=sapply(out[seq(5,50,5),"T"], function(m) rnorm(10, mean=m, sd=str_params["obs_sd"])) %>% as.numeric) -> data ## simulated observations
-data$spores[data$spores<0] <- 0
+## Baseline set of parameters - sample around these
+pars <- c(theta=10, r=0.1, aC=0.0005, hC=20, aG=0.0001, hG=15, b=20000, m=10000, t_rep=15, obs_sd=100000)
+datasets <- vector(mode='list', length=10)
+i <- 1
+set.seed(12340987)
+while (is.null(datasets[[10]])) {
+    this_pars <- rnorm(length(pars), mean=pars, sd=pars)
+    while (any(this_pars < 0))
+        this_pars <- rnorm(length(pars), mean=pars, sd=pars)
+    names(this_pars) <- names(pars)
+    this_pars["theta"] <- 10
+    this_pars["t_rep"] <- round(this_pars["t_rep"])
+    out <- ode(y0, times=seq(0, 50), func="derivs", parms=this_pars, dllname="Structured_parasite_model", initfunc="initmod", events=list(func="event", time=round(this_pars["t_rep"]))) ## simulated data
+    if (all(out >= 0)) {
+        data.frame(time=rep(seq(5,50,5), each=10),
+                   spores=sapply(out[seq(5,50,5),"T"], function(m) rnorm(10, mean=m, sd=this_pars["obs_sd"])) %>% as.numeric) -> data
+        data$spores[data$spores < 0] <- 0
+        datasets[[i]] <- list(params=this_pars, data=data)
+        i <- i+1
+    }
+}
+
+str_parorder <- c("theta","r","aC","hC","aG","hG","b","m","t_rep","obs_sd")
+unstr_parorder <- c("theta", "r", "aP", "hP", "b", "P0", "obs_sd")
+unstr_fixpars <- str_fixpars <- c(theta=10)
+str_transform <- rep("log",length(str_parorder)-1)
+str_transform[which(str_parorder=="t_rep")-1] <- "logit"
+unstr_transform <- rep("log",length(unstr_parorder)-1)
+
+est_params <- vector(mode='list', length=10)
+for (i in 1:10) {
+    data <- datasets[[i]]$data
+
+    ## STRUCTURED MODEL
+    ## Generate a large number of different initial parameter guesses
+    str_box <- cbind(lower=pars[-which(names(pars)=="theta")]/1000, upper=pars[-which(names(pars)=="theta")]*1000)
+    str_box[rownames(str_box)=="t_rep",] <- c(0, 1)
+    sobolDesign(lower=str_box[,"lower"], upper=str_box[,"upper"], nseq=500000) %>%
+        apply(., 1, as.list) %>%
+            lapply(., function(l) unlist(l)) -> guesses
+    dyn.load("Structured_parasite_model.so")
+    mclapply(guesses,
+             traj_match,
+             fixpars=str_fixpars,
+             parorder=str_parorder,
+             transform=str_transform,
+             obsdata=data,
+             eval.only=TRUE,
+             method="subplex",
+             mc.cores=10) %>%
+        lapply(., function(x) x$lik) %>%
+            unlist-> guess_lik
+    ## Pick the best 1000 of these and use them as starting points for further refinement
+    guesses[order(guess_lik)[1:1000]] -> refine
+    mclapply(refine,
+             traj_match,
+             fixpars=fixpars,
+             parorder=parorder,
+             transform=transform,
+             obsdata=data,
+             eval.only=FALSE,
+             method="Nelder-Mead",
+             mc.cores=10) -> refine_lik
+    refine_lik %>%
+        lapply(., function(l) c(l$params, l$lik)) %>%
+            unlist %>%
+                matrix(., ncol=10, byrow=TRUE) %>%
+                    as.data.frame -> refine_pars
+    colnames(refine_pars) = c(names(estpars), "lik")
+    str_refine_pars <- arrange(refine_pars, lik)
+
+    ## STRUCTURED MODEL
+    ## Generate a large number of different initial parameter guesses
+    unstr_box <- cbind(lower=c(r=1, aP=1e-4, hP=1, b=100000, P0=1000, obs_sd=1e5)/1000,
+                       upper=c(r=1, aP=1e-4, hP=1, b=100000, P0=1000, obs_sd=1e5)*1000)
+    sobolDesign(lower=unstr_box[,"lower"], upper=unstr_box[,"upper"], nseq=5000) %>%
+        apply(., 1, as.list) %>%
+            lapply(., function(l) unlist(l)) -> guesses
+    ## compute the likelihood of each of these guesses
+    dyn.load("Unstructured_parasite_model.so")
+    mclapply(guesses,
+             traj_match2,
+             fixpars=unstr_fixpars,
+             parorder=unstr_parorder,
+             transform=unstr_transform,
+             obsdata=data,
+             eval.only=TRUE,
+             method="Nelder-Mead",
+             mc.cores=10) %>%
+        lapply(., function(l) l$lik) %>%
+            unlist -> guess_lik
+    ## Pick the best 1000 for further refinement
+    guesses[order(guess_lik)[1:1000]] -> refine
+    mclapply(refine,
+             traj_match2,
+             fixpars=unstr_fixpars,
+             parorder=unstr_parorder,
+             transform=unstr_transform,
+             obsdata=data,
+             eval.only=FALSE,
+             method="Nelder-Mead",
+             mc.cores=10) -> refine_lik
+    lapply(refine_lik, function(l) c(l$params, l$lik)) %>%
+        unlist %>%
+            matrix(., ncol=7, byrow=TRUE) %>%
+                as.data.frame -> refine_pars
+    colnames(refine_pars) = c(names(estpars), "lik")
+    arrange(refine_pars, lik) -> unstr_refine_pars
+
+    est_params[[i]] <- list(str=str_refine_pars, unstr=unstr_refine_pars)
+    saveRDS(est_params, file="Comparing_structred_unstructured_model_fits.RDS")
+}
 
 
 @
