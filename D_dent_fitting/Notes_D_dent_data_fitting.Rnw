@@ -1011,16 +1011,20 @@ for (i in 1:10) {
 
 @
 
-<<echo=FALSE>>=
+I further checked this by running 40 different parameter sets and looking at the comparison between the best-fit parameter estimates and the truth (Fig. \ref{fig:forty}).
+Again, you can see that the parameters are estimated very poorly (very small, $< 10^{-5}$, and very large $>10^{10}$ parameter estimates were dropped).
+However, of all of the parameters, the observation error is actually pretty well estimated.
+
+<<echo=FALSE, fig.height=7, fig.width=7, units='in', fig.cap="Comparison of best-fit estimates to true parameter values across 40 parameter sets.", label=forty>>=
 dyn.load("Structured_parasite_model.so")
 ## Simulate data
 y0 <- c(E=100, C=4000, G=0, T=0) ## Initial conditions
 ## Baseline set of parameters - sample around these
 pars <- c(theta=10, r=0.1, aC=0.0005, hC=20, aG=0.0001, hG=15, b=20000, m=10000, t_rep=15, obs_sd=100000)
-datasets <- vector(mode='list', length=10)
+datasets <- vector(mode='list', length=40)
 i <- 1
 set.seed(12340987)
-while (is.null(datasets[[10]])) {
+while (is.null(datasets[[40]])) {
     this_pars <- rnorm(length(pars), mean=pars, sd=pars)
     while (any(this_pars < 0))
         this_pars <- rnorm(length(pars), mean=pars, sd=pars)
@@ -1037,21 +1041,19 @@ while (is.null(datasets[[10]])) {
     }
 }
 
-
-est_params <- readRDS("Comparing_structred_unstructured_model_fits.RDS")
-for (i in 1:10) est_params[[i]]$str = est_params[[i]]$str %>% mutate(., t_rep=50*t_rep)
+est_params <- readRDS("Comparing_structured_unstructured_model_fits.RDS")
+for (i in 1:length(est_params)) est_params[[i]]$str = est_params[[i]]$str %>% mutate(., t_rep=50*t_rep)
 rbind(
     lapply(datasets, function(i) i$params[2:10]) %>%
         unlist %>%
-            data.frame(par=names(.), val=., parset=rep(seq(1:10), each=9), kind="truth"),
+            data.frame(par=names(.), val=., parset=rep(seq(1:length(est_params)), each=9), kind="truth"),
     lapply(est_params, function(i) i$str[1,1:9]) %>%
         unlist %>%
-            data.frame(par=names(.), val=., parset=rep(seq(1:10), each=9), kind="estimate")
+            data.frame(par=names(.), val=., parset=rep(seq(1:length(est_params)), each=9), kind="estimate")
     ) -> pars
-
-pars$val[pars$par%in%c("aC","aG","b","hC","hG","m","r")] <- log(pars$val[pars$par%in%c("aC","aG","b","hC","hG","m","r")])
-levels(pars$par)=c("log(aC)","log(aG)","log(b)","log(hC)","log(hG)","log(m)","obs_sd","log(r)","t_rep")
-
+pars[-which(pars$val < 1e-5 | pars$val > 1e10),] -> pars
+pars$val[pars$par%in%c("aC","aG","b","hC","hG","m","r")] <- log10(pars$val[pars$par%in%c("aC","aG","b","hC","hG","m","r")])
+levels(pars$par)=c("log10(aC)","log10(aG)","log10(b)","log10(hC)","log10(hG)","log10(m)","obs_sd","log10(r)","t_rep")
 library(ggplot2)
 ggplot(pars, aes(x=parset, y=val, colour=kind)) +
     geom_point() +
@@ -1059,6 +1061,146 @@ ggplot(pars, aes(x=parset, y=val, colour=kind)) +
 
 @
 
+Looking at the AIC across these parameter sets (Fig. \ref{fig:aiccomp}), a couple of things jump out.
+First is the very small amount of variation in the structured model fits - these are typically very close to one another, suggesting that the fitting has a hard time distinguishing among parameter sets.
+The structured models show much wider variation, indicative of the fact that different parameter sets produce very different dynamics.
+Second is the fact that, for many parameter sets, the unstructured model has a better fit. In fact, in 35/40 cases, the unstructured model fits better than the structured model.
+That suggests that, indeed, it may be hard to estimate the parameters of a structured model.
+<<echo=FALSE, fig.height=3, fig.width=7, units='in', fig.cap="Comparison of structured (red) and unstructured (teal) model AIC across 40 parameter sets. Lower AIC is better here.", label=aiccomp>>=
+est_params <- readRDS("Comparing_structured_unstructured_model_fits.RDS")
+data.frame(aic=lapply(est_params, function(l) c(2*(10+l$str$lik), 2*(7+l$unstr$lik))) %>% unlist,
+           parset=rep(rep(1:40,each=2)-rep(c(0.25,0),40),each=1000),
+           kind=rep(rep(c("str","unstr"),each=1000),rep=40)) -> liks
+
+ggplot(liks, aes(x=parset, y=aic, colour=kind)) +
+    geom_point(aes(shape=kind))
+
+ddply(liks, "parset", summarize, min(aic)) -> asdf
+#(asdf[seq(2,80,2),2]-asdf[seq(1,79,2),2] > 0) %>% sum
+
+@
+
+\textbf{One thing I am concerned about is the fact that most of the structured model parameter sets had similar likelihoods}.
+By assuming that every individual has identical parameters, all of the variation among individuals at sacrifice in spore load that has to be explained by observation error.
+There is a considerable amount of variation in spore load at death in the real dataset, which means a lot of observation error.
+I fear that this large observation error greatly expands the number of parameter sets that become plausible - with huge measurement error, even observations that are very far from the truth may be fairly likely.
+This high observation error also may explain why many parameter sets have identical likelihoods even though they are different.
+
+For a lark, I ran two parameter sets with much lower observation error, to see if this helped tighten up any of the other parameter estimates (Fig. \ref{fig:low-obs-sd}-\ref{fig:low-obs-sd-2}).
+The short answer is, absolutely not.
+For the first parameter set (Fig. \ref{fig:low-obs-sd-1}), all 1000 fit parameter sets were within 5 log-likelihood units of one another, but the parameter spread was huge.
+For the second parameter set (Fig. (Fig. \ref{fig:low-obs-sd-1}), there were only 11 fit parameter sets within 5 log-likelihood units of the best, but the parameter spread was still very large.
+<<fig.width=4, fig.height=4, units="in", fig.cap="Parameter estimate variation when observation error is small (parameter set 1)", label=low-obs-sd-1>>=
+ndatasets <- 2
+dyn.load("Structured_parasite_model.so")
+## Simulate data
+y0 <- c(E=100, C=4000, G=0, T=0) ## Initial conditions
+## Baseline set of parameters - sample around these
+pars <- c(theta=10, r=0.1, aC=0.0005, hC=20, aG=0.0001, hG=15, b=20000, m=10000, t_rep=15, obs_sd=1000)
+datasets <- vector(mode='list', length=ndatasets)
+i <- 1
+set.seed(12340987)
+while (is.null(datasets[[ndatasets]])) {
+    this_pars <- rnorm(length(pars), mean=pars, sd=pars)
+    while (any(this_pars < 0))
+        this_pars <- rnorm(length(pars), mean=pars, sd=pars)
+    names(this_pars) <- names(pars)
+    this_pars["theta"] <- 10
+    this_pars["t_rep"] <- round(this_pars["t_rep"])
+    out <- ode(y0, times=seq(0, 50), func="derivs", parms=this_pars, dllname="Structured_parasite_model", initfunc="initmod", events=list(func="event", time=round(this_pars["t_rep"]))) ## simulated data
+    if (all(out >= 0)) {
+        data.frame(time=rep(seq(5,50,5), each=10),
+                   spores=sapply(out[seq(5,50,5),"T"], function(m) rnorm(10, mean=m, sd=this_pars["obs_sd"])) %>% as.numeric) -> data
+        data$spores[data$spores < 0] <- 0
+        datasets[[i]] <- list(params=this_pars, data=data)
+        i <- i+1
+    }
+}
+
+est_params <- readRDS("Comparing_structured_unstructured_model_fits_2.RDS")
+lapply(est_params, function(x) x$str[with(x$str, which(lik < (min(lik) + 5))),1:9]) -> bp
+cbind(bp[[1]], parset=rep(1,1000)) -> best_pars
+best_pars$t_rep <- best_pars$t_rep*50
+
+par(mfrow=c(3,3), mar=c(5,2,0.5,0.5), oma=c(0, 0.5, 0.5, 0.5))
+hist(log(best_pars$r), main="", breaks=100, xlab=expression(log(r)), ylab="", xlim=c(-2, 20))
+abline(v=log(datasets[[1]]$params["r"]), col="red")
+abline(v=log(best_pars$r[1]), col="blue")
+
+hist(log(best_pars$aC), breaks=100, main="", xlab=expression(log(a[C])), ylab="", xlim=c(-15, 15))
+abline(v=log(datasets[[1]]$params["aC"]), col="red")
+abline(v=log(best_pars$aC[1]), col="blue")
+
+hist(log(best_pars$hC), breaks=60, main="", xlab=expression(log(h[C])), ylab="", xlim=c(0, 25))
+abline(v=log(datasets[[1]]$params["hC"]), col="red")
+abline(v=log(best_pars$hC[1]), col="blue")
+
+hist(log(best_pars$aG), breaks=100, main="", xlab=expression(log(a[G])), ylab="", xlim=c(-50,50))
+abline(v=log(datasets[[1]]$params["aG"]), col="red")
+abline(v=log(best_pars$aG[1]), col="blue")
+
+hist(log(best_pars$hG), breaks=100, main="", xlab=expression(log(h[G])), ylab="", xlim=c(-50,50))
+abline(v=log(datasets[[1]]$params["hG"]), col="red")
+abline(v=log(best_pars$hG[1]), col="blue")
+
+hist(log(best_pars$b), breaks=50, main="", xlab=expression(log(b)), ylab="", xlim=c(0,45))
+abline(v=log(datasets[[1]]$params["b"]), col="red")
+abline(v=log(best_pars$b[1]), col="blue")
+
+hist(log(best_pars$m), breaks=80, main="", xlab=expression(log(m)), ylab="", xlim=c(0,100))
+abline(v=log(datasets[[1]]$params["m"]), col="red")
+abline(v=log(best_pars$m[1]), col="blue")
+
+hist(best_pars$t_rep, breaks=30, main="", xlab=expression(t[rep]), ylab="")
+abline(v=datasets[[1]]$params["t_rep"], col="red")
+abline(v=best_pars$t_rep[1], col="blue")
+
+hist(best_pars$obs_sd, breaks=2, main="", xlab=expression(sigma[obs]), ylab="", xlim=c(1000, 58000))
+abline(v=datasets[[1]]$params["obs_sd"], col="red")
+abline(v=best_pars$obs_sd[1], col="blue")
+@
+
+<<fig.width=4, fig.height=4, units="in", fig.cap="Parameter estimate variation when observation error is small (parameter set 2)", label=low-obs-sd-2>>=
+cbind(bp[[2]], parset=rep(2,11)) -> best_pars
+best_pars$t_rep <- best_pars$t_rep*50
+
+par(mfrow=c(3,3), mar=c(5,2,0.5,0.5), oma=c(0, 0.5, 0.5, 0.5))
+hist(log(best_pars$r), main="", breaks=10, xlab=expression(log(r)), ylab="")
+abline(v=log(datasets[[2]]$params["r"]), col="red")
+abline(v=log(best_pars$r[2]), col="blue")
+
+hist(log(best_pars$aC), breaks=10, main="", xlab=expression(log(a[C])), ylab="")
+abline(v=log(datasets[[2]]$params["aC"]), col="red")
+abline(v=log(best_pars$aC[2]), col="blue")
+
+hist(log(best_pars$hC), breaks=10, main="", xlab=expression(log(h[C])), ylab="")
+abline(v=log(datasets[[2]]$params["hC"]), col="red")
+abline(v=log(best_pars$hC[2]), col="blue")
+
+hist(log(best_pars$aG), breaks=10, main="", xlab=expression(log(a[G])), ylab="")
+abline(v=log(datasets[[2]]$params["aG"]), col="red")
+abline(v=log(best_pars$aG[2]), col="blue")
+
+hist(log(best_pars$hG), breaks=10, main="", xlab=expression(log(h[G])), ylab="")
+abline(v=log(datasets[[2]]$params["hG"]), col="red")
+abline(v=log(best_pars$hG[2]), col="blue")
+
+hist(log(best_pars$b), breaks=10, main="", xlab=expression(log(b)), ylab="")
+abline(v=log(datasets[[2]]$params["b"]), col="red")
+abline(v=log(best_pars$b[2]), col="blue")
+
+hist(log(best_pars$m), breaks=2, main="", xlab=expression(log(m)), ylab="", xlim=c(5.1, 10.2))
+abline(v=log(datasets[[2]]$params["m"]), col="red")
+abline(v=log(best_pars$m[2]), col="blue")
+
+hist(best_pars$t_rep, breaks=10, main="", xlab=expression(t[rep]), ylab="")
+abline(v=datasets[[2]]$params["t_rep"], col="red")
+abline(v=best_pars$t_rep[2], col="blue")
+
+hist(best_pars$obs_sd, breaks=2, main="", xlab=expression(sigma[obs]), ylab="", xlim=c(1000, 9300))
+abline(v=datasets[[2]]$params["obs_sd"], col="red")
+abline(v=best_pars$obs_sd[2], col="blue")
+@
 
 There are legitimate questions about what it may or may not be
 possible to estimate using this dataset, and thus how general of a
