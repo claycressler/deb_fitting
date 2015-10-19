@@ -1,0 +1,10 @@
+base
+deSolve
+magrittr
+subplex
+pomp
+dplyr
+ggplot2
+plyr
+knitr
+xtable

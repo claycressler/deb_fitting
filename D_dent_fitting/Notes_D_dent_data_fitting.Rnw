@@ -162,7 +162,7 @@ This variation could be stochastic, reflecting inherent randomness in the encoun
 Other sources of variation would be individual heterogeneity in energy mobilization or maintenance.
 The considerable variation among individuals will, of course, be a primary hurdle in this fitting exercise.
 
-\subsection*{Modeling parasite replication and development}
+\section*{Modeling parasite replication and development}
 All of the above suggests that the proper model for parasite growth must be structured in some way.
 However, before we actually develop such a model, it is worth considering what might be lost by working with the simpler model that assumes an unstructured, homogeneous parasite population.
 The first problem is that we would misrepresent the energetic cost of parasitism: if we ignore stage structure, then we are assuming that what we can observe (the total number of parasite transmission stages at death/sacrifice) is all that there is.
@@ -211,11 +211,12 @@ The first stage $C$ uptakes resources, assuming Michaelis-Menten kinetics, for a
 Second stage parasites also uptake resources with Michaelis-Menten kinetics, using those resources to mature into transimission spores $T$.
 The energetic cost of maturation is $m$.
 
+\subsection*{Simulation/recovery experiment}
 I have written code to generate simulated data.
 However, I will assume that the only data I have access to is the number of transmission spores - not anything else.
 The simulated data will consist of multiple observations of spore count at different ages, similar to the true data, which comes from an experiment infecting many genetically identical individuals and then sacrificing several at different infection ages and counting spore loads.
 
-For the simulation study, I will pick a set of parameter values and simulate a single trajectory.
+Initially, I will pick a set of parameter values and simulate a single trajectory.
 I will then choose 10 ages of infection and simulate observations of the spore load assuming measurement error (specifically, for each infection age, I will draw 10 observed spore loads assuming a normal distribution with mean equal to the true spore load and standard deviation specified).
 
 I will then fit the true model to this data, estimating the 9 parameters of the model as best as I am able.
@@ -715,7 +716,7 @@ saveRDS(refine_pars, file="Simulated_data_fits_Structured_parasite_model.RDS")
 @
 
 I generated a set of simulated data using the structured model, and then fit the structured model to that data to look at the best-fit parameter estimates.
-I visualize the parameter estimates using histograms (Fig. \ref{hist2}), focusing on the best-fit parameter values (shown as blue lines) and all parameter sets that had a log-likelhiood within ten units (which is quite a big range) of the best-fit likelihood.
+I visualize the parameter estimates using histograms (Fig. \ref{fig:hist2}), focusing on the best-fit parameter values (shown as blue lines) and all parameter sets that had a log-likelhiood within ten units (which is quite a big range) of the best-fit likelihood.
 The true parameter values are shown by the red lines in the histograms (not all panels have the red lines, if all of the estimates were really far from the truth).
 One thing that jumps out immediately is the enormous spread in parameter estimates among datasets with similar likelihoods.
 Some parameters are fairly well-estimated, like the attack rate $a_C$.
@@ -732,7 +733,7 @@ This is not particularly surprising, as these parameters can be traded off again
 The take-away from this figure is that there may be too little information to reliably estimate all of the parameters.
 Hopefully the addition of host-specific data will aid with this problem.
 
-<<echo=FALSE, fig.height=7, fig.width=7, units="in", fig.cap="Histograms of parameter estimates for all parameter sets with log-likelihood within 5 units of the best likelihood. The red line shows the true parameter value and the blue shows the parameter value for the set with highest likelihood." label=hist2>>=
+<<echo=FALSE, fig.height=7, fig.width=7, units="in", fig.cap="Histograms of parameter estimates for all parameter sets with log-likelihood within 5 units of the best likelihood. The red line shows the true parameter value and the blue shows the parameter value for the set with highest likelihood.", label=hist2>>=
 str_params <- c(theta=10, r=0.1, aC=0.00005, hC=1, aG=0.00001, hG=0.5, b=200000, m=10000, t_rep=15, obs_sd=100000) ## True parameter values
 refine_pars <- readRDS(file="Simulated_data_fits_Structured_parasite_model.RDS")
 refine_pars[with(refine_pars, which(lik < (min(lik)+10))),1:9] -> best_pars
@@ -834,33 +835,6 @@ saveRDS(refine_pars, file="Simulated_data_fits_Untructured_parasite_model.RDS")
 
 @
 
-<<echo=FALSE, fig.height=7, fig.width=7, units="in", fig.cap="Histograms of parameter estimates for all parameter sets with log-likelihood within 5 units of the best likelihood. The red line shows the true parameter value and the blue shows the parameter value for the set with highest likelihood." label=hist2>>=
-refine_pars <- readRDS(file="Simulated_data_fits_Unstructured_parasite_model.RDS")
-refine_pars[with(refine_pars, which(lik < (min(lik)+5))),1:6] -> best_pars
-
-par(mfrow=c(2,3), mar=c(5,2,0.5,0.5), oma=c(0, 0.5, 0.5, 0.5))
-hist(log(best_pars$r), main="", breaks=30, xlab=expression(log(r)), ylab="")
-abline(v=log(best_pars$r[1]), col="blue")
-
-hist(log(best_pars$aP), breaks=30, main="", xlab=expression(log(a[P])), ylab="")
-abline(v=log(best_pars$aP[1]), col="blue")
-
-hist(log(best_pars$hP), breaks=30, main="", xlab=expression(log(h[P])), ylab="")
-abline(v=log(best_pars$hP[1]), col="blue")
-
-hist(best_pars$b, breaks=30, main="", xlab=expression(b), ylab="")
-abline(v=best_pars$b[1], col="blue")
-
-hist(best_pars$P0, breaks=30, main="", xlab=expression(P[0]), ylab="")
-abline(v=best_pars$P0[1], col="blue")
-
-hist(best_pars$obs_sd, breaks=30, main="", xlab=expression(sigma[obs]), ylab="")
-abline(v=best_pars$obs_sd[1], col="blue")
-
-@
-
-Again, we see huge variation in the parameter estimates.
-Here there is ``truth'' (in terms of parameter estimates) to compare against.
 They key is to ask whether the structured model provides a better fit to the data than does the unstructured model.
 To see that we need to compare the likelihoods of the best-fitting datasets.
 However, we want to weight the likelihood differences by the number of parameters: all else equal, a model with more parameters will always be able to fit the data better.
@@ -891,7 +865,7 @@ Here you can see that the true parameter values do provide a better fit to the o
 Importantly, however, the structured model outperforms the unstructured model.
 This at least gives me some confidence that data only on transmission stages might still provide enough information to support a structured over an unstructured model.
 
-<<echo=FALSE>>=
+<<echo=FALSE, eval=FALSE>>=
 dyn.load("Structured_parasite_model.so")
 ## Simulate data
 y0 <- c(E=100, C=4000, G=0, T=0) ## Initial conditions
@@ -1066,14 +1040,15 @@ First is the very small amount of variation in the structured model fits - these
 The structured models show much wider variation, indicative of the fact that different parameter sets produce very different dynamics.
 Second is the fact that, for many parameter sets, the unstructured model has a better fit. In fact, in 35/40 cases, the unstructured model fits better than the structured model.
 That suggests that, indeed, it may be hard to estimate the parameters of a structured model.
-<<echo=FALSE, fig.height=3, fig.width=7, units='in', fig.cap="Comparison of structured (red) and unstructured (teal) model AIC across 40 parameter sets. Lower AIC is better here.", label=aiccomp>>=
+<<echo=FALSE, fig.height=2.5, fig.width=7.5, units='in', fig.cap="Comparison of structured (red) and unstructured (teal) model AIC across 40 parameter sets. Lower AIC is better here.", label=aiccomp>>=
 est_params <- readRDS("Comparing_structured_unstructured_model_fits.RDS")
 data.frame(aic=lapply(est_params, function(l) c(2*(10+l$str$lik), 2*(7+l$unstr$lik))) %>% unlist,
            parset=rep(rep(1:40,each=2)-rep(c(0.25,0),40),each=1000),
            kind=rep(rep(c("str","unstr"),each=1000),rep=40)) -> liks
 
 ggplot(liks, aes(x=parset, y=aic, colour=kind)) +
-    geom_point(aes(shape=kind))
+    geom_point(aes(shape=kind)) +
+        theme(legend.position="none")
 
 ddply(liks, "parset", summarize, min(aic)) -> asdf
 #(asdf[seq(2,80,2),2]-asdf[seq(1,79,2),2] > 0) %>% sum
@@ -1086,7 +1061,7 @@ There is a considerable amount of variation in spore load at death in the real d
 I fear that this large observation error greatly expands the number of parameter sets that become plausible - with huge measurement error, even observations that are very far from the truth may be fairly likely.
 This high observation error also may explain why many parameter sets have identical likelihoods even though they are different.
 
-For a lark, I ran two parameter sets with much lower observation error, to see if this helped tighten up any of the other parameter estimates (Fig. \ref{fig:low-obs-sd}-\ref{fig:low-obs-sd-2}).
+For a lark, I ran two parameter sets with much lower observation error, to see if this helped tighten up any of the other parameter estimates (Fig. \ref{fig:low-obs-sd-1}-\ref{fig:low-obs-sd-2}).
 The short answer is, absolutely not.
 For the first parameter set (Fig. \ref{fig:low-obs-sd-1}), all 1000 fit parameter sets were within 5 log-likelihood units of one another, but the parameter spread was huge.
 For the second parameter set (Fig. (Fig. \ref{fig:low-obs-sd-1}), there were only 11 fit parameter sets within 5 log-likelihood units of the best, but the parameter spread was still very large.
@@ -1202,47 +1177,7 @@ abline(v=datasets[[2]]$params["obs_sd"], col="red")
 abline(v=best_pars$obs_sd[2], col="blue")
 @
 
-There are legitimate questions about what it may or may not be
-possible to estimate using this dataset, and thus how general of a
-model it will be possible to produce.
-In particular, it will be impossible to estimate how long it takes for
-castration to happen after exposure in this dataset because exposure
-happened so early in life that none of the infected animals reproduced
-at all.
-I think that there will be some serious difficulties with estimating
-some of the parameters without variation in the environment.
-For example, I can get an equal number of transmission spores by tweaking
-parameters associated with probability of infection, cauliflower stage
-replication rate, and grape seed stage development rate.
-If there were multiple food treatments, I could potentially
-disentangle probability of infection (which should be independent of
-food level) from replication/development parameters.
-I'm not sure whether there will be a signal strong enough to
-disentangle replication rate from development rate without information
-about abundance of non-transmission stage spores.
-
-One question is whether we seek here to develop a model that works
-well for just this set of data, or whether we see k to develop a model that will work well for any dataset.
-We must take advantage of the fact that ingestion is measured, so the feeding model will not be general.
-A better example is that, in this dataset, castration happens prior to the onset of sexual maturity so we could, for example, assume that castration happens upon infection, ignoring the actual delay that occurs between spore ingestion and castration.
-There is also the reality that, in many cases, the exposure period is long enough to consider exposure happening over a period of multiple days, such that a spore might be ingestion and not attach the first time, but then reingested later.
-This would create asynchrony in developmental stages.
-Again, in Cat's data, we don't really have to worry as much about that because the exposure period was relatively short compared to some of the exposure periods I have used in my experiments.
-I think, for now, I will attempt to develop a model that works well
-with Cat's data, and then decide how such a model needs to be extended
-for more general use.
-
-Let's think more carefully about the structure of the parasite
-replication model.
-In reality, what I want to consider is almost a stage-structured
-model.
-I feel fairly confident that each cauliflower stage corresponds to an
-ingested spore that successfully penetrated the oesophagus and entered
-the hemolymph.
-We can therefore
-
-
-\section*{DEB model}
+\section*{Including parasites into a DEB model}
 
 Let's begin by laying out the standard dynamic energy budget model, and then discuss ways to include parasitism into that model.
 The model begins with the dynamics of ``reserves'', a pool of metabolizable energy that is in temporary storage.
@@ -1269,13 +1204,9 @@ Spencer's results suggest that feeding rate should depend on the number of spore
 One thing to consider: if all the parasite's replication happens early, then the change in feeding rate through infection time has more to do with the \emph{size} of the parasite spores than their numbers (see discussion above).
 \emph{A key for this study is the ability to treat the feeding model parameters as fixed, rather than needing to estimate them}; even if feeding rate changes as the abundance of spores changes dynamically.
 
-\subsection*{A slightly-modified version of the standard DEB model}
 There are lots of ways to write down the standard DEB model.
-I have a version that I have used that simplifies the standard DEB model in some ways that I think are useful.
-This version assumes that energy reserves $E(t$ increase due to ingestion, and are mobilized $p_C(E,V,t)$ to fuel growth in volume $V(t)$ and egg production $R(t)$.
-The simplification I make to the standard DEB model is in assuming that there are no ``maturity maintenance'' costs; this prevents the possibility of a sexually mature animal ``reverting'' to sexual immaturity.
-It also is beneficial for working with \emph{Daphnia}, since, to a good approximation, sexual maturity can be measured by length (that is, it is possible to define a ``size at maturity'' that applies to all individuals).
-
+I do make one simplification from the standard DEB model, in that I do not assume that there are any ``maturity maintenance'' costs; this prevents the possibility of a sexually mature animal ``reverting'' to sexual immaturity.
+The model is then:
 \begin{align}
 \frac{dE}{dt} &= \rho I_{max} \frac{F}{f_h+F} V^{2/3} - p_C, \\
 \frac{dV}{dt} &= \frac{\kappa~p_C - k_M~E_G~V}{E_G}, \\
@@ -1292,50 +1223,15 @@ Then we can focus only on estimating the assimilation efficiency $\rho$.
 We can simplify further by using the assimilation efficiency estimated for $\emph{D. pulex}$, e.g. in the the work by McCauley, Nisbet et al., as the parameter $\rho$.
 
 \subsection*{Including parasitism}
-Here is where things get a bit dicier, because we are faced with many possible ways of adding parasitism, as noted above.
-To constrain ourselves a bit, let's assume that the parasite shuts off reproduction by causing all energy allocated to reproduction to instead be allocated to growth, and let's assume that the parasite, in way way or another, uses this energy as a resource.
-The three issues we need to deal with are the following:
-\begin{enumerate}
-\item \emph{When} does the parasite shut of energy allocation to reprodution?
-\item \emph{How} is the parasite population structured?
-\item \emph{Where} does the parasite get its energy from growth?
-\end{enumerate}
+I will include the structured model of parasitism into this model.
+I will assume that the parasite shuts off reproduction by causing all energy allocated to reproduction to instead be allocated to growth.
+I need to decide how the parasite uses this energy as a resource.
 
-The \emph{when} question is a bit easier.
-Castration is not instantaneous, as many individuals are able to have clutches (including clutches that are larger than normal) after exposure to the parasite.
-However, if infection occurs early enough in life (that is, early enough before sexual maturity is reached), then castration happens prior to sexual maturity.
-In the data for Cat's experiments, castration precedes sexual maturity for all individuals, so we could make the assumption that castration is instantaneous upon infection.
-Or we could follow the model structure above and assume that castration happens $n$ days post-infection, letting $n$ be estimated on the basis of the data.
-That is the structure I will assume now.
+I will point out that castration is not instantaneous, as many individuals are able to have clutches (including clutches that are larger than normal) after exposure to the parasite.
+We could assume that castration happens $n$ days post-infection, letting $n$ be estimated on the basis of the data.
+However, in the data for Cat's experiments, castration precedes sexual maturity for all individuals, so it may be very difficult to estimate $n$.
 
-The \emph{how} question is also not too bad.
-If the parasite population is unstructured, then we are explicitly treating the parasite population as homogeneous (which we know it is not), so all spores are transmission spores, and all spores use the same amount of energy.
-I think we cannot, in good faith, use this model.
-I think we must assume some simple structure (like that suggested above).
-In this case, we can consider three parasite subpopulations: ``cauliflower stages'' that produce pre-transmission stages, which requires some amount of energy from the host; ``pre-transmission stage'' that develop into transmission stages, which requires some amount of energy from the host; ``transmission stages'' that are inert, simply taking up space inside the host.
-To be fully general, this suggests a delay-differential equation approach, because individual infecting spores infect the host at different times and each ``cauliflower stage'' produce pre-transmission spores time; this means that pre-transmission stages (and, subsequently, transmission stages) have a distribution of ages within the host.
-
-However, a simpler alternative is a continuous-time stage-structured population model.
-We just want to make the rates of transitioning between stages (i.e., the probabilities of transitions) dependent on ingestion rates, food densities, etc.
-A simple model to begin is the following:
-\begin{align}
-\frac{dN_C}{dt} &= p_I \times \text(clearance rate) \times N_{T,env} - \mu N_C, \\
-\frac{dN_P}{dt} &= b(E,V) N_C - p_T(E,V) N_P, \\
-\frac{dN_T}{dt} &= p_T(E,V) N_P.
-\end{align}
-
-In this model, the total number of cauliflower stages $N_C$ depends upon clearance rates (feeding, not immune!), the probability of infection, and the density of transmission-stage spores in the environment.
-Cauliflower stage spores ``deactivate'' at a rate $\mu$.
-Note that although this enters the model as a death rate, it isn't biologically a death rate - it is just a way of ensuring that cauliflower stages don't produce pre-transmission spores indefinitely.
-In experiments, new cauliflower stages would only be coming in while the host was in the exposure phase.
-Cauliflower stages produce pre-transmission stages $N_P$ at a rate $b$ that depends (potentially) on energy reserves and host size.
-These pre-transmission stage spores transition to becoming transmission stages $N_T$ at a rate $p_T$ that may depend on reserves and host size.
-Transmission stage spores persist within the host forever.
-This seems like a pretty good model to begin with - it is quite simple (structurally) but roughly captures what we know about the biology of the host.
-What remains is to specify functional forms for $b(E,V)$ and $p_T(E,V)$, so that they depend upon the energy being allocated to growth.
-
-\emph{Where} exactly that energy is coming from is trickier, as I noted above.
-I am working from the assumption that the energy used by the parasite comes from growth (in some capacity), rather than reserves are reproduction.
+How exactly the parasite uses energy from growth is trickier.
 The total energy allocated to growth is $\kappa~E_G~p_C$ in DEB model (or just $p_C$ once castration happens).
 Maintenance costs are subtracted from this total, and the remainder is used for growth, with a conversion cost of $E_G$.
 The growth model (without parasitism) is just:
@@ -1351,19 +1247,20 @@ Focusing on the point after all energy is allocated towards growth (i.e., $\kapp
 \frac{dN}{dt} &= \sigma(N,E,V)~p_C.
 \end{align}
 The fraction of energy stolen by the parasite could potentially depend on the number of parasites, the size of the host, the size of the host's energy reserves, or none of these things.
-My results suggest that it might just be a constant fraction, regardless of the host's size or energetic state, and that the total number of parasites would depend on the host and environmental factors that affect the mobilization flux $p_C$.
-However, this model becomes much more problematic when you assume that the parasite population is structured, with multiple stages using energy.
+My results suggest that it might just be a constant fraction, regardless of the host's size or energetic state.
+This result is problematic to interpret, given that my experiments did not keep track of immature spores.
+However, if it was correct, then the total number of parasites would depend on the host and environmental factors that affect the mobilization flux $p_C$.
+If the parasite population is structured, with multiple stages using energy, then figuring out exactly what fraction of the fraction of energy each stage gets is challenging.
 The challenge is that $\sigma(N,E,V)$ becomes $\sigma(N_C, N_P, E, V)$, where it is the sum of the two parasite populations that affect how much total energy is stolen.
 Given that this is a fraction, it must remain bounded between 0 and 1.
 So, for example, if you have
 \begin{equation}
 \sigma = \frac{a_1 N_C + a_2 N_P}{1 + a_1 N_C + a_2 N_P},
 \end{equation}
-that ensures that the total fraction of energy stolen cannot be greater than xsxs
+that ensures that the total fraction of energy stolen cannot be greater than one.
 
-
-The next simplest model is to assume that the parasite actually utilizes ``structure'' in some way, shape, or form, as a resource.
-In this case, we let $\sigma(N,V)$ be the parasite's rate of ``structure conversion to parasite biomass'' or some other such thing, and the model for host and parasite growth becomes
+I think that simpler model would simply assume that the parasite utilizes structural bimoass as a resource.
+In this case, we let $\sigma(N,V)$ be the parasite's rate of ``structure conversion to parasite biomass'' and the model for host and parasite growth becomes
 \begin{align}
 \frac{dV}{dt} &= \frac{\kappa~p_C - k_m~E_G~V }{E_G} - \sigma(N,V), \\
 \frac{dN}{dt} &= \sigma(N,V).
@@ -1401,41 +1298,10 @@ This is problematic is because the (admittedly obscure) derivation of the form o
 In particular, the DEB assumption of ``weak homeostasis'' is almost certainly violated.
 This assumption states that, under constant food, there is a ``reserve density'' (defined by the quantity $E/V$) which remains constant.
 Given that the parasite is developing inside the host, causing a rechanneling of energy and siphoning off some of that energy for itself, it seems very unlikely to imagine that the ratio of reserves to structure will remain constant.
-However, previous work using DEB models to study infection (Hall et al. 2007, 2009 and Flye-Sainte-Marie et al. 2009) have not worried about this assumption violation, and those have been co-authored by DEB pioneers like Nisbet and Kooijman.
+However, previous work using DEB models to study infection (Hall et al. 2007, 2009 and Flye-Sainte-Marie et al. 2009) have not worried about violating this assumption, and those have been co-authored by DEB pioneers like Nisbet and Kooijman.
 Thus, I will assume that this is not too big of a problem.
 
-Of course, there are mathematical details that have not been made explicit yet.
-In particular, we need to specify functional forms for the parasite's energy use or growth.
-It seems reasonable to assume that the parasite's growth will be modeled using the Monod equation (i.e., the parasite will have a Type II functional response), since it is a microbe in an aqueous environment (the hemolymph) uptaking a limiting nutrient (energy).
-
-Let's take each model in turn.
-For simplicity, I will assume that ingestion is determined by clearance rate $a$ (which has units of volume/time) times the density of food in the environment $F$ (so $F$ has units of cells/volume).
-I will also assume that this rate does not depend on size, but does depend on infection status (but not spore load).
-
-Prior to exposure, the standard DEB model applies.
-During the 24-hr exposure period, spores are ingested, but are not replicating, and the host behaves as normal.
-There is some probability of infection given ingestion ($\rho_I$), and the total number of spores ingested depends on clearance rate $a$ and the density of spores in the environment $N_{env}$.
-\begin{align}
-p_C &= E \left(\frac{\frac{v}{V^{2/3}} + k_m}{1+\frac{\kappa E}{E_G V}}\right). \\
-\frac{dE}{dt} &= a~F - p_C, \\
-\frac{dV}{dt} &= \frac{\kappa~p_C - k_m~E_G~V}{E_G}, \\
-\frac{dN_C}{dt} &=\rho_I~a~N_{env} - \mu N_C.
-\end{align}
-After exposure ends, the dynamics are again given by the standard DEB model.
-This lasts for $n$ days (where $n$ is like the incubation period for the parasite).
-$n$ will be estimated on the basis of the data.
-After $n$ days, the host is castrated and the parasite begins replicating.
-Here is where this model starts to break down, becoming much more difficult to analyze.
-\begin{align}
-p_C &= E \left(\frac{\frac{v}{V^{2/3}} + k_m}{1+\frac{\kappa E}{E_G V}}\right). \\
-\frac{dE}{dt} &= a~F - p_C, \\
-\frac{dV}{dt} &= \frac{\kappa~p_C - k_m~E_G~V}{E_G}, \\
-\frac{dN_C}{dt} &= -\mu N_C
-\frac{dN_P}{dt} &=
-\end{align}
-
-
-After some period of time $n$, the
+I am going to assume that the parasites hit structure for some simulation/recovery experiments.
 
 
 

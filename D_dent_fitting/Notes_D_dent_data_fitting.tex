@@ -206,85 +206,156 @@ Grapeseed stage spores take up this energy to mature into transmission stage spo
 \frac{dG}{dt} &=
 \begin{cases}
 b \frac{a_C C E}{H_C + E} - m \frac{a_G G E}{H_G + E} & \text{if $t < t_{\text{rep}}$} \\
--m G & \text{otherwise}
+-m \frac{a_G G E}{H_G + E} & \text{otherwise}
 \end{cases}
 \\
 \frac{dT}{dt} &=  m \frac{a_G G E}{H_G + E}
 \end{align*}
-
-
 The parasite has access to a constant supply of resources.
-The first stage reproduces
+The first stage $C$ uptakes resources, assuming Michaelis-Menten kinetics, for a fixed time $t_{\text{rep}}$, turning those resources into second stage parasites $G$ at a cost $b$ per parasite.
+Second stage parasites also uptake resources with Michaelis-Menten kinetics, using those resources to mature into transimission spores $T$.
+The energetic cost of maturation is $m$.
 
-I suppose there is no harm in constructing such a model, since it is trivial to do compared with figuring out an appropriate model for the stage-structured parasite.
-Let's consider the following model as a starting point.
-Let $T_{env}$ be the number of transmission stage spores in the environment.
-Let $I$ be a state variable representing the number of ingested spores that perforate the oesophagus.
-Let $C$ be the number of cauliflower-stage spores.
-Let $G$ be the number of grape-seed-stage spores.
-Let $T$ be the number of transmission spores.
-Let $F$ be the abundance of food.
-Let $S$ be the host size.
-Let $E$ be the host reserve abundance.
+I have written code to generate simulated data.
+However, I will assume that the only data I have access to is the number of transmission spores - not anything else.
+The simulated data will consist of multiple observations of spore count at different ages, similar to the true data, which comes from an experiment infecting many genetically identical individuals and then sacrificing several at different infection ages and counting spore loads.
 
-Then a reasonable(ish) model for the parasite might be:
-\begin{align}
-\frac{dI}{dt} &= p_I f(F,S) T_{env} - \eta I, \\
-\frac{dC}{dt} &= \eta I, \\
-\frac{dG}{dt} &= b(S,E,\dots)C - \gamma(S,E,\dots) G, \\
-\frac{dT}{dt} &= \gamma(S,E,\dots) G.
-\end{align}
-In this model, spores are ingested in the same way as food; let $f(F,S)$ be the ingestion rate, which may depend on host size $S$ and resource abundance $F$; a fraction $p_I$ of these spores successfully establish in the host.
-Established spores mature into cauliflower stages at a rate $\eta$ that is assumed to be independent of host or environment; $1/\eta$ should be roughly equivalent to the amount of time it takes for this conversion to occur.
-Cauliflower stages produce grape-seed stages at a rate $b(S,E,\dots)$; $b$ depends on resource theft by the parasite, which may depend on host size and energetic state.
-Grape seed spores develop into transmission spores at a rate $\gamma(S,E,\dots)$; presumably the functional forms of $b$ and $\gamma$ should be closely related - most likely parasite energy theft is a passive process, so maybefollowing Michelis-Menton-type dynamics makes sense.
-However, the amount of energy captured by cauliflower versus grape-seed stages may be very different, reflecting differences in the energy requirements for replication versus development.
-Another important point to consider is the potential for density-dependent spore production and development.
-Ebert et al. 2000 (in Oecologia) vary infectious dose and measure several aspects of parasite abundance.
-They find:
-\begin{itemize}
-\item Early in infection, there are fewer total spores (immature and mature) as infectious dose increases; however, by host death, total spore load is much more similar across treatments, suggesting that increased competition reduces the \emph{rate} at which spores are produced.
-\item It also appears that the rate of development slows as well, so it takes longer for each immature spore to mature; for low dose infections, 80\% of the spores were mature at death, compared to only 20\% when the infectious dose was very high.
-\end{itemize}
-Both of these results kind of make sense biologically.
-If you think of each spore as sitting in a ``soup'' of organic material in the hemolymph, the total uptake of nutrients from that soup depends on the amount of soup that is in contact with the surface of the cell.
-As more cells are packed closer together, more surface area of each cell is just in contact with other cells, not in contact with the hemolymph.
-If you assumed that the parasite only has access to some fraction of the energy, then spreading this energy out over a larger number of infecting spores would automatically generate density-dependent growth.
-And to some extent, assuming that only some fraction of the energy is available to them makes some sense, right? The spores exist in the hemolymph, but presumably some fraction of assimilated energy would never even get close to the parasites because the host would be using it first itself.
+For the simulation study, I will pick a set of parameter values and simulate a single trajectory.
+I will then choose 10 ages of infection and simulate observations of the spore load assuming measurement error (specifically, for each infection age, I will draw 10 observed spore loads assuming a normal distribution with mean equal to the true spore load and standard deviation specified).
 
-Two details of the model: at some point ingestion of spores stops because the host is removed from an environment containing parasite spores.
-When this happens, $T_{env} = 0$, which is straightforward to implement.
-More complicatedly, available evidence suggests that the replication phase is temporally constrained.
-In lab infections, most spores appear to be about the same age, suggesting that replication stops at some point and development takes over.
-One simple way to incorporate this would be to simply assume that each ingested spores ``turns into'' some number of immature spores, but this would ignore the dynamic cost of replication to the host.
+I will then fit the true model to this data, estimating the 9 parameters of the model as best as I am able.
+I will also fit a simpler, unstructured model to the data.
+This simpler model is just:
+\begin{align*}
+\frac{dE}{dt} &= \theta - rE - \frac{a_P P E}{H_P + E} \\
+\frac{dP}{dt} &= b \frac{a_P P E}{H_P + E}
+\end{align*}
+In this model, parasites take up resources and convert them directly into new parasites.
+The question is whether the simpler model will be better supported than the true model because it has fewer parameters.
 
 
-I wonder if there is a good model for that
-show that, as infectious dose increases, the total spore production drops (total of both mature and immature spores); however, even more strongly, it shows that the development rate slows \emph{way} down -
-This very strongly suggests that $\gamma$ will depend on $G$, such that the total host resource stolen by the parasite must be spread over a
 
-it appears that $b$ is a function of infection age; more accurately, it appears that each cauliflower stage cannot continually produce grape seed spores.
-The evidence for this comes from the fact that the number of pre-transmission stages drops over the course of an infection, and most spores appear to be of nearly equivalent age.
-This suggests that each
 
-Okay, what is the mathematical model that one would develop for the parasite
-The model that is implied by that hypothesis would have to involve stage structure in the parasite.
-For example, a potential model would be
-\begin{itemize}
-\item Spores are ingested on the day of exposure;
-\item The total infectious dose depends on the feeding rate and on a
-  probability of infection $p_I$;
-\item Each ingested spore becomes a ``cauliflower stage'' some number
-  of days later ($n$);
-\item Castration happens at some future point, which may or may not be
-  equal to $n$;
-\item Cauliflower stages produce ``grape seed spores''
-  (pre-transmission stage) at a rate that depends on resource
-  ingestion; they may replicate for a fixed time period or they may
-  replicate continuously over the course of infection;
-\item ``Grape seeds'' develop into transmission spores at a rate that
-  depends on resource ingestion.
-\end{itemize}
+
+I generated a set of simulated data using the structured model, and then fit the structured model to that data to look at the best-fit parameter estimates.
+I visualize the parameter estimates using histograms (Fig. \ref{fig:hist2}), focusing on the best-fit parameter values (shown as blue lines) and all parameter sets that had a log-likelhiood within ten units (which is quite a big range) of the best-fit likelihood.
+The true parameter values are shown by the red lines in the histograms (not all panels have the red lines, if all of the estimates were really far from the truth).
+One thing that jumps out immediately is the enormous spread in parameter estimates among datasets with similar likelihoods.
+Some parameters are fairly well-estimated, like the attack rate $a_C$.
+Interestingly, the mode for each parameter is often pretty close to the truth.
+However, just in reflecting on the true dataset, some problems occur to me.
+First, the true parameter values for the half-saturation constants were $h_C=1$ and $h_G=1$.
+If host resources $E$ are high (they start out at 100), this means that the parasite's functional responses were almost independent of host energy (because the Type II functional response $\frac{aEP}{h+E} \approx aP$ when $h << E$).
+And in fact, in the dataset that generated the simulated data, $E$ never drops below 79, meaning that the true model is almost independent of these two parameters.
+Moreover, $r$ is poorly estimated because there is simply not enough information in spore count data to estimate anything about host energy; in fact, many good-fitting parameter sets will cause $E$ to become negative, unless a catch is put in that prevents negative numbers.
+Of course, there is extra information that I will have in the real dataset: the size of the hosts.
+In fact, there is a whole other set of information that I will have, because I can use the fits of the growth and reproduction trajectories in healthy individuals to estimate many of the host-specific parameters of the model.
+The conversion efficiency is  $b$ and $m$ and the time until cauliflower stages stop producing new grapeseed stages $t_{\text{rep}}$ are also very poorly estimated.
+This is not particularly surprising, as these parameters can be traded off against one another in order to get the total number of transmission spores correct.
+The take-away from this figure is that there may be too little information to reliably estimate all of the parameters.
+Hopefully the addition of host-specific data will aid with this problem.
+
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=\linewidth]{figure/hist2-1} \hfill{}
+
+\caption[Histograms of parameter estimates for all parameter sets with log-likelihood within 5 units of the best likelihood]{Histograms of parameter estimates for all parameter sets with log-likelihood within 5 units of the best likelihood. The red line shows the true parameter value and the blue shows the parameter value for the set with highest likelihood.}\label{fig:hist2}
+\end{figure}
+
+
+\end{knitrout}
+
+The other issue was whether a simpler model would actually be able to fit the data better than the more complex, data-generating model.
+
+
+
+They key is to ask whether the structured model provides a better fit to the data than does the unstructured model.
+To see that we need to compare the likelihoods of the best-fitting datasets.
+However, we want to weight the likelihood differences by the number of parameters: all else equal, a model with more parameters will always be able to fit the data better.
+AIC is a handy metric for such a comparison, defined as $2*k - 2\ln L$, where $k$ is the number of parameters and $L$ is the maximum likelihood.
+The model with the \emph{minimum} AIC is the preferred one.
+Another interesting thing to do is to ask what the likelihood of the \emph{true} parameter values is.
+
+
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{AICstructured}
+\hlstd{AICunstructured}
+\hlstd{AICtruth}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+Here you can see that the true parameter values do provide a better fit to the observed data than do either the unstructured or the structured model.
+Importantly, however, the structured model outperforms the unstructured model.
+This at least gives me some confidence that data only on transmission stages might still provide enough information to support a structured over an unstructured model.
+
+
+
+I further checked this by running 40 different parameter sets and looking at the comparison between the best-fit parameter estimates and the truth (Fig. \ref{fig:forty}).
+Again, you can see that the parameters are estimated very poorly (very small, $< 10^{-5}$, and very large $>10^{10}$ parameter estimates were dropped).
+However, of all of the parameters, the observation error is actually pretty well estimated.
+
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=\linewidth]{figure/forty-1} \hfill{}
+
+\caption[Comparison of best-fit estimates to true parameter values across 40 parameter sets]{Comparison of best-fit estimates to true parameter values across 40 parameter sets.}\label{fig:forty}
+\end{figure}
+
+
+\end{knitrout}
+
+Looking at the AIC across these parameter sets (Fig. \ref{fig:aiccomp}), a couple of things jump out.
+First is the very small amount of variation in the structured model fits - these are typically very close to one another, suggesting that the fitting has a hard time distinguishing among parameter sets.
+The structured models show much wider variation, indicative of the fact that different parameter sets produce very different dynamics.
+Second is the fact that, for many parameter sets, the unstructured model has a better fit. In fact, in 35/40 cases, the unstructured model fits better than the structured model.
+That suggests that, indeed, it may be hard to estimate the parameters of a structured model.
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=\linewidth]{figure/aiccomp-1} \hfill{}
+
+\caption[Comparison of structured (red) and unstructured (teal) model AIC across 40 parameter sets]{Comparison of structured (red) and unstructured (teal) model AIC across 40 parameter sets. Lower AIC is better here.}\label{fig:aiccomp}
+\end{figure}
+
+
+\end{knitrout}
+
+\textbf{One thing I am concerned about is the fact that most of the structured model parameter sets had similar likelihoods}.
+By assuming that every individual has identical parameters, all of the variation among individuals at sacrifice in spore load that has to be explained by observation error.
+There is a considerable amount of variation in spore load at death in the real dataset, which means a lot of observation error.
+I fear that this large observation error greatly expands the number of parameter sets that become plausible - with huge measurement error, even observations that are very far from the truth may be fairly likely.
+This high observation error also may explain why many parameter sets have identical likelihoods even though they are different.
+
+For a lark, I ran two parameter sets with much lower observation error, to see if this helped tighten up any of the other parameter estimates (Fig. \ref{fig:low-obs-sd-1}-\ref{fig:low-obs-sd-2}).
+The short answer is, absolutely not.
+For the first parameter set (Fig. \ref{fig:low-obs-sd-1}), all 1000 fit parameter sets were within 5 log-likelihood units of one another, but the parameter spread was huge.
+For the second parameter set (Fig. (Fig. \ref{fig:low-obs-sd-1}), there were only 11 fit parameter sets within 5 log-likelihood units of the best, but the parameter spread was still very large.
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=\linewidth]{figure/low-obs-sd-1-1} \hfill{}
+
+\caption[Parameter estimate variation when observation error is small (parameter set 1)]{Parameter estimate variation when observation error is small (parameter set 1)}\label{fig:low-obs-sd-1}
+\end{figure}
+
+
+\end{knitrout}
+
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=\linewidth]{figure/low-obs-sd-2-1} \hfill{}
+
+\caption[Parameter estimate variation when observation error is small (parameter set 2)]{Parameter estimate variation when observation error is small (parameter set 2)}\label{fig:low-obs-sd-2}
+\end{figure}
+
+
+\end{knitrout}
 
 There are legitimate questions about what it may or may not be
 possible to estimate using this dataset, and thus how general of a
@@ -304,60 +375,6 @@ food level) from replication/development parameters.
 I'm not sure whether there will be a signal strong enough to
 disentangle replication rate from development rate without information
 about abundance of non-transmission stage spores.
-
-If we were to imagine this as a stage-structured population model, the
-structure would be something like
-\begin{equation}
-\begin{pmatrix}
-1 & 0 & 0 \\
-R & p_S & 0 \\
-0 & p_T & 1
-\end{pmatrix}
-\end{equation}
-where the rows/columns represent cauliflowers, grape seeds, and
-transmission stages, and $R$ is the replication rate, $p_S$ is the
-probability a grape seed survives and remains and grape seed, and
-$p_T$ is the probability a grape seed survives and becomes a
-transmission stage.
-If we assume that grape seed survivorship is 1, then $p_S = 1-p_T$.
-However, this does assume that cauliflower stages never stop
-replicating.
-If they do, then things are more complicated, because $R$ becomes time
-dependent.
-We actually don't know whether cauliflower stages continually
-replicate or not. It seems likely that they do not - it may be that
-each cauliflower has a set number of replication cycles it can go
-through and then it is done.
-Then the model would set $\tau$ as the duration of the replication
-phase, and have two transition matrices for the parasite population.
-
-For $t < \tau$,
-\begin{equation}
-T =
-\begin{pmatrix}
-1 & 0 & 0 \\
-R & 1-p_T & 0 \\
-0 & p_T & 1
-\end{pmatrix}
-\end{equation}
-
-For $t >= \tau$,
-\begin{equation}
-T =
-\begin{pmatrix}
-1 & 0 & 0 \\
-0 & 1-p_T & 0 \\
-0 & p_T & 1
-\end{pmatrix}
-\end{equation}
-
-The three parameters that would need to be estimated for the parasite
-would be $\tau$, $R$, and $p_T$.
-Both $R$ and $p_T$ depend on resource ingestion, or more
-precisely, on the amount of energy becoming available to the
-parasite (most likely, the energy that has been mobilized for growth).
-
-The three probabilities allow for repeated expore to the same spore without infection ($p_I$), and for the persistence of both ``cauliflower'' stages (through $p_M$) and pre-transmission stages ($p_T$), while imposing an underlying deterministic developmental structure.
 
 One question is whether we seek here to develop a model that works
 well for just this set of data, or whether we see k to develop a model that will work well for any dataset.
