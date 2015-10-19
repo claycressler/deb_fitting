@@ -1011,6 +1011,54 @@ for (i in 1:10) {
 
 @
 
+<<echo=FALSE>>=
+dyn.load("Structured_parasite_model.so")
+## Simulate data
+y0 <- c(E=100, C=4000, G=0, T=0) ## Initial conditions
+## Baseline set of parameters - sample around these
+pars <- c(theta=10, r=0.1, aC=0.0005, hC=20, aG=0.0001, hG=15, b=20000, m=10000, t_rep=15, obs_sd=100000)
+datasets <- vector(mode='list', length=10)
+i <- 1
+set.seed(12340987)
+while (is.null(datasets[[10]])) {
+    this_pars <- rnorm(length(pars), mean=pars, sd=pars)
+    while (any(this_pars < 0))
+        this_pars <- rnorm(length(pars), mean=pars, sd=pars)
+    names(this_pars) <- names(pars)
+    this_pars["theta"] <- 10
+    this_pars["t_rep"] <- round(this_pars["t_rep"])
+    out <- ode(y0, times=seq(0, 50), func="derivs", parms=this_pars, dllname="Structured_parasite_model", initfunc="initmod", events=list(func="event", time=round(this_pars["t_rep"]))) ## simulated data
+    if (all(out >= 0)) {
+        data.frame(time=rep(seq(5,50,5), each=10),
+                   spores=sapply(out[seq(5,50,5),"T"], function(m) rnorm(10, mean=m, sd=this_pars["obs_sd"])) %>% as.numeric) -> data
+        data$spores[data$spores < 0] <- 0
+        datasets[[i]] <- list(params=this_pars, data=data)
+        i <- i+1
+    }
+}
+
+
+est_params <- readRDS("Comparing_structred_unstructured_model_fits.RDS")
+for (i in 1:10) est_params[[i]]$str = est_params[[i]]$str %>% mutate(., t_rep=50*t_rep)
+rbind(
+    lapply(datasets, function(i) i$params[2:10]) %>%
+        unlist %>%
+            data.frame(par=names(.), val=., parset=rep(seq(1:10), each=9), kind="truth"),
+    lapply(est_params, function(i) i$str[1,1:9]) %>%
+        unlist %>%
+            data.frame(par=names(.), val=., parset=rep(seq(1:10), each=9), kind="estimate")
+    ) -> pars
+
+pars$val[pars$par%in%c("aC","aG","b","hC","hG","m","r")] <- log(pars$val[pars$par%in%c("aC","aG","b","hC","hG","m","r")])
+levels(pars$par)=c("log(aC)","log(aG)","log(b)","log(hC)","log(hG)","log(m)","obs_sd","log(r)","t_rep")
+
+library(ggplot2)
+ggplot(pars, aes(x=parset, y=val, colour=kind)) +
+    geom_point() +
+        facet_wrap(~par, scales="free")
+
+@
+
 
 There are legitimate questions about what it may or may not be
 possible to estimate using this dataset, and thus how general of a

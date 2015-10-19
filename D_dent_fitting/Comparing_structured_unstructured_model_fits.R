@@ -207,7 +207,7 @@ unstr_obj <- function(estpars, data, fixpars, parorder, transform) {
     return(-lik)
 }
 
-ndatasets <- 100
+ndatasets <- 40
 dyn.load("Structured_parasite_model.so")
 ## Simulate data
 y0 <- c(E=100, C=4000, G=0, T=0) ## Initial conditions
@@ -248,8 +248,7 @@ str_transform[which(str_parorder=="t_rep")-1] <- "logit"
 unstr_transform <- rep("log",length(unstr_parorder)-1)
 
 est_params <- vector(mode='list', length=ndatasets)
-for (i in 11:ndatasets) {
-    t1 <- Sys.time()
+for (i in 1:ndatasets) {
     print(i)
     data <- datasets[[i]]$data
 
@@ -330,7 +329,5 @@ for (i in 11:ndatasets) {
     arrange(refine_pars, lik) -> unstr_refine_pars
 
     est_params[[i]] <- list(str=str_refine_pars, unstr=unstr_refine_pars)
-    saveRDS(est_params, file="Comparing_structured_unstructured_model_fits.RDS")
-    t2 <- Sys.time()
-    print(t2-t1)
+    saveRDS(est_params, file="~/Dropbox/Comparing_structured_unstructured_model_fits.RDS")
 }
