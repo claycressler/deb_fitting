@@ -118,7 +118,6 @@ obj <- function(estpars, data, fixpars, parorder, transform) {
               log=TRUE)) %>%
             sum(., na.rm=TRUE) -> lik
     }
-    print(lik)
     ## return the negative log-likelihood (because optimization methods minimize)
     return(-lik)
 }
@@ -247,7 +246,7 @@ for (i in 1:20) {
              transform=transform,
              obsdata=data,
              eval.only=TRUE,
-             mc.cores=5) %>%
+             mc.cores=10) %>%
                  lapply(., function(x) x$lik) %>%
                      unlist -> guess_lik
 
@@ -260,7 +259,7 @@ for (i in 1:20) {
              obsdata=data,
              eval.only=FALSE,
              method="Nelder-Mead",
-             mc.cores=5) -> refine_lik
+             mc.cores=10) -> refine_lik
     refine_lik %>%
         lapply(., function(l) c(l$params, l$lik)) %>%
             unlist %>%
