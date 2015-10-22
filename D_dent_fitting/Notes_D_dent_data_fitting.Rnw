@@ -1201,26 +1201,87 @@ Cat also calculates a size-corrected clearance rate as the observed clearance ra
 \textbf{It will probably be desirable to fit a feeding model to all of this data to estimate its parameters, and also to compare alternative feeding models, although I believe that Spencer has done this to some extent already.}
 In the work I have seen, Spencer fits some models that allow feeding rate to depend on spore load/infection status.
 Spencer's results suggest that feeding rate should depend on the number of spores.
-One thing to consider: if all the parasite's replication happens early, then the change in feeding rate through infection time has more to do with the \emph{size} of the parasite spores than their numbers (see discussion above).
-\emph{A key for this study is the ability to treat the feeding model parameters as fixed, rather than needing to estimate them}; even if feeding rate changes as the abundance of spores changes dynamically.
+One thing to consider: if all the parasite's replication happens early, then the change in feeding rate through infection time has more to do with the \emph{development} of the parasite spores than their numbers (see discussion above).
+\emph{A key for this study is the ability to treat the feeding model parameters as fixed, rather than needing to estimate them}, even if feeding rate changes as the abundance of spores changes dynamically.
 
-There are lots of ways to write down the standard DEB model.
-I do make one simplification from the standard DEB model, in that I do not assume that there are any ``maturity maintenance'' costs; this prevents the possibility of a sexually mature animal ``reverting'' to sexual immaturity.
-The model is then:
+I actually use a slightly modified version of the standard DEB model that tracks resources in terms of carbon.
+Thus, carbon is ingested and assimilated into reserves; carbon that is mobilized out of reserves is used for growth and reproduction, there are no conversion costs, as there are in the standard DEB, for going between reserves, structure, and eggs.
+I also do not assume that there is any ``maturity maintenance'' costs; this prevents the possibility of a sexually mature animal ``reverting'' to sexual immaturity.
+I am also using Spencer's ingestion model.
+In the experiments, although not technically in chemostats, I believe that food was held as close to constant as possible (daily food transfers, saturating food).
+The model I am using is:
 \begin{align}
-\frac{dE}{dt} &= \rho I_{max} \frac{F}{f_h+F} V^{2/3} - p_C, \\
-\frac{dV}{dt} &= \frac{\kappa~p_C - k_M~E_G~V}{E_G}, \\
+\frac{dE}{dt} &= \rho I_{max} L_{obs}^g \epsilon F - p_C,
+\frac{dW}{dt} &= \kappa~p_C - k_M~W, \\
 \frac{dR}{dt} &= \frac{(1-\kappa)~p_C}{E_R}, \\
-p_C &= E \left(\frac{\frac{v}{V^{2/3}} + k_m}{1+\frac{\kappa E}{E_G V}}\right).
+p_C &= E \left(\frac{\frac{v}{L} + k_m}{1+\frac{\kappa E}{W}}\right).
 \end{align}
+A bit of explanation.
+Spencer's best-fitting ingestion model for uninfected individuals was $I_{max} L_{obs}^g$, which gives the clearance rate in terms of ml/day, for an individual with observed length $L_{obs}$.
+$F$ is the concentration of algal cells in cells/ml; $\epsilon$ is the carbon content of a cell of algae in mgC/cell; $\rho$ is the assimilation efficiency.
+$p_C$ is the mobilization rate based on the standard DEB model with $E_G=1$; $\kappa$ is the fraction of carbon allocated towards growth; $k_m$ is the maintenance rate; $E_R$ is the cost of an egg; $v$ is the ``energy conductance''; $L$ is the ``structural length,'' which is not identical to the observed length.
+For that matter, $W$ is not the same as the weight you would measure, because the combustion weight would also include $E$, so $W_{obs}=W+E$.
+To relate the observed length, we can use published length-weight regressions: $W_{obs} = \xi L_{obs}^q$.
 
 This is the description of the growth dynamic under ``good'' food conditions.
-In the experiments, although not technically in chemostats, I believe that food was held as close to constant as possible (daily food transfers, saturating food).
-Clearance rates were also directly measured, as were size and spore load.
-Because of this, we can safely remove most of the terms relating to feeding from the model.
-In particular, I think we can begin by using the raw measurement of size-dependent clearance rate in place of $I_{max}~F/(f_h+F)$.
-Then we can focus only on estimating the assimilation efficiency $\rho$.
-We can simplify further by using the assimilation efficiency estimated for $\emph{D. pulex}$, e.g. in the the work by McCauley, Nisbet et al., as the parameter $\rho$.
+How to deal with starvation is a huge uncertainty in these models.
+<<echo=FALSE>>=
+library(deSolve)
+
+## I am going to work in carbon units.
+## rho is the assimilation efficiency (dim.) - based on D. pulex
+## Imax is the length-specific maximum clearance rate (ml/(L^g * day)) - based on Spencer fit
+## F is the algal concentration (cells/ml) - empirical
+## eps is the carbon content per cell (mgC/cell) - based on C content of Chlamy
+## g is the scaling of clearance rate with length (dim.) - based on Spencer fit
+## Thus, rho*eps*Imax*F*L^g has units of mgC cell^-1 ml mm^-g d^-1 cell ml^-1 mm^g = mgC d^-1
+## xi and q are parameters to convert length into dry weight carbon (W=xi*L^q) - based on Nisbet et al. 2004
+## K is the fraction of carbon allocated to growth - McCauley et al. 2008
+## km is the somatic maintenance rate (1/d) - McCauley et al. 2008
+## EG is the carbon required to produce a unit of length (mgC/mm)
+## ER is the carbon required to produce a new offspring (mgC) - McCauley et al. 2008
+## v is the energy conductance (mm/d)
+system("R CMD SHLIB deb.c")
+dyn.load("deb.so")
+## this produces numbers that look reasonable
+pars <- c(rho=0.7, eps=40e-9, Imax=0.0126, g=1.37, F=1e5/0.01, xi=2.62e-3, q=2.4, K=0.6, km=0.33, ER=1.51e-3, v=10, Lobs=0.1)
+ode(y=c(E=0.0002, W=0.0005, R=0),
+    times=seq(0, 100),
+    func="derivs",
+    parms=pars,
+    dllname="deb",
+    initfunc="initmod"
+    ) -> out
+
+## length is observed at days c(5,10,12,15,18,25,30,35)
+## assume it is observed in 12 animals per day and that these animals have identical parameters
+pars <- c(rho=0.7, eps=40e-9, Imax=0.0126, g=1.37, F=1e5/0.01, xi=2.62e-3, q=2.4, K=0.6, km=0.33, ER=1.51e-3, v=10, Lobs=0.1)
+ode(y=c(E=0.0002, W=0.0005, R=0),
+    times=seq(0, 35),
+    func="derivs",
+    parms=pars,
+    dllname="deb",
+    initfunc="initmod"
+    ) %>% as.data.frame -> out
+## assume that length is observed assuming a normal distribution
+## total; observed eggs is Poisson-distributed, but subtract off all
+## "reproduction" done prior to reaching sexual maturity when total
+## mass is greater than 5.9e-3 mg (Nisbet et al. 2004).
+days <- c(5,10,12,15,18,25,30,35)
+set.seed(1239478)
+data.frame(times=rep(days, each=12),
+           length=sapply(with(out, ((E[days+1]+W[days+1])/pars["xi"])^(1/pars["q"])),
+               function(x)
+                   rnorm(12, mean=x, sd=pars["Lobs"])
+                         ) %>% as.numeric,
+           eggs=sapply(with(out, R-R[which((E+W) < 5.9e-3) %>% max])[days+1],
+               function(x)
+                   rpois(12, lambda=x)
+                       ) %>% as.numeric
+           ) -> data
+
+
+@
 
 \subsection*{Including parasitism}
 I will include the structured model of parasitism into this model.
@@ -1303,6 +1364,14 @@ Thus, I will assume that this is not too big of a problem.
 
 I am going to assume that the parasites hit structure for some simulation/recovery experiments.
 
+
+I also want to consider a ``net production'' model.
+This model eliminates the need for a consideration of reserves.
+Instead, we track the dynamics of total \emph{Daphnia} biomass.
+Net production is calculated based on assimilation minus maintenance, which depends on biomass.
+In this model, the parasite utilizes biomass as its resource.
+Whether parasites increase or decrease host size depends on how much biomass is ``consumed'' by parasites and how much additional biomass is created by eliminating reproduction.
+Previous studies have suggested that net production models might actually be a better fit to \emph{Daphnia} than net assimilation models anyway.
 
 
 \section*{Suggested future experiments}

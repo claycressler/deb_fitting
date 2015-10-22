@@ -22,6 +22,7 @@ void initmod(void (* odeparms)(int *, double *)) {
 
 /* derivatives */
 void derivs (int *neq, double *t, double *y, double *ydot) {
+
   // balance the equations
   ydot[0] = theta - r*y[0] - aC*y[0]*y[1]/(hC+y[0]) - aG*y[0]*y[2]/(hG+y[0]);
   ydot[1] = 0;

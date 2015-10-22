@@ -1,0 +1,32 @@
+library(deSolve)
+library(magrittr)
+library(subplex)
+library(pomp)
+library(parallel)
+library(dplyr)
+
+## Transform the parameters.  The optimization routines work best if
+## the parameter values are unconstrained. Most of the parameters vary
+## between 0 and Inf; these can be made unconstrained by simple
+## log-transforming. The parameter K, on the other hand, can only vary
+## between 0 and 1. To put a parameter that varies between 0 and 1 on
+## an unconstrained scale, we use the logit transform.
+par_transform <- function(pars, transform) {
+    for (i in 1:length(pars)) {
+        if (transform[i]=="log")
+            pars[i] <- log(pars[i])
+        if (transform[i]=="logit")
+            pars[i] <- log(pars[i]/(1-pars[i]))
+    }
+    return(pars)
+}
+## Untransform the parameters
+par_untransform <- function(pars, transform) {
+    for (i in 1:length(pars)) {
+        if (transform[i]=="log")
+            pars[i] <- exp(pars[i])
+        if (transform[i]=="logit")
+            pars[i] <- exp(pars[i])/(1+exp(pars[i]))
+    }
+    return(pars)
+}
