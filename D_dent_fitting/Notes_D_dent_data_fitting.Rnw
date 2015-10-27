@@ -1190,10 +1190,32 @@ For the surface-area-dependent Type II functional response common to DEB models,
 \begin{equation}
 p_A = \rho I_{max} \frac{F}{f_h + F} L^2.
 \end{equation}
-Here $\rho$ is the fraction of ingested food which is assimilated, $I_{max}$ is the surface-area-specific ingestion rate, $F$ is the density of food, $f_h$ is the half-saturation constant, and $L^2$ is surface area related to observed length.
+Here $\rho$ is the fraction of ingested food which is assimilated, $I_{max}$ is the surface-area-specific ingestion rate, $F$ is the density of food, $f_h$ is the half-saturation constant, and $L^2$ is surface area related to structural length.
 We can safely assume that the scaling of surface area from length is incorporated into the $I_{max}$ term.
 \textbf{However,} it is important to note that we are not, currently, assuming a Type II functional response.
-Based on what I have seen, we are assuming a Type I functional response with a clearance rate that depends on both size and spore load.
+
+The experimental conditions were as follows:
+\begin{itemize}
+\item Within the first 24 hours of life, all individuals were placed in 2ml of lake water with 20,000 cells of algae and exposed to parasites.
+\item After 24 hours of parasite exposure, animals were moved to beakers with 30ml of water and fed 1,000,000 cells of algae every day.
+\item Animals were transferred to clean water every 5 days.
+\end{itemize}
+The thought is that this is so much food that \emph{D. dentifera} cannot eat it all in a day, so that if the true feeding model is a size-dependent Type II functional response (which it probably is), i.e,
+\begin{equation}
+I_{max} \frac{F}{f_h+F} L^g,
+\end{equation}
+then $F$ is so large that it is reasonable to assume that $F/(f_h+F) \approx 1$.
+
+We can make a back of the envelope calculation to see how reasonable this assumption might be.
+In particular, let's figure out a reasonable guess for the half-saturation constant $f_h$.
+Hall et al. use a value of $f_h = 0.1$ mgC/L based on Nisbet et al. 2004, which is not too far off of the value used by McCauley et al. 1990, 2008 of 0.164 mgC/L.
+How this translates into cells/mL depends on the carbon content of the algae.
+Bill Nelson's lab found that \emph{Chlamy} has a carbon content of $\approx 40$ pg/cell during the asymptotic phase of population growth in batch culture.
+Based on this, 0.1 mgC/L is $2.5 \times 10^6$ cells/L.
+The concentration of algae added to the beaker each day was $3.33 \times 10^7$.
+With this initial concentration, $F/(f_h + F) \approx 0.93$; with this value of $f_h$, the concentration of algae would have to stay above $10^7$ cells, suggesting that it might be problematic to assume that
+
+
 
 Cat has calculated the clearance rate as $\log(F_0/F_1)*V/T$, where $F_0$ is the initial number of algae cells, $F_1$ is the final number of algae cells, $V$ is the volume of the tube, and $T$ is the duration of the feeding trial (3 hours).
 This model is assuming an exponential decrease in the number of algae cells, with the rate of decrease determined by the ingestion rate of the daphnid; essentially, the daphnid has a linear functional response.
@@ -1225,63 +1247,160 @@ To relate the observed length, we can use published length-weight regressions: $
 
 This is the description of the growth dynamic under ``good'' food conditions.
 How to deal with starvation is a huge uncertainty in these models.
-<<echo=FALSE>>=
-library(deSolve)
 
-## I am going to work in carbon units.
-## rho is the assimilation efficiency (dim.) - based on D. pulex
-## Imax is the length-specific maximum clearance rate (ml/(L^g * day)) - based on Spencer fit
-## F is the algal concentration (cells/ml) - empirical
-## eps is the carbon content per cell (mgC/cell) - based on C content of Chlamy
-## g is the scaling of clearance rate with length (dim.) - based on Spencer fit
-## Thus, rho*eps*Imax*F*L^g has units of mgC cell^-1 ml mm^-g d^-1 cell ml^-1 mm^g = mgC d^-1
-## xi and q are parameters to convert length into dry weight carbon (W=xi*L^q) - based on Nisbet et al. 2004
-## K is the fraction of carbon allocated to growth - McCauley et al. 2008
-## km is the somatic maintenance rate (1/d) - McCauley et al. 2008
-## EG is the carbon required to produce a unit of length (mgC/mm)
-## ER is the carbon required to produce a new offspring (mgC) - McCauley et al. 2008
-## v is the energy conductance (mm/d)
+I am going to use this model for some simulation/recovery experiments.
+In particular, I am going to assume that all of the parameters relating to ingestion ($\rho$, $\epsilon$, $I_{max}$, $g$, $F$, $\xi$, and $q$) are known, and focus only on estimating $\kappa$, $k_m$, $E_R$, $v$, and the error in the observation of length.
+However, even under these circumstances, estimation is a huge challenge.
+You can see in Fig. \ref{fig:growth-reprod-1} very clearly that (1) none of the best-fit parameter values are correct; (2) the estimates of $\kappa$, $k_m$, and $E_R$ trade-off against one another; (3) there is very little signal to detect the value of $v$.
+There is some evidence that when $v$ is small, it also is highly correlated with $\kappa$, $k_m$, and $E_R$.
+The non-identifiability of $v$ is actually somewhat expected.
+Martin et al. (2013) found a similar problem, and ended up fixing the value of $v$ and then estimating the other parameters.
+You can see from the profile likelihood for $v$ that a huge range of $v$ values are almost equally supported by the data.
+The question is how much you can tighten up the estimates of the other parameters by fixing the value of $v$ at something.
+To explore this, I fixed $v$ at a range of values from 1 to 2000 and fit the other four parameters.
+The results of this fitting can be seen in the pairwise scatterplots (Fig. \ref{fig:growth-reprod-2}).
+Here, for each value of $v$, I plot the parameter estimates for any parameter set within 2 log-likelihood units of the highest likelihood parameter set.
+You can see immediately how much the parameter estimates have tightened up: there is a clear best-fitting parameter set (where there wasn't before).
+But you can also see that the estimates of all of the other parameters are highly sensitive to the (fixed) value of $v$.
+
+I will point out here that a very high value of $v$ essentially creates a ``reserve-less'' DEB model.
+In such a model, there is no buffer between the environment and daphnid life history, so growth and reproduction depend directly on ingestion.
+This result is not unexpected, as evidenced by the success of net production models (the standard DEB is a net assimilation model) for predicting individual growth and reproduction (Noonburg et al. 1998, Nisbet et al. 2004) and population dynamics (McCauley et al. 2008) of \emph{Daphnia}.
+
+<<echo=FALSE, fig.height=4, fig.width=4, fig.cap="Scatterplots showing pairs of parameter estimates for a single parameter set. Only parameter sets within 2 log-likelihood units of the best-fitting parameter set are included. The red dot shows the true parameter value.", label="growth-reprod-1">>=
+x <- readRDS("~/Dropbox/Growth_reproduction_trajectory_fitting.RDS")
+
+library(deSolve)
+library(magrittr)
+library(subplex)
+library(pomp)
+library(parallel)
+library(plyr)
+
+## rebuild source for this computer
+system("rm deb.so")
 system("R CMD SHLIB deb.c")
 dyn.load("deb.so")
-## this produces numbers that look reasonable
-pars <- c(rho=0.7, eps=40e-9, Imax=0.0126, g=1.37, F=1e5/0.01, xi=2.62e-3, q=2.4, K=0.6, km=0.33, ER=1.51e-3, v=10, Lobs=0.1)
-ode(y=c(E=0.0002, W=0.0005, R=0),
-    times=seq(0, 100),
-    func="derivs",
-    parms=pars,
-    dllname="deb",
-    initfunc="initmod"
-    ) -> out
+## GENERATE RANDOM PARAMETER SETS AND OBSERVED DATASETS
+parorder=c("rho","eps","Imax","g","F","xi","q","K","km","ER","v","Lobs")
+estpars0=c(K=0.6, km=0.33, ER=1.51e-3, v=10, Lobs=0.1)
+fixpars=c(rho=0.7, eps=40e-9, Imax=0.0126, g=1.37, F=1e5/0.01, xi=2.62e-3, q=2.4)
+transform=c("logit",rep("log",4))
 
-## length is observed at days c(5,10,12,15,18,25,30,35)
-## assume it is observed in 12 animals per day and that these animals have identical parameters
-pars <- c(rho=0.7, eps=40e-9, Imax=0.0126, g=1.37, F=1e5/0.01, xi=2.62e-3, q=2.4, K=0.6, km=0.33, ER=1.51e-3, v=10, Lobs=0.1)
-ode(y=c(E=0.0002, W=0.0005, R=0),
-    times=seq(0, 35),
-    func="derivs",
-    parms=pars,
-    dllname="deb",
-    initfunc="initmod"
-    ) %>% as.data.frame -> out
-## assume that length is observed assuming a normal distribution
-## total; observed eggs is Poisson-distributed, but subtract off all
-## "reproduction" done prior to reaching sexual maturity when total
-## mass is greater than 5.9e-3 mg (Nisbet et al. 2004).
 days <- c(5,10,12,15,18,25,30,35)
-set.seed(1239478)
-data.frame(times=rep(days, each=12),
-           length=sapply(with(out, ((E[days+1]+W[days+1])/pars["xi"])^(1/pars["q"])),
-               function(x)
-                   rnorm(12, mean=x, sd=pars["Lobs"])
-                         ) %>% as.numeric,
-           eggs=sapply(with(out, R-R[which((E+W) < 5.9e-3) %>% max])[days+1],
-               function(x)
-                   rpois(12, lambda=x)
-                       ) %>% as.numeric
-           ) -> data
+datasets <- vector(mode='list', length=20)
+set.seed(123407)
+for (i in 1:20) {
+    data.frame(times=rep(days, each=12),
+               length=rep(0,96),
+               eggs=rep(0,96)) -> data
+    while ( (min(data$length) < 0.5) | (max(data$length) > 4) | (max(data[,"eggs"]) < 20) | any(is.na(data)) ) {
+        ## GENERATE NOVEL PARAMETERS
+        rnorm(length(estpars0), mean=estpars0, sd=estpars0/2) -> p
+        names(p) <- names(estpars0)
+        while (p["K"] > 0.9 | p["K"] < 0.1 | any(p < 0)) {
+            rnorm(length(estpars0), mean=estpars0, sd=estpars0/2) -> p
+            names(p) <- names(estpars0)
+        }
+        estpars <- p
+        ## SIMULATE
+        ode(y=c(E=0.0002, W=0.0005, R=0),
+            times=seq(0, 35),
+            func="derivs",
+            parms=c(fixpars, estpars),
+            dllname="deb",
+            initfunc="initmod"
+            ) %>% as.data.frame -> out
+        mutate(out, R=R-R[which((E+W) < 5.9e-3) %>% max]) -> out
+        out$R[out$R < 0] <- 0
+        ## SAMPLE TO CREATE A DATASET
+        data.frame(times=rep(days, each=12),
+                   length=sapply(with(out, ((E[days+1]+W[days+1])/fixpars["xi"])^(1/fixpars["q"])),
+                       function(x)
+                           rnorm(12, mean=x, sd=estpars["Lobs"])
+                                 ) %>% as.numeric,
+                   eggs=sapply(out$R[days+1],
+                       function(x)
+                           rpois(12, lambda=x)
+                               ) %>% as.numeric
+                   ) -> data
+    }
+    datasets[[i]] <- list(params=c(fixpars, estpars), data=data)
+}
+
+subset(x[[1]], lik < (min(lik)+2)) -> sx
+sx[,1:5]->sx
+rbind(sx, datasets[[1]]$params[8:12]) -> sx
+mutate(sx, "log(v)"=log(v)) -> sx
+pairs(sx[,-which(colnames(sx)=="v")], col=c(rep(1, nrow(sx)-1),2))
 
 
 @
+
+<<echo=F, fig.height=3, fig.width=3, fig.cap="Profile likelihood for the energy conductance v." label="profile-v">>=
+source("Growth_reproduction_trajectory_fitting.R")
+parorder=c("rho","eps","Imax","g","F","xi","q","K","km","ER","v","Lobs")
+transform=c("logit",rep("log",4))
+fixpars <- datasets[[1]]$params[1:7]
+estpars <- x[[1]][x[[1]]$lik %>% which.min,1:5] %>% as.numeric
+names(estpars) <- c("K","km","ER","v","Lobs")
+
+lapply(1:10000, function(x) {estpars["v"] <- seq(1, 10000)[x]; estpars}) -> varv
+
+mclapply(varv,
+         traj_match,
+         fixpars=fixpars,
+         parorder=parorder,
+         transform=transform,
+         obsdata=datasets[[1]]$data,
+         eval.only=TRUE,
+         mc.cores=5) %>%
+    lapply(., function(x) x$lik) %>%
+        unlist -> guess_lik
+lik95 <- max(-guess_lik)+0.05*max(-guess_lik)
+
+
+plot(100:2000, -guess_lik[100:2000], xlab="Energy conductance v", ylab="Log likelihood", type='l')
+
+
+@
+
+<<echo=FALSE>>=
+truepars <- datasets[[1]]$params[c("K","km","ER","Lobs")]
+x <- readRDS("~/Dropbox/Growth_reproduction_trajectory_fitting_profile_lik_v.RDS")
+v_vals <- c(1,10,50,seq(100,2000,100))
+lapply(1:length(x),
+       function(i)
+           subset(x[[i]], lik==min(lik)) %>%
+               mutate(., v=c(1,10,50,seq(100,2000,100))[i], lik=-lik) %>%
+                   unlist
+       ) %>%
+    unlist %>%
+        matrix(., ncol=7, byrow=T) -> results
+colnames(results) <- c("K","km","ER","Lobs","lik","conv","v")
+results[,c("lik","K","km","ER","Lobs","v")] -> results
+pairs(results)
+@
+
+However, this is all well and good, but the question is whether any of this will hold if the feeding model is wrong.
+In particular, the true experimental conditions were as follows:
+\begin{itemize}
+\item Within the first 24 hours of life, all individuals were placed in 2ml of lake water with 20,000 cells of algae and exposed to parasites.
+\item After 24 hours of parasite exposure, animals were moved to beakers with 30ml of water and fed 1,000,000 cells of algae every day.
+\item Animals were transferred to clean water every 5 days.
+\end{itemize}
+The thought is that this is so much food that \emph{D. dentifera} cannot eat it all in a day, so that if the true feeding model is a size-dependent Type II functional response (which it probably is), i.e,
+\begin{equation}
+I_{max} \frac{F}{f_h+F} L^g,
+\end{equation}
+then $F$ is so large that it is reasonable to assume that $F/(f_h+F) \approx 1$.
+
+\emph{D. dentifera} doesn't like to feed off the bottom, so if the food settled out each day, it might be reasonable to assume that the feeding conditions were essentially like batch transfer conditions.
+But that might be a big assumption - it is also possible that
+I want to explore two possibilities.
+First, I will generate simulated datasets where the feeding model is
+
+In particular, what if I make the standard DEB assumpt
 
 \subsection*{Including parasitism}
 I will include the structured model of parasitism into this model.
@@ -1363,6 +1482,7 @@ However, previous work using DEB models to study infection (Hall et al. 2007, 20
 Thus, I will assume that this is not too big of a problem.
 
 I am going to assume that the parasites hit structure for some simulation/recovery experiments.
+
 
 
 I also want to consider a ``net production'' model.
