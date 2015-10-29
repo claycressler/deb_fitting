@@ -36,7 +36,6 @@ par_untransform <- function(pars, transform) {
     return(pars)
 }
 traj_match <- function(estpars, fixpars, parorder, transform, obsdata, eval.only=FALSE, method="subplex") {
-    print(estpars)
     estpars <- par_transform(pars=estpars, transform=transform)
     if (any(is.na(estpars)))
         opt <- list(params=estpars,
@@ -71,7 +70,6 @@ traj_match <- function(estpars, fixpars, parorder, transform, obsdata, eval.only
                     lik=x$value,
                     conv=x$convergence)
     }
-    print(opt$lik)
     return(opt)
 }
 ## Objective function to minimize for the structured model
@@ -276,72 +274,25 @@ if (run) {
     est_params[[i]] <-refine_pars
     saveRDS(est_params, file="~/Dropbox/Growth_reproduction_trajectory_fitting.RDS")
 
-}
-
-## For this run, using the data only from the first dataset, what happens if you fix the estimate of v at various values, and then try to estimate the other parameters?
-data <- datasets[[1]]$data
-parorder=c("rho","eps","Imax","g","F","xi","q","K","km","ER","v","Lobs")
-transform=c("logit",rep("log",3))
-v_vals <- seq(20,2000,20)
-est_params <- vector(mode='list', length=length(v_vals))
-for (i in 1:length(est_params)) {
-    v <- v_vals[i]
-    print("Growth_reproduction_trajectory_fitting_profile_lik_v")
-    print(v)
-    fixpars=c(rho=0.7, eps=40e-9, Imax=0.0126, g=1.37, F=1e5/0.01, xi=2.62e-3, q=2.4, v=v)
-    box <- cbind(lower=c(K=0, km=0.001, ER=0.00001, Lobs=0.0001),
-                 upper=c(K=1, km=10, ER=1, Lobs=2))
-    sobolDesign(lower=box[,'lower'],
-                upper=box[,'upper'],
-                nseq=200000) %>%
-        apply(., 1, as.list) %>%
-            lapply(., unlist) -> guesses
-    mclapply(guesses,
-             traj_match,
-             fixpars=fixpars,
-             parorder=parorder,
-             transform=transform,
-             obsdata=data,
-             eval.only=TRUE,
-             mc.cores=10) %>%
-        lapply(., function(x) x$lik) %>%
-            unlist -> guess_lik
-    print("Nelder-Mead")
-    guesses[order(guess_lik)[1:250]] -> refine
-    mclapply(refine,
-             traj_match,
-             fixpars=fixpars,
-             parorder=parorder,
-             transform=transform,
-             obsdata=data,
-             eval.only=FALSE,
-             method="Nelder-Mead",
-             mc.cores=10) -> refine_lik
-
-    refine_lik %>%
-        unlist %>%
-            matrix(., ncol=6, byrow=TRUE) %>%
-                as.data.frame -> refine_pars
-    colnames(refine_pars) <- c(rownames(box), "lik", "conv")
-    est_params[[i]] <-refine_pars
-    saveRDS(est_params, file="~/Dropbox/Growth_reproduction_trajectory_fitting_profile_lik_v_2.RDS")
-}
-
-if (run) {
-    ## Run again, but fix v at the true value
+    ## For this run, using the data only from the first dataset, what happens if you fix the estimate of v at various values, and then try to estimate the other parameters?
+    data <- datasets[[1]]$data
     parorder=c("rho","eps","Imax","g","F","xi","q","K","km","ER","v","Lobs")
     transform=c("logit",rep("log",3))
-    est_params <- vector(mode='list', length=20)
-    for (i in 1:20) {
-        fixpars=c(rho=0.7, eps=40e-9, Imax=0.0126, g=1.37, F=1e5/0.01, xi=2.62e-3, q=2.4, v=unname(datasets[[i]]$params["v"]))
-        ## Generate a large number of different initial parameter guesses
-        box <- cbind(lower=c(K=0, km=0.001, ER=0.00001, Lobs=0.0001),
-                     upper=c(K=1, km=10, ER=1, Lobs=2))
-        sobolDesign(lower=box[,'lower'],
-                    upper=box[,'upper'],
-                    nseq=500000) %>%
-            apply(., 1, as.list) %>%
-                lapply(., unlist) -> guesses
+    v_vals <- seq(20,2000,20)
+    est_params <- vector(mode='list', length=length(v_vals))
+    box <- cbind(lower=c(K=0, km=0.001, ER=1e-6, Lobs=0.01),
+                 upper=c(K=1, km=1, ER=1e-3, Lobs=1))
+    sobolDesign(lower=box[,'lower'],
+                upper=box[,'upper'],
+                nseq=50000) %>%
+        apply(., 1, as.list) %>%
+            lapply(., unlist) -> guesses
+    for (i in 1:length(v_vals)) {
+        v <- v_vals[i]
+        print("Growth_reproduction_trajectory_fitting_profile_lik_v")
+        print(v)
+        fixpars=c(rho=0.7, eps=40e-9, Imax=0.0126, g=1.37, F=1e5/0.01, xi=2.62e-3, q=2.4, v=v)
+        t1 <- Sys.time()
         mclapply(guesses,
                  traj_match,
                  fixpars=fixpars,
@@ -352,8 +303,10 @@ if (run) {
                  mc.cores=10) %>%
             lapply(., function(x) x$lik) %>%
                 unlist -> guess_lik
-
-        guesses[order(guess_lik)[1:1000]] -> refine
+        t2 <- Sys.time()
+        print(paste0("Initial guesses took", t2-t1))
+        guesses[order(guess_lik)[1:100]] -> refine
+        t1 <- Sys.time()
         mclapply(refine,
                  traj_match,
                  fixpars=fixpars,
@@ -363,14 +316,68 @@ if (run) {
                  eval.only=FALSE,
                  method="Nelder-Mead",
                  mc.cores=10) -> refine_lik
+        t2 <- Sys.time()
+        print(paste0("Nelder-Mead took", t2-t1))
         refine_lik %>%
-            lapply(., function(l) c(l$params, l$lik)) %>%
-                unlist %>%
-                    matrix(., ncol=6, byrow=TRUE) %>%
-                        as.data.frame -> refine_pars
-        colnames(refine_pars) <- c(rownames(box), "lik")
+            unlist %>%
+                matrix(., ncol=6, byrow=TRUE) %>%
+                    as.data.frame -> refine_pars
+        colnames(refine_pars) <- c(rownames(box), "lik", "conv")
         est_params[[i]] <-refine_pars
-        saveRDS(est_params, file="~/Dropbox/Growth_reproduction_trajectory_fitting_3.RDS")
-
+        saveRDS(est_params, file="Growth_reproduction_trajectory_fitting_profile_lik_v.RDS")
     }
 }
+
+## zoom in on the lower values of v
+    data <- datasets[[1]]$data
+    parorder=c("rho","eps","Imax","g","F","xi","q","K","km","ER","v","Lobs")
+    transform=c("logit",rep("log",3))
+    v_vals <- seq(1,20)
+    est_params <- vector(mode='list', length=length(v_vals))
+    box <- cbind(lower=c(K=0, km=0.001, ER=1e-6, Lobs=0.01),
+                 upper=c(K=1, km=1, ER=1e-3, Lobs=1))
+    sobolDesign(lower=box[,'lower'],
+                upper=box[,'upper'],
+                nseq=50000) %>%
+        apply(., 1, as.list) %>%
+            lapply(., unlist) -> guesses
+    for (i in 1:length(v_vals)) {
+        v <- v_vals[i]
+        print("Growth_reproduction_trajectory_fitting_profile_lik_v")
+        print(v)
+        fixpars=c(rho=0.7, eps=40e-9, Imax=0.0126, g=1.37, F=1e5/0.01, xi=2.62e-3, q=2.4, v=v)
+        t1 <- Sys.time()
+        mclapply(guesses,
+                 traj_match,
+                 fixpars=fixpars,
+                 parorder=parorder,
+                 transform=transform,
+                 obsdata=data,
+                 eval.only=TRUE,
+                 mc.cores=10) %>%
+            lapply(., function(x) x$lik) %>%
+                unlist -> guess_lik
+        t2 <- Sys.time()
+        print(paste0("Initial guesses took", t2-t1))
+        guesses[order(guess_lik)[1:100]] -> refine
+        t1 <- Sys.time()
+        mclapply(refine,
+                 traj_match,
+                 fixpars=fixpars,
+                 parorder=parorder,
+                 transform=transform,
+                 obsdata=data,
+                 eval.only=FALSE,
+                 method="Nelder-Mead",
+                 mc.cores=10) -> refine_lik
+        t2 <- Sys.time()
+        print(paste0("Nelder-Mead took", t2-t1))
+        refine_lik %>%
+            unlist %>%
+                matrix(., ncol=6, byrow=TRUE) %>%
+                    as.data.frame -> refine_pars
+        colnames(refine_pars) <- c(rownames(box), "lik", "conv")
+        est_params[[i]] <-refine_pars
+        saveRDS(est_params, file="Growth_reproduction_trajectory_fitting_profile_lik_v_refine.RDS")
+    }
+
