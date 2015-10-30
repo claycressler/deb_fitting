@@ -236,7 +236,7 @@ for (i in 1:20) {
                  upper=c(K=1, km=10, ER=1, v=1000, Lobs=2))
     sobolDesign(lower=box[,'lower'],
                 upper=box[,'upper'],
-                nseq=500000) %>%
+                nseq=100000) %>%
                     apply(., 1, as.list) %>%
                         lapply(., unlist) -> guesses
     mclapply(guesses,
@@ -246,7 +246,7 @@ for (i in 1:20) {
              transform=transform,
              obsdata=data,
              eval.only=TRUE,
-             mc.cores=10) %>%
+             mc.cores=5) %>%
                  lapply(., function(x) x$lik) %>%
                      unlist -> guess_lik
 
@@ -259,7 +259,7 @@ for (i in 1:20) {
              obsdata=data,
              eval.only=FALSE,
              method="Nelder-Mead",
-             mc.cores=10) -> refine_lik
+             mc.cores=5) -> refine_lik
     refine_lik %>%
         lapply(., function(l) c(l$params, l$lik)) %>%
             unlist %>%
@@ -267,7 +267,7 @@ for (i in 1:20) {
                     as.data.frame -> refine_pars
     colnames(refine_pars) <- c(rownames(box), "lik")
     est_params[[i]] <-refine_pars
-    saveRDS(est_params, file="~/Dropbox/Growth_reproduction_trajectory_fitting.RDS")
+    saveRDS(est_params, file="~/Dropbox/Growth_reproduction_trajectory_fitting_2.RDS")
 }
 
 
