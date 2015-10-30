@@ -1358,6 +1358,45 @@ ggplot(res, aes(x=v, y=val, colour=best)) +
 
 @
 
+Fig. \ref{fig:growth-reprod-3} shows the parameter estimates when $v$ is held towards slightly smaller values.
+
+<<echo=F, fig.width=6, fig.height=3.5, fig.cap="Parameter estimates for smaller, fixed values of v." label="growth-reprod-3">>=
+library(tidyr)
+library(ggplot2)
+truepars <- datasets[[1]]$params[c("K","km","ER","Lobs")]
+x <- readRDS("Growth_reproduction_trajectory_fitting_profile_lik_v_refine.RDS")
+v_vals <- seq(1,20)
+lapply(1:length(x),
+       function(i)
+           subset(x[[i]], lik<min(lik)+2 & conv==0) %>%
+               mutate(., v=v_vals[i], lik=-lik, best=ifelse(lik==max(lik),2,1))) -> results
+res <- vector()
+for (i in 1:length(results)) res <- rbind(res, results[[i]])
+gather(res, "var", "val", 1:5) -> res
+arrange(res, best) -> res
+levels(res$var) <- c(paste(levels(res$var)[1:4], signif(truepars,3), sep="="), "lik")
+ggplot(res, aes(x=v, y=val, colour=factor(best))) +
+    facet_wrap(~var, scales="free") +
+        geom_point() +
+            theme(legend.position="none") +
+                scale_colour_manual(values=c("gray","black"))
+
+
+@
+
+If you look very, very closely, you can see that there actually is a peak in the likelihood surface at $v=12$ (Fig. \ref{fig:v-lik-peak}).
+Of course, the likelhood difference is less the 3/100 of a log-likelhood unit, or less than 1 likelihood unit.
+Such a small difference would likely not be significant, so there is essentially no statistical evidence supporting any particular $v$ value, so long as it is greater than 5 or so.
+<<echo=F, fig.height=2, fig.width=2, fig.cap="Very small likelihood peak at low v values.", fig.cap="v-lik-peak">>=
+x <- readRDS("Growth_reproduction_trajectory_fitting_profile_lik_v_refine.RDS")
+y <- readRDS("Growth_reproduction_trajectory_fitting_profile_lik_v.RDS")
+c(lapply(x, function(l) min(l$lik)) %>% unlist,
+  lapply(y, function(l) min(l$lik)) %>% unlist) -> liks
+plot(c(1:20, seq(20,2000,20)), -liks, type='l', xlim=c(1,200), ylim=c(-118,-117.8))
+
+
+@
+
 I will point out here that a very high value of $v$ essentially creates a ``reserve-less'' DEB model.
 In such a model, there is no buffer between the environment and daphnid life history, so growth and reproduction depend directly on ingestion.
 This result is not unexpected, as evidenced by the success of net production models (the standard DEB is a net assimilation model) for predicting individual growth and reproduction (Noonburg et al. 1998, Nisbet et al. 2004) and population dynamics (McCauley et al. 2008) of \emph{Daphnia}.
@@ -1412,6 +1451,7 @@ library(ggplot2)
 x <- readRDS("Feeding_model_fitting.RDS")
 res <- vector()
 for (i in 1:length(x)) res <- rbind(res, x[[i]])
+res$lik <- -res$lik
 res$fh <- rep(seq(1e5,1e7,1e5), each=100)
 gather(res, var, val, 1:5) -> res2
 ggplot(res2, aes(x=fh, y=val)) +

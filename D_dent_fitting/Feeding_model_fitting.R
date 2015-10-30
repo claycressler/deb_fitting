@@ -89,7 +89,7 @@ obj <- function(estpars, data, fh, transform) {
     return(-lik)
 }
 
-data <- read.csv("Cat_data/feeding.csv")
+data <- read.csv("Cat_data/feeding2.csv")
 estpars <- c(Imax=1e5, g=2, F0=1e7, Fobs=1e4)
 transform <- rep("log",4)
 fh <- 2.5e6
@@ -104,18 +104,19 @@ mutate(data,
              dnorm(Ft, mean=E.Ft, sd=estpars["Fobs"], log=TRUE)
          ) %>% sum
 
+data <- subset(data, infected==0)
 ## Ranges for the estimated parameters
-box <- cbind(lower=c(Imax=1e3, g=1, F0=5e6, Fobs=1e3),
-             upper=c(Imax=1e7, g=4, F0=5e7, Fobs=1e6))
+box <- cbind(lower=c(Imax=1e2, g=1, F0=5000, Fobs=1e2),
+             upper=c(Imax=1e5, g=4, F0=15000, Fobs=1e3))
 sobolDesign(lower=box[,'lower'],
             upper=box[,'upper'],
-            nseq=200000) %>%
+            nseq=100000) %>%
     apply(., 1, as.list) %>%
         lapply(., unlist) -> guesses
 
 ## Pick a huge range of potential fh values, and perform the fitting
 ## estimating the other parameters
-fh_vals <- seq(1e5, 1e7, 1e5)
+fh_vals <- seq(100, 10000, 100)
 est_params <- vector(mode='list', length=length(fh_vals))
 for (i in 1:length(fh_vals)) {
     fh <- fh_vals[i]
@@ -127,12 +128,12 @@ for (i in 1:length(fh_vals)) {
              transform,
              data,
              eval.only=TRUE,
-             mc.cores=10) %>%
+             mc.cores=5) %>%
         lapply(., function(x) x$lik) %>%
             unlist -> guess_lik
     t2 <- Sys.time()
     print(paste("Guess lik calc", t2-t1))
-    guesses[order(guess_lik)[1:100]] -> refine
+    guesses[order(guess_lik)[1:500]] -> refine
     t1 <- Sys.time()
     mclapply(refine,
              traj_match,
@@ -141,7 +142,7 @@ for (i in 1:length(fh_vals)) {
              data,
              eval.only=FALSE,
              method="Nelder-Mead",
-             mc.cores=10) %>%
+             mc.cores=5) %>%
         lapply(., unlist) %>%
             unlist %>%
                 matrix(., ncol=6, byrow=TRUE) %>%
@@ -151,6 +152,6 @@ for (i in 1:length(fh_vals)) {
     t2 <- Sys.time()
     print(paste("Refine lik calc", t2-t1))
     est_params[[i]] <- refine_lik
-    saveRDS(est_params, "Feeding_model_fitting.RDS")
+    saveRDS(est_params, "Feeding_model_fitting_2.RDS")
 }
 
