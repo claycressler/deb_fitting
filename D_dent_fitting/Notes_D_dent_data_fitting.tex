@@ -1,3 +1,4 @@
+
 \documentclass[11pt,reqno,final,pdftex]{amsart}\usepackage[]{graphicx}\usepackage[]{color}
 %% maxwidth is the original width if it is less than linewidth
 %% otherwise use linewidth (to make sure the graphics do not exceed the margin)
@@ -167,7 +168,7 @@ This variation could be stochastic, reflecting inherent randomness in the encoun
 Other sources of variation would be individual heterogeneity in energy mobilization or maintenance.
 The considerable variation among individuals will, of course, be a primary hurdle in this fitting exercise.
 
-\subsection*{Modeling parasite replication and development}
+\section*{Modeling parasite replication and development}
 All of the above suggests that the proper model for parasite growth must be structured in some way.
 However, before we actually develop such a model, it is worth considering what might be lost by working with the simpler model that assumes an unstructured, homogeneous parasite population.
 The first problem is that we would misrepresent the energetic cost of parasitism: if we ignore stage structure, then we are assuming that what we can observe (the total number of parasite transmission stages at death/sacrifice) is all that there is.
@@ -216,11 +217,12 @@ The first stage $C$ uptakes resources, assuming Michaelis-Menten kinetics, for a
 Second stage parasites also uptake resources with Michaelis-Menten kinetics, using those resources to mature into transimission spores $T$.
 The energetic cost of maturation is $m$.
 
+\subsection*{Simulation/recovery experiment}
 I have written code to generate simulated data.
 However, I will assume that the only data I have access to is the number of transmission spores - not anything else.
 The simulated data will consist of multiple observations of spore count at different ages, similar to the true data, which comes from an experiment infecting many genetically identical individuals and then sacrificing several at different infection ages and counting spore loads.
 
-For the simulation study, I will pick a set of parameter values and simulate a single trajectory.
+Initially, I will pick a set of parameter values and simulate a single trajectory.
 I will then choose 10 ages of infection and simulate observations of the spore load assuming measurement error (specifically, for each infection age, I will draw 10 observed spore loads assuming a normal distribution with mean equal to the true spore load and standard deviation specified).
 
 I will then fit the true model to this data, estimating the 9 parameters of the model as best as I am able.
@@ -357,47 +359,9 @@ For the second parameter set (Fig. (Fig. \ref{fig:low-obs-sd-1}), there were onl
 
 \end{knitrout}
 
-There are legitimate questions about what it may or may not be
-possible to estimate using this dataset, and thus how general of a
-model it will be possible to produce.
-In particular, it will be impossible to estimate how long it takes for
-castration to happen after exposure in this dataset because exposure
-happened so early in life that none of the infected animals reproduced
-at all.
-I think that there will be some serious difficulties with estimating
-some of the parameters without variation in the environment.
-For example, I can get an equal number of transmission spores by tweaking
-parameters associated with probability of infection, cauliflower stage
-replication rate, and grape seed stage development rate.
-If there were multiple food treatments, I could potentially
-disentangle probability of infection (which should be independent of
-food level) from replication/development parameters.
-I'm not sure whether there will be a signal strong enough to
-disentangle replication rate from development rate without information
-about abundance of non-transmission stage spores.
+\clearpage
 
-One question is whether we seek here to develop a model that works
-well for just this set of data, or whether we see k to develop a model that will work well for any dataset.
-We must take advantage of the fact that ingestion is measured, so the feeding model will not be general.
-A better example is that, in this dataset, castration happens prior to the onset of sexual maturity so we could, for example, assume that castration happens upon infection, ignoring the actual delay that occurs between spore ingestion and castration.
-There is also the reality that, in many cases, the exposure period is long enough to consider exposure happening over a period of multiple days, such that a spore might be ingestion and not attach the first time, but then reingested later.
-This would create asynchrony in developmental stages.
-Again, in Cat's data, we don't really have to worry as much about that because the exposure period was relatively short compared to some of the exposure periods I have used in my experiments.
-I think, for now, I will attempt to develop a model that works well
-with Cat's data, and then decide how such a model needs to be extended
-for more general use.
-
-Let's think more carefully about the structure of the parasite
-replication model.
-In reality, what I want to consider is almost a stage-structured
-model.
-I feel fairly confident that each cauliflower stage corresponds to an
-ingested spore that successfully penetrated the oesophagus and entered
-the hemolymph.
-We can therefore
-
-
-\section*{DEB model}
+\section*{Estimating the parameters of a DEB model using simulated data}
 
 Let's begin by laying out the standard dynamic energy budget model, and then discuss ways to include parasitism into that model.
 The model begins with the dynamics of ``reserves'', a pool of metabolizable energy that is in temporary storage.
@@ -406,91 +370,264 @@ The dynamics of reserves are simple to state, and complicated to derive: the dyn
 \frac{dE}{dt} = p_A - p_C.
 \end{equation}
 The dynamics of assimilation depend on the feeding model.
-For the surface-area-dependent Type II functional response common to DEB models,
-\begin{equation}
-p_A = \rho I_{max} \frac{F}{f_h + F} L^2.
-\end{equation}
-Here $\rho$ is the fraction of ingested food which is assimilated, $I_{max}$ is the surface-area-specific ingestion rate, $F$ is the density of food, $f_h$ is the half-saturation constant, and $L^2$ is surface area related to observed length.
-We can safely assume that the scaling of surface area from length is incorporated into the $I_{max}$ term.
-\textbf{However,} it is important to note that we are not, currently, assuming a Type II functional response.
-Based on what I have seen, we are assuming a Type I functional response with a clearance rate that depends on both size and spore load.
 
-Cat has calculated the clearance rate as $\log(F_0/F_1)*V/T$, where $F_0$ is the initial number of algae cells, $F_1$ is the final number of algae cells, $V$ is the volume of the tube, and $T$ is the duration of the feeding trial (3 hours).
-This model is assuming an exponential decrease in the number of algae cells, with the rate of decrease determined by the ingestion rate of the daphnid; essentially, the daphnid has a linear functional response.
+Let me begin by basing the feeding model off of Cat's feeding rate data and Spencer's fits.
+Cat calculated the clearance rate as $\log(F_0/F_1)*V/T$, where $F_0$ is the initial number of algae cells, $F_1$ is the final number of algae cells, $V$ is the volume of the tube, and $T$ is the duration of the feeding trial (3 hours).
+This model assumes an exponential decrease in the number of algae cells, with the rate of decrease determined by the clearance rate of the daphnid; essentially, the daphnid has a linear functional response.
 Cat also calculates a size-corrected clearance rate as the observed clearance rate divided by the square of the length, that is, assuming that clearance rate is dependent on the surface area.
-\textbf{It will probably be desirable to fit a feeding model to all of this data to estimate its parameters, and also to compare alternative feeding models, although I believe that Spencer has done this to some extent already.}
-In the work I have seen, Spencer fits some models that allow feeding rate to depend on spore load/infection status.
-Spencer's results suggest that feeding rate should depend on the number of spores.
-One thing to consider: if all the parasite's replication happens early, then the change in feeding rate through infection time has more to do with the \emph{size} of the parasite spores than their numbers (see discussion above).
-\emph{A key for this study is the ability to treat the feeding model parameters as fixed, rather than needing to estimate them}; even if feeding rate changes as the abundance of spores changes dynamically.
+Spencer then fit different feeding models to these clearance rate observations, estimating clearance rate parameters, as well as parameters for the dependence of clearance rate on length and spore load.
 
-\subsection*{A slightly-modified version of the standard DEB model}
-There are lots of ways to write down the standard DEB model.
-I have a version that I have used that simplifies the standard DEB model in some ways that I think are useful.
-This version assumes that energy reserves $E(t$ increase due to ingestion, and are mobilized $p_C(E,V,t)$ to fuel growth in volume $V(t)$ and egg production $R(t)$.
-The simplification I make to the standard DEB model is in assuming that there are no ``maturity maintenance'' costs; this prevents the possibility of a sexually mature animal ``reverting'' to sexual immaturity.
-It also is beneficial for working with \emph{Daphnia}, since, to a good approximation, sexual maturity can be measured by length (that is, it is possible to define a ``size at maturity'' that applies to all individuals).
-
+I actually use a slightly modified version of the standard DEB model that tracks resources in terms of carbon.
+Thus, carbon is ingested and assimilated into reserves; carbon that is mobilized out of reserves is used for growth and reproduction, there are no conversion costs, as there are in the standard DEB, for going between reserves, structure, and eggs.
+I also do not assume that there is any ``maturity maintenance'' costs; this prevents the possibility of a sexually mature animal ``reverting'' to sexual immaturity.
+I am also using Spencer's ingestion model.
+In the experiments, although not technically in chemostats, I believe that food was held as close to constant as possible (daily food transfers, saturating food).
+The model I am using is:
 \begin{align}
-\frac{dE}{dt} &= \rho I_{max} \frac{F}{f_h+F} V^{2/3} - p_C, \\
-\frac{dV}{dt} &= \frac{\kappa~p_C - k_M~E_G~V}{E_G}, \\
+\frac{dE}{dt} &= \rho I_{max} L_{obs}^g \epsilon F - p_C,
+\frac{dW}{dt} &= \kappa~p_C - k_M~W, \\
 \frac{dR}{dt} &= \frac{(1-\kappa)~p_C}{E_R}, \\
-p_C &= E \left(\frac{\frac{v}{V^{2/3}} + k_m}{1+\frac{\kappa E}{E_G V}}\right).
+p_C &= E \left(\frac{\frac{v}{L} + k_m}{1+\frac{\kappa E}{W}}\right).
 \end{align}
+A bit of explanation.
+Spencer's best-fitting ingestion model for uninfected individuals was $I_{max} L_{obs}^g$, which gives the clearance rate in terms of ml/day, for an individual with observed length $L_{obs}$.
+$F$ is the concentration of algal cells in cells/ml; $\epsilon$ is the carbon content of a cell of algae in mgC/cell; $\rho$ is the assimilation efficiency.
+$p_C$ is the mobilization rate based on the standard DEB model with $E_G=1$; $\kappa$ is the fraction of carbon allocated towards growth; $k_m$ is the maintenance rate; $E_R$ is the cost of an egg; $v$ is the ``energy conductance''; $L$ is the ``structural length,'' which is not identical to the observed length.
+For that matter, $W$ is not the same as the weight you would measure, because the combustion weight would also include $E$, so $W_{obs}=W+E$.
+To relate the observed length, we can use published length-weight regressions: $W_{obs} = \xi L_{obs}^q$.
 
 This is the description of the growth dynamic under ``good'' food conditions.
-In the experiments, although not technically in chemostats, I believe that food was held as close to constant as possible (daily food transfers, saturating food).
-Clearance rates were also directly measured, as were size and spore load.
-Because of this, we can safely remove most of the terms relating to feeding from the model.
-In particular, I think we can begin by using the raw measurement of size-dependent clearance rate in place of $I_{max}~F/(f_h+F)$.
-Then we can focus only on estimating the assimilation efficiency $\rho$.
-We can simplify further by using the assimilation efficiency estimated for $\emph{D. pulex}$, e.g. in the the work by McCauley, Nisbet et al., as the parameter $\rho$.
+How to deal with starvation is a huge uncertainty in these models.
+
+I am going to use this model for some simulation/recovery experiments.
+In particular, I am going to assume that all of the parameters relating to ingestion ($\rho$, $\epsilon$, $I_{max}$, $g$, $F$, $\xi$, and $q$) are known, and focus only on estimating $\kappa$, $k_m$, $E_R$, $v$, and the error in the observation of length.
+However, even under these circumstances, estimation is a huge challenge.
+You can see in Fig. \ref{fig:growth-reprod-1} very clearly that (1) none of the best-fit parameter values are correct; (2) the estimates of $\kappa$, $k_m$, and $E_R$ trade-off against one another; (3) there is very little signal to detect the value of $v$.
+There is some evidence that when $v$ is small, it also is highly correlated with $\kappa$, $k_m$, and $E_R$.
+
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=\linewidth]{figure/growth-reprod-1-1} \hfill{}
+
+\caption[Scatterplots showing pairs of parameter estimates for a single parameter set]{Scatterplots showing pairs of parameter estimates for a single parameter set. Only parameter sets within 2 log-likelihood units of the best-fitting parameter set are included. The red dot shows the true parameter value.}\label{fig:growth-reprod-1}
+\end{figure}
+
+
+\end{knitrout}
+
+The non-identifiability of $v$ is actually somewhat expected.
+Martin et al. (2013) found a similar problem, and ended up fixing the value of $v$ and then estimating the other parameters.
+You can see from the profile likelihood for $v$ that a huge range of $v$ values are almost equally supported by the data (Fig. \ref{fig:profile-v}).
+For this figure, I held all parameters constant at their values when the likelihood was maximized; I then varied $v$ against this background.
+Essentially, it appears that $v$ sits along a long ridge in likelihood space.
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=0.6\textwidth]{figure/profile-v-1} \hfill{}
+
+\caption[Profile likelihood for the energy conductance v]{Profile likelihood for the energy conductance v.}\label{fig:profile-v}
+\end{figure}
+
+
+\end{knitrout}
+
+Clearly, estimating $v$ along with the other parameters is impossible in this modeling framework.
+The question is how much you can tighten up the estimates of the other parameters by fixing the value of $v$ at something.
+To address this, I fixed $v$ at a range of values from 1 to 2000 and fit the other four parameters.
+The results of this fitting can be seen in (Fig. \ref{fig:growth-reprod-2}).
+Here, for each value of $v$, I plot the parameter estimates for any parameter set within 2 log-likelihood units of the highest likelihood parameter set.
+You can see immediately how much the parameter estimates have tightened up: the range of parameter estimates is much smaller.
+Moreover, the highest-likelihood parameter set is nearly identical, almost regardless of the value of $v$ (this can be seen from the fact that the best-fitting parameter values form essentially a straight line as $v$ increases).
+However, although the estimates are consistent, they are actually not very close to the true parameter values (given in the plot titles).
+The estimates do appear to be getting closer for values of $v < 20$.
+
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=\linewidth]{figure/growth-reprod-2-1} \hfill{}
+
+\caption[Parameter estimates for fixed values of v]{Parameter estimates for fixed values of v. All estimate shown are within 2 log-likelihood units of the best fitting parameter set, which is indicated by black points.}\label{fig:growth-reprod-2}
+\end{figure}
+
+
+\end{knitrout}
+
+Fig. \ref{fig:growth-reprod-3} shows the parameter estimates when $v$ is held towards slightly smaller values.
+Interestingly, for $v=5$, the parameter estimates are really close to the true values and the likelihood is essentially maximal.
+
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=\linewidth]{figure/growth-reprod-3-1} \hfill{}
+
+\caption[Parameter estimates for smaller, fixed values of v]{Parameter estimates for smaller, fixed values of v.}\label{fig:growth-reprod-3}
+\end{figure}
+
+
+\end{knitrout}
+
+If you look very, very closely, you can see that there actually is a peak in the likelihood surface at $v=12$ (Fig. \ref{fig:v-lik-peak}).
+Of course, the likelhood difference is less the 3/100 of a log-likelhood unit, or less than 1 likelihood unit.
+Such a small difference would likely not be significant, so there is essentially no statistical evidence supporting any particular $v$ value, so long as it is greater than 5 or so.
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=0.6\textwidth]{figure/v-lik-peak-1} \hfill{}
+
+\caption[Very small likelihood peak at low v values]{Very small likelihood peak at low v values.}\label{fig:v-lik-peak}
+\end{figure}
+
+
+\end{knitrout}
+
+I will point out here that a very high value of $v$ essentially creates a ``reserve-less'' DEB model.
+In such a model, there is no buffer between the environment and daphnid life history, so growth and reproduction depend directly on ingestion.
+This result is not unexpected, as evidenced by the success of net production models (the standard DEB is a net assimilation model) for predicting individual growth and reproduction (Noonburg et al. 1998, Nisbet et al. 2004) and population dynamics (McCauley et al. 2008) of \emph{Daphnia}.
+Of course, the high support for a very large value of $v$ might be because I have assumed constant food, rather than a dynamically variable food source.
+
+\clearpage
+
+\section*{Fitting the feeding model}
+Let's revisit the actual experimental conditions, which did not hold food constant.
+The experimental conditions were as follows:
+\begin{itemize}
+\item Within the first 24 hours of life, all individuals were placed in 2ml of lake water with 20,000 cells of algae and exposed to parasites.
+\item After 24 hours of parasite exposure, animals were moved to beakers with 30ml of water and fed 1,000,000 cells of algae every day.
+\item Animals were transferred to clean water every 5 days.
+\end{itemize}
+The hope was that this is so much food that \emph{D. dentifera} cannot eat it all in a day, so that if the true feeding model is a size-dependent Type II functional response (which it probably is), i.e,
+\begin{equation}
+I_{max} \frac{F}{f_h+F} L^g,
+\end{equation}
+then $F$ is so large that it is reasonable to assume that $F/(f_h+F) \approx 1$.
+
+We can make a back of the envelope calculation to see how reasonable this assumption might be.
+In particular, let's figure out a reasonable guess for the half-saturation constant $f_h$.
+Hall et al. use a value of $f_h = 0.1$ mgC/L based on Nisbet et al. 2004, which is not too far off of the value used by McCauley et al. 1990, 2008 of 0.164 mgC/L.
+The concentration of algae added to the beaker each day was $3.33 \times 10^7$ cells/L.
+Using an estimate of the carbon content per algal cell (according to Rachel, 20,000 cells contained 0.89ug C) of $4.45 \times 10^{-8}$ mgC/cell, the initial concentration of algae was 1.48 mgC/L.
+With this initial concentration, $F/(f_h + F) \approx 0.94$.
+This suggests that it might be problematic to assume that food is always high, at least for that first day after feeding.
+However, the container was only changed every 5 days, so every time more food was entered, any uneaten food that had settled out would have been resuspended, making it available to the \emph{Daphnia}.
+This might make assuming $F/(f_h+F)\approx 1$ a more reasonable assumption.
+
+However, I think it is worth refitting the feeding model, for three reasons.
+First, the feeding model parameters were estimated using the converted clearance rate data, rather than the raw algae counts.
+I think it makes more sense to fit the raw data.
+Second, the true functional response for \emph{Daphnia} is Type II, but the clearance rate calculation is using a Type I functional response.
+The assumption of a Type I functional response becomes problematic when dealing with the resuspension of uningested algae, which will lead to very high algal abundances on the day before a transfer.
+Third, there is error in both the estimates of both the initial and final algal abundances that I don't think is being accounted for.
+So, using the raw algal count data, I want to estimate the parameters of the following system:
+\begin{align*}
+\frac{dF}{dt} &= -I_{max} \frac{F}{f_h+F} L^g, \\
+F(0) &= F_0.
+\end{align*}
+The parameters that need to be estimated are $I_{max}$, $f_h$, $g$, $F_0$, and the error in the observation of algal abundances $\sigma_F$.
+However, I realize that we probably cannot estimate $f_h$ without variation in the initial concentration of algae.
+So I will fix the value of $f_h$ and estimate all of other parameters.
+I then vary the value of $f_h$ and repeat the fitting.
+This separates the problem of estimating $f_h$ from the problems of estimating the other parameters.
+However, since the number of parameters of the model do not change, I can use the value of $f_h$ that leads to the maximum likelihood as the estimate of $f_h$.
+Fig. \ref{fig:feeding} shows the all the parameter estimates for each value of $f_h$ and the likelihood.
+You can see that it is possible to fit the data well for every value of $f_h$ considered, but that the best-fit value of $I_{max}$ scales linearly with increasing $f_h$.
+Similarly, the best-fitting value of $g$ also increases as $f_h$ increases.
+The range of $g$ esimates includes the value that Spencer estimated (his estimate was 1.3704).
+However, the estimate of the the initial algae abundance $F_0$ and the error in estimating algal abundance $\sigma_F$ are both relatively constant across parameters.
+Note that right now, I am working with algal concentrations in units of cells/ml.
+Thus $f_h$ has units of cells/ml; $I_{max}$ has units of cells per ml per mm$^g$.
+Of course, just because many different parameter sets can fit the feeding data equally well does not automatically imply that they will fit the growth and reproduction data equally well.
+This is the next step, I think.
+I will use a more accurate model of the actual food treatments, with feeding rate parameters fixed at different values (varying $f_h$ and setting $I_{max}$ and $g$ to be the values the maximized the likelihood for the given $f_h$ value).
+I will then fit all of the DEB parameters.
+Hopefully there will be a clear best-fitting set of parameter values that will identify both the value of $f_h$ and the DEB parameters.
+
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=\linewidth]{figure/feeding-1} \hfill{}
+
+\caption[Feeding model parameters for uninfected animals as ]{Feeding model parameters for uninfected animals as $f_h$ is varied. Black points show the maximum likelihood parameter estimates.}\label{fig:feeding}
+\end{figure}
+
+
+\end{knitrout}
+
+But, before I go on, I want to see whether this fitting procedure supports a lower feeding rate for infected \emph{Daphnia}.
+As a first pass, I will let all parameters be re-estimated for the uninfected animals, rather than assuming that any of the parameters estimated for the uninfected animals will carry over.
+In reality, of course, the initial food abundance and observation error should be the same, at the very least.
+Whether $f_h$ and $g$ should also be the same is less clear to me.
+
+Fig. \ref{fig:inf-feeding} shows the results of this feeding.
+While $I_{max}$ is definitely much lower for infected animals compared to uninfected animals, the really huge change is the estimates of $g$: whereas $g > 1$ for uninfected animals, for infected animals, feeding rate is nearly independent of size.
+This is kind of interesting, actually, although I am not sure what to make of it.
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=\linewidth]{figure/inf-feeding-1} \hfill{}
+
+\caption[Feeding model parameters for infected animals as ]{Feeding model parameters for infected animals as $f_h$ is varied. Black points show the maximum likelihood parameter estimates for each value of $f_h$.}\label{fig:inf-feeding}
+\end{figure}
+
+
+\end{knitrout}
+
+I also did the fitting fixing $F_0$, $\sigma_F$, and $g$ at the same values as for uninfected animals, so the only parameter I was estimating was $I_{max}$.
+In this case, you see an even larger reduction in the estimate of $I_{max}$ between uninfected and infected individuals (Fig. \ref{fig:Imax-comp}).
+The likelihood of the $I_{max}$-only model is about 20 log-likelihood units worse than the model where all of the parameters were estimated.
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=\linewidth]{figure/Imax-comp-1} \hfill{}
+
+\caption[Estimates of ]{Estimates of $I_{max}$ as $f_h$ varies for uninfected animals (black line), for infected animals when all feeding parameters are estimated simultaneously (blue), and for infected animals when $g$ takes the same value as for uninfected animals (red).}\label{fig:Imax-comp}
+\end{figure}
+
+
+\end{knitrout}
+
+Another possibility considered by Spencer is that feeding rate in infected animals is also affected by spore load.
+The model he uses, and that I will consider as well, is
+\begin{equation*}
+\frac{dF}{dt} = -I_{max} \frac{F}{f_h+F} L^g \exp\left(-a\frac{Z}{L^h}\right),
+\end{equation*}
+where $Z$ is the spore load, $h$ scales body length, and $a$ is the reduction in feeding as the spore load per unit of body size increases.
+There is one problem that I don't know how Spencer dealt with, which is how to treat individuals that were exposed but were sacrificed too young to know whether they were infected or not (and were not even checked for spores).
+There are two ways to deal with them: either ignore them and only include individuals that were counted, or to treat them all as zeros.
+I think the only thing that you can do is focus on the animals that could be counted.
+(\textbf{Note to self: if I treat these NAs as zeros, I might actually be able to use a structured model.}
+There are, of course, problems here unless infection success can be assumed to be 100\%.)
+
+For this model, I estimated $I_{max}$, $a$, and $h$ for a range of $f_h$ values.
+I did not attempt to estimate $g$ here, by fixed it at the value estimated for uninfected animals.
+The reason for this is that the only infected animals that were counted were fairly large (and thus not growing much).
+The lack of variation in size among clearly infected animals makes $g$ nearly impossible to estimate.
+Focusing only on parameter sets with log-likelihoods within 1 units of the best-fitting dataset, you can see that the estimates are pretty consistent for a given $f_h$ value (Fig. \ref{fig:spore-dep-feeding}).
+Moreover, as $f_h$ increases, the estimates of $a$ and $h$ are basically constant, while $I_{max}$ increases linearly.
+The highest likelihood occurs for very small values of $f_h$, though the likelihood difference is small.
+However, the likelihood of this model, compared to the models without spore-dependent feeding is huge (compare the likelihoods in Fig. \ref{fig:inf-feeding} and Fig. \ref{fig:spore-dep-feeding}).
+
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=0.8\textwidth]{figure/spore-dep-feeding-1} \hfill{}
+
+\caption[Spore-dependent feeding model parameters for infected animals as ]{Spore-dependent feeding model parameters for infected animals as $f_h$ is varied. Black points show the maximum likelihood parameter estimates for each value of $f_h$.}\label{fig:spore-dep-feeding}
+\end{figure}
+
+
+\end{knitrout}
 
 \subsection*{Including parasitism}
-Here is where things get a bit dicier, because we are faced with many possible ways of adding parasitism, as noted above.
-To constrain ourselves a bit, let's assume that the parasite shuts off reproduction by causing all energy allocated to reproduction to instead be allocated to growth, and let's assume that the parasite, in way way or another, uses this energy as a resource.
-The three issues we need to deal with are the following:
-\begin{enumerate}
-\item \emph{When} does the parasite shut of energy allocation to reprodution?
-\item \emph{How} is the parasite population structured?
-\item \emph{Where} does the parasite get its energy from growth?
-\end{enumerate}
+I will include the structured model of parasitism into this model.
+I will assume that the parasite shuts off reproduction by causing all energy allocated to reproduction to instead be allocated to growth.
+I need to decide how the parasite uses this energy as a resource.
 
-The \emph{when} question is a bit easier.
-Castration is not instantaneous, as many individuals are able to have clutches (including clutches that are larger than normal) after exposure to the parasite.
-However, if infection occurs early enough in life (that is, early enough before sexual maturity is reached), then castration happens prior to sexual maturity.
-In the data for Cat's experiments, castration precedes sexual maturity for all individuals, so we could make the assumption that castration is instantaneous upon infection.
-Or we could follow the model structure above and assume that castration happens $n$ days post-infection, letting $n$ be estimated on the basis of the data.
-That is the structure I will assume now.
+I will point out that castration is not instantaneous, as many individuals are able to have clutches (including clutches that are larger than normal) after exposure to the parasite.
+We could assume that castration happens $n$ days post-infection, letting $n$ be estimated on the basis of the data.
+However, in the data for Cat's experiments, castration precedes sexual maturity for all individuals, so it may be very difficult to estimate $n$.
 
-The \emph{how} question is also not too bad.
-If the parasite population is unstructured, then we are explicitly treating the parasite population as homogeneous (which we know it is not), so all spores are transmission spores, and all spores use the same amount of energy.
-I think we cannot, in good faith, use this model.
-I think we must assume some simple structure (like that suggested above).
-In this case, we can consider three parasite subpopulations: ``cauliflower stages'' that produce pre-transmission stages, which requires some amount of energy from the host; ``pre-transmission stage'' that develop into transmission stages, which requires some amount of energy from the host; ``transmission stages'' that are inert, simply taking up space inside the host.
-To be fully general, this suggests a delay-differential equation approach, because individual infecting spores infect the host at different times and each ``cauliflower stage'' produce pre-transmission spores time; this means that pre-transmission stages (and, subsequently, transmission stages) have a distribution of ages within the host.
-
-However, a simpler alternative is a continuous-time stage-structured population model.
-We just want to make the rates of transitioning between stages (i.e., the probabilities of transitions) dependent on ingestion rates, food densities, etc.
-A simple model to begin is the following:
-\begin{align}
-\frac{dN_C}{dt} &= p_I \times \text(clearance rate) \times N_{T,env} - \mu N_C, \\
-\frac{dN_P}{dt} &= b(E,V) N_C - p_T(E,V) N_P, \\
-\frac{dN_T}{dt} &= p_T(E,V) N_P.
-\end{align}
-
-In this model, the total number of cauliflower stages $N_C$ depends upon clearance rates (feeding, not immune!), the probability of infection, and the density of transmission-stage spores in the environment.
-Cauliflower stage spores ``deactivate'' at a rate $\mu$.
-Note that although this enters the model as a death rate, it isn't biologically a death rate - it is just a way of ensuring that cauliflower stages don't produce pre-transmission spores indefinitely.
-In experiments, new cauliflower stages would only be coming in while the host was in the exposure phase.
-Cauliflower stages produce pre-transmission stages $N_P$ at a rate $b$ that depends (potentially) on energy reserves and host size.
-These pre-transmission stage spores transition to becoming transmission stages $N_T$ at a rate $p_T$ that may depend on reserves and host size.
-Transmission stage spores persist within the host forever.
-This seems like a pretty good model to begin with - it is quite simple (structurally) but roughly captures what we know about the biology of the host.
-What remains is to specify functional forms for $b(E,V)$ and $p_T(E,V)$, so that they depend upon the energy being allocated to growth.
-
-\emph{Where} exactly that energy is coming from is trickier, as I noted above.
-I am working from the assumption that the energy used by the parasite comes from growth (in some capacity), rather than reserves are reproduction.
+How exactly the parasite uses energy from growth is trickier.
 The total energy allocated to growth is $\kappa~E_G~p_C$ in DEB model (or just $p_C$ once castration happens).
 Maintenance costs are subtracted from this total, and the remainder is used for growth, with a conversion cost of $E_G$.
 The growth model (without parasitism) is just:
@@ -506,19 +643,20 @@ Focusing on the point after all energy is allocated towards growth (i.e., $\kapp
 \frac{dN}{dt} &= \sigma(N,E,V)~p_C.
 \end{align}
 The fraction of energy stolen by the parasite could potentially depend on the number of parasites, the size of the host, the size of the host's energy reserves, or none of these things.
-My results suggest that it might just be a constant fraction, regardless of the host's size or energetic state, and that the total number of parasites would depend on the host and environmental factors that affect the mobilization flux $p_C$.
-However, this model becomes much more problematic when you assume that the parasite population is structured, with multiple stages using energy.
+My results suggest that it might just be a constant fraction, regardless of the host's size or energetic state.
+This result is problematic to interpret, given that my experiments did not keep track of immature spores.
+However, if it was correct, then the total number of parasites would depend on the host and environmental factors that affect the mobilization flux $p_C$.
+If the parasite population is structured, with multiple stages using energy, then figuring out exactly what fraction of the fraction of energy each stage gets is challenging.
 The challenge is that $\sigma(N,E,V)$ becomes $\sigma(N_C, N_P, E, V)$, where it is the sum of the two parasite populations that affect how much total energy is stolen.
 Given that this is a fraction, it must remain bounded between 0 and 1.
 So, for example, if you have
 \begin{equation}
 \sigma = \frac{a_1 N_C + a_2 N_P}{1 + a_1 N_C + a_2 N_P},
 \end{equation}
-that ensures that the total fraction of energy stolen cannot be greater than xsxs
+that ensures that the total fraction of energy stolen cannot be greater than one.
 
-
-The next simplest model is to assume that the parasite actually utilizes ``structure'' in some way, shape, or form, as a resource.
-In this case, we let $\sigma(N,V)$ be the parasite's rate of ``structure conversion to parasite biomass'' or some other such thing, and the model for host and parasite growth becomes
+I think that simpler model would simply assume that the parasite utilizes structural bimoass as a resource.
+In this case, we let $\sigma(N,V)$ be the parasite's rate of ``structure conversion to parasite biomass'' and the model for host and parasite growth becomes
 \begin{align}
 \frac{dV}{dt} &= \frac{\kappa~p_C - k_m~E_G~V }{E_G} - \sigma(N,V), \\
 \frac{dN}{dt} &= \sigma(N,V).
@@ -556,42 +694,20 @@ This is problematic is because the (admittedly obscure) derivation of the form o
 In particular, the DEB assumption of ``weak homeostasis'' is almost certainly violated.
 This assumption states that, under constant food, there is a ``reserve density'' (defined by the quantity $E/V$) which remains constant.
 Given that the parasite is developing inside the host, causing a rechanneling of energy and siphoning off some of that energy for itself, it seems very unlikely to imagine that the ratio of reserves to structure will remain constant.
-However, previous work using DEB models to study infection (Hall et al. 2007, 2009 and Flye-Sainte-Marie et al. 2009) have not worried about this assumption violation, and those have been co-authored by DEB pioneers like Nisbet and Kooijman.
+However, previous work using DEB models to study infection (Hall et al. 2007, 2009 and Flye-Sainte-Marie et al. 2009) have not worried about violating this assumption, and those have been co-authored by DEB pioneers like Nisbet and Kooijman.
 Thus, I will assume that this is not too big of a problem.
 
-Of course, there are mathematical details that have not been made explicit yet.
-In particular, we need to specify functional forms for the parasite's energy use or growth.
-It seems reasonable to assume that the parasite's growth will be modeled using the Monod equation (i.e., the parasite will have a Type II functional response), since it is a microbe in an aqueous environment (the hemolymph) uptaking a limiting nutrient (energy).
-
-Let's take each model in turn.
-For simplicity, I will assume that ingestion is determined by clearance rate $a$ (which has units of volume/time) times the density of food in the environment $F$ (so $F$ has units of cells/volume).
-I will also assume that this rate does not depend on size, but does depend on infection status (but not spore load).
-
-Prior to exposure, the standard DEB model applies.
-During the 24-hr exposure period, spores are ingested, but are not replicating, and the host behaves as normal.
-There is some probability of infection given ingestion ($\rho_I$), and the total number of spores ingested depends on clearance rate $a$ and the density of spores in the environment $N_{env}$.
-\begin{align}
-p_C &= E \left(\frac{\frac{v}{V^{2/3}} + k_m}{1+\frac{\kappa E}{E_G V}}\right). \\
-\frac{dE}{dt} &= a~F - p_C, \\
-\frac{dV}{dt} &= \frac{\kappa~p_C - k_m~E_G~V}{E_G}, \\
-\frac{dN_C}{dt} &=\rho_I~a~N_{env} - \mu N_C.
-\end{align}
-After exposure ends, the dynamics are again given by the standard DEB model.
-This lasts for $n$ days (where $n$ is like the incubation period for the parasite).
-$n$ will be estimated on the basis of the data.
-After $n$ days, the host is castrated and the parasite begins replicating.
-Here is where this model starts to break down, becoming much more difficult to analyze.
-\begin{align}
-p_C &= E \left(\frac{\frac{v}{V^{2/3}} + k_m}{1+\frac{\kappa E}{E_G V}}\right). \\
-\frac{dE}{dt} &= a~F - p_C, \\
-\frac{dV}{dt} &= \frac{\kappa~p_C - k_m~E_G~V}{E_G}, \\
-\frac{dN_C}{dt} &= -\mu N_C
-\frac{dN_P}{dt} &=
-\end{align}
+I am going to assume that the parasites hit structure for some simulation/recovery experiments.
 
 
-After some period of time $n$, the
 
+I also want to consider a ``net production'' model.
+This model eliminates the need for a consideration of reserves.
+Instead, we track the dynamics of total \emph{Daphnia} biomass.
+Net production is calculated based on assimilation minus maintenance, which depends on biomass.
+In this model, the parasite utilizes biomass as its resource.
+Whether parasites increase or decrease host size depends on how much biomass is ``consumed'' by parasites and how much additional biomass is created by eliminating reproduction.
+Previous studies have suggested that net production models might actually be a better fit to \emph{Daphnia} than net assimilation models anyway.
 
 
 \section*{Suggested future experiments}

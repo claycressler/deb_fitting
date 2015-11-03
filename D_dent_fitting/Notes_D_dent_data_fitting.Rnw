@@ -1,3 +1,4 @@
+
 \documentclass[11pt,reqno,final,pdftex]{amsart}
 %% DO NOT DELETE OR CHANGE THE FOLLOWING TWO LINES!
 %% $Revision$
@@ -1177,6 +1178,8 @@ abline(v=datasets[[2]]$params["obs_sd"], col="red")
 abline(v=best_pars$obs_sd[2], col="blue")
 @
 
+\clearpage
+
 \section*{Estimating the parameters of a DEB model using simulated data}
 
 Let's begin by laying out the standard dynamic energy budget model, and then discuss ways to include parasitism into that model.
@@ -1296,15 +1299,15 @@ Martin et al. (2013) found a similar problem, and ended up fixing the value of $
 You can see from the profile likelihood for $v$ that a huge range of $v$ values are almost equally supported by the data (Fig. \ref{fig:profile-v}).
 For this figure, I held all parameters constant at their values when the likelihood was maximized; I then varied $v$ against this background.
 Essentially, it appears that $v$ sits along a long ridge in likelihood space.
-<<echo=F, fig.height=3, fig.width=3, fig.cap="Profile likelihood for the energy conductance v." label="profile-v">>=
-source("Growth_reproduction_trajectory_fitting.R")
+<<echo=FALSE, fig.height=2.5, fig.width=2.5, out.width='0.6\\textwidth', fig.cap="Profile likelihood for the energy conductance v.", label="profile-v">>=
+source("Growth_reproduction_trajectory_fitting_functions.R")
 parorder=c("rho","eps","Imax","g","F","xi","q","K","km","ER","v","Lobs")
 transform=c("logit",rep("log",4))
 fixpars <- datasets[[1]]$params[1:7]
 estpars <- x[[1]][x[[1]]$lik %>% which.min,1:5] %>% as.numeric
 names(estpars) <- c("K","km","ER","v","Lobs")
 
-lapply(1:10000, function(x) {estpars["v"] <- seq(1, 10000)[x]; estpars}) -> varv
+lapply(1:2000, function(x) {estpars["v"] <- seq(1, 2000)[x]; estpars}) -> varv
 
 mclapply(varv,
          traj_match,
@@ -1313,11 +1316,14 @@ mclapply(varv,
          transform=transform,
          obsdata=datasets[[1]]$data,
          eval.only=TRUE,
-         mc.cores=5) %>%
+         mc.cores=10) %>%
     lapply(., function(x) x$lik) %>%
         unlist -> guess_lik
 
-plot(100:2000, -guess_lik[100:2000], xlab="Energy conductance v", ylab="Log likelihood", type='l')
+library(ggplot2)
+dat <- data.frame(v=1:2000,
+                  lik=-guess_lik)
+ggplot(dat, aes(x=v, y=lik)) + geom_point()
 @
 
 Clearly, estimating $v$ along with the other parameters is impossible in this modeling framework.
@@ -1330,7 +1336,7 @@ Moreover, the highest-likelihood parameter set is nearly identical, almost regar
 However, although the estimates are consistent, they are actually not very close to the true parameter values (given in the plot titles).
 The estimates do appear to be getting closer for values of $v < 20$.
 
-<<echo=FALSE, fig.width=6, fig.height=3.5, fig.cap="Parameter estimates for fixed values of v. All estimate shown are within 2 log-likelihood units of the best fitting parameter set, which is indicated by black points.", label="growth-reprod-2">>=
+<<echo=FALSE, fig.width=6, fig.height=3.5, units='in', fig.cap="Parameter estimates for fixed values of v. All estimate shown are within 2 log-likelihood units of the best fitting parameter set, which is indicated by black points.", label="growth-reprod-2">>=
 library(tidyr)
 library(ggplot2)
 truepars <- datasets[[1]]$params[c("K","km","ER","Lobs")]
@@ -1339,13 +1345,13 @@ v_vals <- seq(20,2000,20)
 lapply(1:length(x),
        function(i)
            subset(x[[i]], lik<min(lik)+2 & conv==0) %>%
-               mutate(., v=v_vals[i], lik=-lik, best=ifelse(lik==max(lik),2,1)))) -> results
+               mutate(., v=v_vals[i], lik=-lik, best=ifelse(lik==max(lik),2,1))) -> results
 res <- vector()
 for (i in 1:length(results)) res <- rbind(res, results[[i]])
 gather(res, "var", "val", 1:5) -> res
 arrange(res, best) -> res
 levels(res$var) <- c(paste(levels(res$var)[1:4], signif(truepars,3), sep="="), "lik")
-ggplot(res, aes(x=v, y=val, colour=best)) +
+ggplot(res, aes(x=v, y=val, colour=factor(best))) +
     facet_wrap(~var, scales="free") +
         geom_point() +
             theme(legend.position="none") +
@@ -1354,8 +1360,9 @@ ggplot(res, aes(x=v, y=val, colour=best)) +
 @
 
 Fig. \ref{fig:growth-reprod-3} shows the parameter estimates when $v$ is held towards slightly smaller values.
+Interestingly, for $v=5$, the parameter estimates are really close to the true values and the likelihood is essentially maximal.
 
-<<echo=F, fig.width=6, fig.height=3.5, fig.cap="Parameter estimates for smaller, fixed values of v." label="growth-reprod-3">>=
+<<echo=F, fig.width=6, fig.height=3.5, units='in', fig.cap="Parameter estimates for smaller, fixed values of v.", label="growth-reprod-3">>=
 library(tidyr)
 library(ggplot2)
 truepars <- datasets[[1]]$params[c("K","km","ER","Lobs")]
@@ -1382,12 +1389,16 @@ ggplot(res, aes(x=v, y=val, colour=factor(best))) +
 If you look very, very closely, you can see that there actually is a peak in the likelihood surface at $v=12$ (Fig. \ref{fig:v-lik-peak}).
 Of course, the likelhood difference is less the 3/100 of a log-likelhood unit, or less than 1 likelihood unit.
 Such a small difference would likely not be significant, so there is essentially no statistical evidence supporting any particular $v$ value, so long as it is greater than 5 or so.
-<<echo=F, fig.height=2, fig.width=2, fig.cap="Very small likelihood peak at low v values.", fig.cap="v-lik-peak">>=
+<<echo=F, fig.height=2.5, fig.width=2.5, units='in', out.width='0.6\\textwidth', fig.cap="Very small likelihood peak at low v values.", label="v-lik-peak">>=
 x <- readRDS("Growth_reproduction_trajectory_fitting_profile_lik_v_refine.RDS")
 y <- readRDS("Growth_reproduction_trajectory_fitting_profile_lik_v.RDS")
 c(lapply(x, function(l) min(l$lik)) %>% unlist,
   lapply(y, function(l) min(l$lik)) %>% unlist) -> liks
-plot(c(1:20, seq(20,2000,20)), -liks, type='l', xlim=c(1,200), ylim=c(-118,-117.8))
+dat <- data.frame(v=c(1:20, seq(20,2000,20)),
+                  lik=-liks)
+library(ggplot2)
+ggplot(subset(dat, v < 200 & v > 5), aes(x=v, y=lik)) +
+  geom_line()
 
 
 @
@@ -1396,6 +1407,8 @@ I will point out here that a very high value of $v$ essentially creates a ``rese
 In such a model, there is no buffer between the environment and daphnid life history, so growth and reproduction depend directly on ingestion.
 This result is not unexpected, as evidenced by the success of net production models (the standard DEB is a net assimilation model) for predicting individual growth and reproduction (Noonburg et al. 1998, Nisbet et al. 2004) and population dynamics (McCauley et al. 2008) of \emph{Daphnia}.
 Of course, the high support for a very large value of $v$ might be because I have assumed constant food, rather than a dynamically variable food source.
+
+\clearpage
 
 \section*{Fitting the feeding model}
 Let's revisit the actual experimental conditions, which did not hold food constant.
@@ -1414,12 +1427,9 @@ then $F$ is so large that it is reasonable to assume that $F/(f_h+F) \approx 1$.
 We can make a back of the envelope calculation to see how reasonable this assumption might be.
 In particular, let's figure out a reasonable guess for the half-saturation constant $f_h$.
 Hall et al. use a value of $f_h = 0.1$ mgC/L based on Nisbet et al. 2004, which is not too far off of the value used by McCauley et al. 1990, 2008 of 0.164 mgC/L.
-How this translates into cells/mL depends on the carbon content of the algae.
-Bill Nelson's lab found that \emph{Chlamy} has a carbon content of $\approx 40$ pg/cell during the asymptotic phase of population growth in batch culture.
-Based on this, $f_h = 2.5 \times 10^6$ cells/L.
-The concentration of algae added to the beaker each day was $3.33 \times 10^7$.
-With this initial concentration, $F/(f_h + F) \approx 0.93$, and with this value of $f_h$, the concentration of algae would have to stay above $10^7$ cells.
-And if in the experiments, they were fed with a different species of algae, such as \emph{Ankistrodesmus}, that has a lower carbon content, then $f_h$ would be even larger.
+The concentration of algae added to the beaker each day was $3.33 \times 10^7$ cells/L.
+Using an estimate of the carbon content per algal cell (according to Rachel, 20,000 cells contained 0.89ug C) of $4.45 \times 10^{-8}$ mgC/cell, the initial concentration of algae was 1.48 mgC/L.
+With this initial concentration, $F/(f_h + F) \approx 0.94$.
 This suggests that it might be problematic to assume that food is always high, at least for that first day after feeding.
 However, the container was only changed every 5 days, so every time more food was entered, any uneaten food that had settled out would have been resuspended, making it available to the \emph{Daphnia}.
 This might make assuming $F/(f_h+F)\approx 1$ a more reasonable assumption.
@@ -1427,7 +1437,8 @@ This might make assuming $F/(f_h+F)\approx 1$ a more reasonable assumption.
 However, I think it is worth refitting the feeding model, for three reasons.
 First, the feeding model parameters were estimated using the converted clearance rate data, rather than the raw algae counts.
 I think it makes more sense to fit the raw data.
-Second, it is unclear to me how to translate Spencer's fits into a more standard Type II functional response model, as we clearly don't want to assume a Type I functional response, given the potential for the resuspension of algae to lead to very high algal abundances in the day before a transfer.
+Second, the true functional response for \emph{Daphnia} is Type II, but the clearance rate calculation is using a Type I functional response.
+The assumption of a Type I functional response becomes problematic when dealing with the resuspension of uningested algae, which will lead to very high algal abundances on the day before a transfer.
 Third, there is error in both the estimates of both the initial and final algal abundances that I don't think is being accounted for.
 So, using the raw algal count data, I want to estimate the parameters of the following system:
 \begin{align*}
@@ -1443,7 +1454,7 @@ However, since the number of parameters of the model do not change, I can use th
 Fig. \ref{fig:feeding} shows the all the parameter estimates for each value of $f_h$ and the likelihood.
 You can see that it is possible to fit the data well for every value of $f_h$ considered, but that the best-fit value of $I_{max}$ scales linearly with increasing $f_h$.
 Similarly, the best-fitting value of $g$ also increases as $f_h$ increases.
-Fortuitously, the value of $g$ esimated here is pretty similar to the value that Spencer estimated (his estimate was 1.3704).
+The range of $g$ esimates includes the value that Spencer estimated (his estimate was 1.3704).
 However, the estimate of the the initial algae abundance $F_0$ and the error in estimating algal abundance $\sigma_F$ are both relatively constant across parameters.
 Note that right now, I am working with algal concentrations in units of cells/ml.
 Thus $f_h$ has units of cells/ml; $I_{max}$ has units of cells per ml per mm$^g$.
@@ -1453,9 +1464,10 @@ I will use a more accurate model of the actual food treatments, with feeding rat
 I will then fit all of the DEB parameters.
 Hopefully there will be a clear best-fitting set of parameter values that will identify both the value of $f_h$ and the DEB parameters.
 
-<<echo=F,fig.width=5, fig.height=3, fig.cap='Feeding model parameters for uninfected animals as fh is varied. Black points show the maximum likelihood parameter estimates.', label='feeding'>>=
+<<echo=F,fig.width=6, fig.height=4.5, units='in', fig.cap='Feeding model parameters for uninfected animals as $f_h$ is varied. Black points show the maximum likelihood parameter estimates.', label='feeding'>>=
 library(tidyr)
 library(ggplot2)
+library(plyr)
 x <- readRDS("Feeding_model_fitting_uninfecteds.RDS")
 lapply(x, function(y) mutate(y, best=ifelse(lik==min(lik),1,0))) -> x
 res <- vector()
@@ -1468,7 +1480,7 @@ ggplot(res2, aes(x=fh, y=val, colour=factor(best))) +
     facet_wrap(~var, scales="free") +
         geom_point() +
             theme_bw() +
-                theme(axis.text.x=element_text(angle=90, hjust=1), legend.position='none') +
+                theme(axis.text.x=element_text(angle=45, hjust=1), legend.position='none') +
                     scale_colour_manual(values=c("gray","black"))
 @
 
@@ -1479,8 +1491,8 @@ Whether $f_h$ and $g$ should also be the same is less clear to me.
 
 Fig. \ref{fig:inf-feeding} shows the results of this feeding.
 While $I_{max}$ is definitely much lower for infected animals compared to uninfected animals, the really huge change is the estimates of $g$: whereas $g > 1$ for uninfected animals, for infected animals, feeding rate is nearly independent of size.
-That is, itself, really surprising.
-<<echo=F,fig.width=5, fig.height=3, fig.cap='Feeding model parameters for infected animals as fh is varied. Black points show the maximum likelihood parameter estimates for each value of fh.', label='inf-feeding'>>=
+This is kind of interesting, actually, although I am not sure what to make of it.
+<<echo=F,fig.width=6, fig.height=4.5, units='in', fig.cap='Feeding model parameters for infected animals as $f_h$ is varied. Black points show the maximum likelihood parameter estimates for each value of $f_h$.', label='inf-feeding'>>=
 library(tidyr)
 library(ggplot2)
 x <- readRDS("Feeding_model_fitting_infecteds_all_pars.RDS")
@@ -1495,13 +1507,14 @@ ggplot(res2, aes(x=fh, y=val, colour=factor(best))) +
     facet_wrap(~var, scales="free") +
         geom_point() +
             theme_bw() +
-                theme(axis.text.x=element_text(angle=90, hjust=1), legend.position='none') +
+                theme(axis.text.x=element_text(angle=45, hjust=1), legend.position='none') +
                     scale_colour_manual(values=c("gray","black"))
 @
 
-If you force $F_0$, $\sigma_F$, and $g$ to take the same values as for uninfected animals and only estimate the value of $I_{max}$, you see an even larger reduction in the estimate of $I_{max}$ (Fig. \ref{fig:Imax-comp}).
-Of course, the likelihood is about 20 log-likelihood units worse.
-<<echo=F, fig.height=3, fig.width=3, fig.cap="Estimates of Imax as fh varies for uninfected animals (black line), for infected animals when all feeding parameters are estimated simultaneously (blue), and for infected animals when g takes the same value as for uninfected animals (red).>>=
+I also did the fitting fixing $F_0$, $\sigma_F$, and $g$ at the same values as for uninfected animals, so the only parameter I was estimating was $I_{max}$.
+In this case, you see an even larger reduction in the estimate of $I_{max}$ between uninfected and infected individuals (Fig. \ref{fig:Imax-comp}).
+The likelihood of the $I_{max}$-only model is about 20 log-likelihood units worse than the model where all of the parameters were estimated.
+<<echo=F, fig.height=2.5, fig.width=4, units='in', fig.cap="Estimates of $I_{max}$ as $f_h$ varies for uninfected animals (black line), for infected animals when all feeding parameters are estimated simultaneously (blue), and for infected animals when $g$ takes the same value as for uninfected animals (red).", label="Imax-comp">>=
 x0 <- readRDS("Feeding_model_fitting_uninfecteds.RDS")
 Imax0 <- x0 %>% lapply(., function(l) subset(l, lik==min(lik))$Imax) %>% unlist
 x1 <- readRDS("Feeding_model_fitting_infecteds_all_pars.RDS")
@@ -1514,26 +1527,115 @@ x <- data.frame(Imax=c(Imax0,Imax1,Imax2),
 library(ggplot2)
 ggplot(x, aes(x=fh, y=Imax, group=fit, colour=fit)) +
     geom_line(size=1) +
-        scale_colour_manual(values=c("blue","red","black"))
+        scale_colour_manual(values=c("blue","red","black")) +
+            theme_bw()
 @
 
-Another possibility considered by Spencer is that feeding rate in infected animals is also affected spore load.
-The first model I will consider of that form is
+Another possibility considered by Spencer is that feeding rate in infected animals is also affected by spore load.
+The model he uses, and that I will consider as well, is
 \begin{equation*}
 \frac{dF}{dt} = -I_{max} \frac{F}{f_h+F} L^g \exp\left(-a\frac{Z}{L^h}\right),
 \end{equation*}
-where $Z$ is the spore load, $h$ scales body length, and $a$ is the reduction as spores per body size increases.
+where $Z$ is the spore load, $h$ scales body length, and $a$ is the reduction in feeding as the spore load per unit of body size increases.
 There is one problem that I don't know how Spencer dealt with, which is how to treat individuals that were exposed but were sacrificed too young to know whether they were infected or not (and were not even checked for spores).
 There are two ways to deal with them: either ignore them and only include individuals that were counted, or to treat them all as zeros.
-I will, of course, try both ways.
+I will try both ways.
+(\textbf{Note to self: if I treat these NAs as zeros, I might actually be able to use a structured model.
+There are, of course, problems here unless infection success can be assumed to be 100\%.})
 
-Interestingly, this has proven to be very difficult.
-In my first attempt, I tried to estimate $I_{max}$, $g$, $a$, and $h$ for a fixed value of $f_h$.
-There was absolutely no consensus: $a$ ranged between $10^{-252}$ and $10^{138}$,while $h$ ranged between $10^{-35}$ and 5000, with all of the estimated parameter sets having essentially equal likelihoods.
-This led me to believe that the problem was that $a$ and $h$ were trading off against one another.
-To combat against this, I instead took the approach of fixing the value of $h$ at values between 1 and 4 (since $h$ is intended to be a parameter that scales length to body volume), and refit the other three parameters.
+For the first attempt, I drop all individuals with NA spore counts.
+I estimated $I_{max}$, $a$, and $h$ for a range of $f_h$ values.
+I did not attempt to estimate $g$ here, by fixed it at the value estimated for uninfected animals.
+The reason for this is that the only infected animals that were counted were fairly large (and thus not growing much).
+The lack of variation in size among clearly infected animals makes $g$ nearly impossible to estimate.
+Focusing only on parameter sets with log-likelihoods within 1 units of the best-fitting dataset, you can see that the estimates are pretty consistent for a given $f_h$ value (Fig. \ref{fig:spore-dep-feeding}).
+Moreover, as $f_h$ increases, the estimates of $a$ and $h$ are basically constant, while $I_{max}$ increases linearly.
+The highest likelihood occurs for very small values of $f_h$, though the likelihood difference is small.
+However, the likelihood of this model, compared to the models without spore-dependent feeding is huge (compare the likelihoods in Fig. \ref{fig:inf-feeding} and Fig. \ref{fig:spore-dep-feeding}).
 
+<<echo=F,fig.width=4, fig.height=4, units='in', out.width="0.8\\textwidth",fig.cap='Spore-dependent feeding model parameters for infected animals as $f_h$ is varied. Black points show the maximum likelihood parameter estimates for each value of $f_h$. For this fitting, all individuals with NA spore counts were dropped.', label='spore-dep-feeding'>>=
+library(tidyr)
+library(ggplot2)
+x <- readRDS("Feeding_model_fitting_infecteds_spore_dependent.RDS")
+lapply(1:length(x),
+       function(i) subset(x[[i]], lik < min(lik)+1) %>% mutate(., best=ifelse(lik==min(lik),1,0), fh=seq(100,10000,100)[i])) -> x
+res <- vector()
+for (i in 1:length(x)) res <- rbind(res, x[[i]])
+res$lik <- -res$lik
+gather(res, var, val, 1:4) -> res2
+arrange(res2, best) -> res2
+ggplot(res2, aes(x=fh, y=val, colour=factor(best))) +
+    facet_wrap(~var, scales="free") +
+        geom_point() +
+            theme_bw() +
+                theme(axis.text.x=element_text(angle=90, hjust=1), legend.position='none') +
+                    scale_colour_manual(values=c("gray","black"))
 
+@
+
+If I treat all of the young exposed individuals as infected, but with 0 spore counts instead, the results are \textbf{fill in the blank}.
+
+<<echo=F,fig.width=4, fig.height=4, units='in', out.width="0.8\\textwidth",fig.cap='Spore-dependent feeding model parameters for infected animals as $f_h$ is varied. For this fitting, all individuals with NA spore counts were assumed to have a spore count of zero. Black points show the maximum likelihood parameter estimates for each value of $f_h$.', label='spore-dep-feeding-2'>>=
+library(tidyr)
+library(ggplot2)
+x <- readRDS("Feeding_model_fitting_infecteds_spore_dependent_2.RDS")
+lapply(1:length(x),
+       function(i) subset(x[[i]], lik < min(lik)+1) %>% mutate(., best=ifelse(lik==min(lik),1,0), fh=seq(100,10000,100)[i])) -> x
+res <- vector()
+for (i in 1:length(x)) res <- rbind(res, x[[i]])
+res$lik <- -res$lik
+gather(res, var, val, 1:4) -> res2
+arrange(res2, best) -> res2
+ggplot(res2, aes(x=fh, y=val, colour=factor(best))) +
+    facet_wrap(~var, scales="free") +
+        geom_point() +
+            theme_bw() +
+                theme(axis.text.x=element_text(angle=90, hjust=1), legend.position='none') +
+                    scale_colour_manual(values=c("gray","black"))
+
+@
+
+Let's compare the observed data against what is predicted by the model for both infected and uninfected animals.
+Here, for animals that were exposed but not counted, I will assume their feeding parameters are identical to those of infected animals that were clearly infected.
+There are some potential problems with that assumption, but I think it is the correct assumption.
+<<echo=FALSE>>=
+## the actual data
+data <- read.csv("Cat_data/feeding_infection.csv")
+## focus on uninfected animals first
+uninf_data <- subset(data, infected==0)
+## calculate the expected F0 and Ft
+source("Uninfected_feeding_model_fitting_functions.R")
+p0 <- readRDS("Feeding_model_fitting_uninfecteds.RDS")[[50]] %>% subset(., lik==min(lik))
+pars <- c(p0[1:4], fh=5000) %>% unlist
+## calculate the clearance rate as Cat did
+mutate(uninf_data,
+       E.F0=pars["F0"],
+       E.Ft=calc_Ft(pars["Imax"],pars["g"],pars["F0"],length,pars["fh"],t),
+       clearance=log(F0/Ft)*0.01/0.125,
+       E.clearance=log(E.F0/E.Ft)*0.01/0.125) -> uninf_data
+
+ggplot(uninf_data, aes(x=clearance, y=E.clearance)) +
+    geom_point() +
+        geom_abline(slope=1, intercept=0) +
+            theme_bw()
+
+## change spore load to zero for all infected animals, even if they weren't counted
+inf_data <- subset(data, infected==1)
+## calculate the expected F0 and Ft
+source("Infected_feeding_model_fitting_functions.R")
+p1 <- readRDS("Feeding_model_fitting_infecteds_spore_dependent.RDS")[[50]] %>% subset(., lik==min(lik))
+pars1 <- c(pars["g"],pars["F0"],pars["Fobs"],pars["fh"],p1[1:3]) %>% unlist
+## calculate the clearance rate as Cat did
+mutate(inf_data,
+       E.F0=pars1["F0"],
+       E.Ft=calc_Ft(pars1["a"],Z,pars1["h"],pars1["Imax"],pars1["g"],pars1["F0"],length,pars["fh"],t),
+       clearance=log(F0/Ft)*0.01/0.125,
+       E.clearance=log(E.F0/E.Ft)*0.01/0.125) -> inf_data
+
+library(tidyr)
+gather(uninf_data, rate, type, 11:12) -> uninf_data
+
+@
 
 \subsection*{Including parasitism}
 I will include the structured model of parasitism into this model.
