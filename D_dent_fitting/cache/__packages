@@ -9,3 +9,6 @@ plyr
 knitr
 xtable
 tidyr
+moments
+MASS
+LambertW

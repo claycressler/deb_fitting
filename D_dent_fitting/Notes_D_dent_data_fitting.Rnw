@@ -1,5 +1,4 @@
-
-\documentclass[11pt,reqno,final,pdftex]{amsart}
+\documentclass[12pt,reqno,final,pdftex]{amsart}
 %% DO NOT DELETE OR CHANGE THE FOLLOWING TWO LINES!
 %% $Revision$
 %% $Date$
@@ -230,492 +229,6 @@ This simpler model is just:
 In this model, parasites take up resources and convert them directly into new parasites.
 The question is whether the simpler model will be better supported than the true model because it has fewer parameters.
 
-<<echo=FALSE, eval=TRUE>>=
-library(deSolve)
-library(magrittr)
-library(subplex)
-library(pomp)
-library(parallel)
-library(dplyr)
-
-## Transform the parameters.
-## The optimization routines work best if the parameter values are
-## unconstrained. Most of the parameters vary between 0 and Inf; these
-## can be made unconstrained by simple log-transforming. The parameter
-## t_rep, on the other hand, can only vary between 0 and the max time
-## in the fitted dataset. Thus, we let t_rep take only values between
-## 0 and 1, and then multiply the value of t_rep by the max time to
-## get the value of t_rep for the simulations. To put a parameter that
-## varies between 0 and 1 on an unconstrained scale, we use the logit
-## transform.
-par_transform <- function(pars, transform) {
-    for (i in 1:length(pars)) {
-        if (transform[i]=="log")
-            pars[i] <- log(pars[i])
-        if (transform[i]=="logit")
-            pars[i] <- log(pars[i]/(1-pars[i]))
-    }
-    return(pars)
-}
-## Untransform the parameters
-par_untransform <- function(pars, transform) {
-    for (i in 1:length(pars)) {
-        if (transform[i]=="log")
-            pars[i] <- exp(pars[i])
-        if (transform[i]=="logit")
-            pars[i] <- exp(pars[i])/(1+exp(pars[i]))
-    }
-    return(pars)
-}
-## Trajectory matching to estimate the parameters of the dynamical model.
-## estpars is a named numeric vector giving initial guesses for the
-##      parameters whose values will be inferred using trajecory matching
-## fixpars is a named numeric vector giving the values of parameters
-##      whose values are not estimated
-## parorder is a character vector giving the order of parameters
-##     expected by the C function that simulates the dynamical model
-## transform is a character vector giving the transforms for each of the
-##     estimated parameters
-## obsdata is a dataframe containing the observed data (times and spore counts)
-## eval.only is a logical variable that determines whether the
-##     likelihood is to maximized or simply calculated for a set of
-##     parameters
-## method is the name of the optimizer to use
-traj_match <- function(estpars, fixpars, parorder, transform, obsdata, eval.only=FALSE, method="subplex") {
-    estpars <- par_transform(pars=estpars, transform=transform)
-    if (any(is.na(estpars)))
-        opt <- list(params=estpars,
-                    lik=NA)
-    else if (eval.only==TRUE) {
-        x <- str_obj(estpars=estpars,
-                     data=obsdata,
-                     fixpars=fixpars,
-                     parorder=parorder,
-                     transform=transform)
-        opt <- list(params=estpars,
-                    lik=x)
-    }
-    else {
-        if (method=="subplex")
-            x <- subplex(par=estpars,
-                         fn=str_obj,
-                         data=obsdata,
-                         fixpars=fixpars,
-                         parorder=parorder,
-                         transform=transform)
-        else
-            x <- optim(par=estpars,
-                       fn=str_obj,
-                       method=method,
-                       data=obsdata,
-                       fixpars=fixpars,
-                       parorder=parorder,
-                       transform=transform,
-                       control=list(maxit=5000))
-        opt <- list(params=par_untransform(x$par,transform),
-                    lik=x$value,
-                    conv=x$convergence)
-    }
-    return(opt)
-}
-## Objective function to minimize for the structured model
-str_obj <- function(estpars, data, fixpars, parorder, transform) {
-    ## We will give the model the true initial conditions
-    y0 <- c(E=100, C=4000, G=0, T=0)
-    ## Put the parameters back on the natural scale
-    estpars <- par_untransform(estpars, transform)
-    ## t_rep lies between 0 and 1 - multiply by max timestep
-    estpars["t_rep"] <- estpars["t_rep"] * max(data$time)
-    ## combine the parameters to be estimated and the fixed parameters
-    ## into a single vector, with an order specified by parorder
-    pars <- c(estpars, fixpars)
-    pars[match(parorder, names(pars))] -> pars
-    if(any(names(pars)!=parorder)) stop("parameter are in the wrong order")
-    ## simulate the model at these parameters
-    try(ode(y0,
-            times=seq(0, max(data$time)),
-            func="derivs",
-            parms=pars,
-            dllname="Structured_parasite_model",
-            initfunc="initmod",
-            events=list(func="event", time=pars["t_rep"])
-            )) -> out
-    ## if this parameter set produces a simulation error, if it fails
-    ## to completely run, or if any of the variables take negative
-    ## values, return -Inf for the likelihood.
-    if (inherits(out, "try-error"))
-        lik <- NA #-Inf
-    else if (max(out[,"time"]) < max(data$time))
-        lik <- NA #-Inf
-    else if (any(is.nan(out)))
-        lik <- NA #-Inf
-    else if (any(out < 0))
-        lik <- NA #-Inf
-    else {
-        out <- as.data.frame(out)
-        ## calculate the log-likelihood of observing these data
-        ## assuming only observation error
-        sapply(data$time, function(t) out$T[out$time==t]) -> simspores
-        dnorm(data$spores, simspores, unname(pars["obs_sd"]), log=T) %>% sum(., na.rm=TRUE) -> lik
-    }
-    ## return the negative log-likelihood (because optimization methods minimize)
-    return(-lik)
-}
-
-## trajectory matching function for the unstructured model
-traj_match2 <- function(estpars, fixpars, parorder, transform, obsdata, eval.only=FALSE, method="subplex") {
-    estpars <- par_transform(pars=estpars, transform=transform)
-    if (any(is.na(estpars)))
-        opt <- list(params=estpars,
-                    lik=NA)
-    else if (eval.only==TRUE) {
-        x <- unstr_obj(estpars=estpars,
-                     data=obsdata,
-                     fixpars=fixpars,
-                     parorder=parorder,
-                     transform=transform)
-        opt <- list(params=estpars,
-                    lik=x)
-    }
-    else {
-        if (method=="subplex")
-            x <- subplex(par=estpars,
-                         fn=unstr_obj,
-                         data=obsdata,
-                         fixpars=fixpars,
-                         parorder=parorder,
-                         transform=transform)
-        else
-            x <- optim(par=estpars,
-                       fn=unstr_obj,
-                       method=method,
-                       data=obsdata,
-                       fixpars=fixpars,
-                       parorder=parorder,
-                       transform=transform,
-                       control=list(maxit=5000))
-        opt <- list(params=par_untransform(x$par,transform),
-                    lik=x$value,
-                    conv=x$convergence)
-    }
-    return(opt)
-}
-## Objective function to minimize for the unstructured model
-unstr_obj <- function(estpars, data, fixpars, parorder, transform) {
-    ## Put the parameters back on the natural scale
-    estpars <- par_untransform(estpars, transform)
-    ## Parasite initial conditions will be estimated
-    y0 <- c(E=100, P=unname(estpars["P0"]))
-    ## combine the parameters to be estimated and the fixed parameters
-    ## into a single vector, with an order specified by parorder
-    pars <- c(estpars, fixpars)
-    pars[match(parorder, names(pars))] -> pars
-    if(any(names(pars)!=parorder)) stop("parameter are in the wrong order")
-    holdpars <<- pars
-    ## simulate the model at these parameters
-    try(ode(y0,
-            times=seq(0, max(data$time)),
-            func="derivs",
-            parms=pars,
-            dllname="Unstructured_parasite_model",
-            initfunc="initmod"
-            )) -> out
-    ## if this parameter set produces a simulation error, skip it
-    if (inherits(out, "try-error"))
-        lik <- -Inf
-    else if (max(out[,"time"]) < max(data$time))
-        lik <- -Inf
-    else if (any(is.nan(out)))
-        lik <- -Inf
-    else if (any(out < 0))
-        lik <- -Inf
-    else {
-        out <- as.data.frame(out)
-        ## calculate the log-likelihood of observing these data
-        ## assuming only observation error
-        sapply(data$time, function(t) out$P[out$time==t]) -> simspores
-        dnorm(data$spores, simspores, unname(pars["obs_sd"]), log=T) %>% sum(., na.rm=TRUE) -> lik
-    }
-    ## return the negative log-likelihood (because optimization methods minimize)
-    return(-lik)
-}
-library(deSolve)
-library(magrittr)
-library(subplex)
-library(pomp)
-library(parallel)
-library(dplyr)
-
-## Transform the parameters.
-## The optimization routines work best if the parameter values are
-## unconstrained. Most of the parameters vary between 0 and Inf; these
-## can be made unconstrained by simple log-transforming. The parameter
-## t_rep, on the other hand, can only vary between 0 and the max time
-## in the fitted dataset. Thus, we let t_rep take only values between
-## 0 and 1, and then multiply the value of t_rep by the max time to
-## get the value of t_rep for the simulations. To put a parameter that
-## varies between 0 and 1 on an unconstrained scale, we use the logit
-## transform.
-par_transform <- function(pars, transform) {
-    for (i in 1:length(pars)) {
-        if (transform[i]=="log")
-            pars[i] <- log(pars[i])
-        if (transform[i]=="logit")
-            pars[i] <- log(pars[i]/(1-pars[i]))
-    }
-    return(pars)
-}
-## Untransform the parameters
-par_untransform <- function(pars, transform) {
-    for (i in 1:length(pars)) {
-        if (transform[i]=="log")
-            pars[i] <- exp(pars[i])
-        if (transform[i]=="logit")
-            pars[i] <- exp(pars[i])/(1+exp(pars[i]))
-    }
-    return(pars)
-}
-## Trajectory matching to estimate the parameters of the dynamical model.
-## estpars is a named numeric vector giving initial guesses for the
-##      parameters whose values will be inferred using trajecory matching
-## fixpars is a named numeric vector giving the values of parameters
-##      whose values are not estimated
-## parorder is a character vector giving the order of parameters
-##     expected by the C function that simulates the dynamical model
-## transform is a character vector giving the transforms for each of the
-##     estimated parameters
-## obsdata is a dataframe containing the observed data (times and spore counts)
-## eval.only is a logical variable that determines whether the
-##     likelihood is to maximized or simply calculated for a set of
-##     parameters
-## method is the name of the optimizer to use
-traj_match <- function(estpars, fixpars, parorder, transform, obsdata, eval.only=FALSE, method="subplex") {
-    estpars <- par_transform(pars=estpars, transform=transform)
-    if (any(is.na(estpars)))
-        opt <- list(params=estpars,
-                    lik=NA)
-    else if (eval.only==TRUE) {
-        x <- str_obj(estpars=estpars,
-                     data=obsdata,
-                     fixpars=fixpars,
-                     parorder=parorder,
-                     transform=transform)
-        opt <- list(params=estpars,
-                    lik=x)
-    }
-    else {
-        if (method=="subplex")
-            x <- subplex(par=estpars,
-                         fn=str_obj,
-                         data=obsdata,
-                         fixpars=fixpars,
-                         parorder=parorder,
-                         transform=transform)
-        else
-            x <- optim(par=estpars,
-                       fn=str_obj,
-                       method=method,
-                       data=obsdata,
-                       fixpars=fixpars,
-                       parorder=parorder,
-                       transform=transform,
-                       control=list(maxit=5000))
-        opt <- list(params=par_untransform(x$par,transform),
-                    lik=x$value,
-                    conv=x$convergence)
-    }
-    return(opt)
-}
-## Objective function to minimize for the structured model
-str_obj <- function(estpars, data, fixpars, parorder, transform) {
-    ## We will give the model the true initial conditions
-    y0 <- c(E=100, C=4000, G=0, T=0)
-    ## Put the parameters back on the natural scale
-    estpars <- par_untransform(estpars, transform)
-    ## t_rep lies between 0 and 1 - multiply by max timestep
-    estpars["t_rep"] <- estpars["t_rep"] * max(data$time)
-    ## combine the parameters to be estimated and the fixed parameters
-    ## into a single vector, with an order specified by parorder
-    pars <- c(estpars, fixpars)
-    pars[match(parorder, names(pars))] -> pars
-    if(any(names(pars)!=parorder)) stop("parameter are in the wrong order")
-    ## simulate the model at these parameters
-    try(ode(y0,
-            times=seq(0, max(data$time)),
-            func="derivs",
-            parms=pars,
-            dllname="Structured_parasite_model",
-            initfunc="initmod",
-            events=list(func="event", time=pars["t_rep"])
-            )) -> out
-    ## if this parameter set produces a simulation error, if it fails
-    ## to completely run, or if any of the variables take negative
-    ## values, return -Inf for the likelihood.
-    if (inherits(out, "try-error"))
-        lik <- -Inf
-    else if (max(out[,"time"]) < max(data$time))
-        lik <- -Inf
-    else if (any(is.nan(out)))
-        lik <- -Inf
-    else if (any(out < 0))
-        lik <- -Inf
-    else {
-        out <- as.data.frame(out)
-        ## calculate the log-likelihood of observing these data
-        ## assuming only observation error
-        sapply(data$time, function(t) out$T[out$time==t]) -> simspores
-        dnorm(data$spores, simspores, unname(pars["obs_sd"]), log=T) %>% sum(., na.rm=TRUE) -> lik
-    }
-    ## return the negative log-likelihood (because optimization methods minimize)
-    return(-lik)
-}
-
-## trajectory matching function for the unstructured model
-traj_match2 <- function(estpars, fixpars, parorder, transform, obsdata, eval.only=FALSE, method="subplex") {
-    estpars <- par_transform(pars=estpars, transform=transform)
-    if (any(is.na(estpars)))
-        opt <- list(params=estpars,
-                    lik=NA)
-    else if (eval.only==TRUE) {
-        x <- unstr_obj(estpars=estpars,
-                     data=obsdata,
-                     fixpars=fixpars,
-                     parorder=parorder,
-                     transform=transform)
-        opt <- list(params=estpars,
-                    lik=x)
-    }
-    else {
-        if (method=="subplex")
-            x <- subplex(par=estpars,
-                         fn=unstr_obj,
-                         data=obsdata,
-                         fixpars=fixpars,
-                         parorder=parorder,
-                         transform=transform)
-        else
-            x <- optim(par=estpars,
-                       fn=unstr_obj,
-                       method=method,
-                       data=obsdata,
-                       fixpars=fixpars,
-                       parorder=parorder,
-                       transform=transform,
-                       control=list(maxit=5000))
-        opt <- list(params=par_untransform(x$par,transform),
-                    lik=x$value,
-                    conv=x$convergence)
-    }
-    return(opt)
-}
-## Objective function to minimize for the unstructured model
-unstr_obj <- function(estpars, data, fixpars, parorder, transform) {
-    ## Put the parameters back on the natural scale
-    estpars <- par_untransform(estpars, transform)
-    ## Parasite initial conditions will be estimated
-    y0 <- c(E=100, P=unname(estpars["P0"]))
-    ## combine the parameters to be estimated and the fixed parameters
-    ## into a single vector, with an order specified by parorder
-    pars <- c(estpars, fixpars)
-    pars[match(parorder, names(pars))] -> pars
-    if(any(names(pars)!=parorder)) stop("parameter are in the wrong order")
-    holdpars <<- pars
-    ## simulate the model at these parameters
-    try(ode(y0,
-            times=seq(0, max(data$time)),
-            func="derivs",
-            parms=pars,
-            dllname="Unstructured_parasite_model",
-            initfunc="initmod"
-            )) -> out
-    ## if this parameter set produces a simulation error, skip it
-    if (inherits(out, "try-error"))
-        lik <- -Inf
-    else if (max(out[,"time"]) < max(data$time))
-        lik <- -Inf
-    else if (any(is.nan(out)))
-        lik <- -Inf
-    else if (any(out < 0))
-        lik <- -Inf
-    else {
-        out <- as.data.frame(out)
-        ## calculate the log-likelihood of observing these data
-        ## assuming only observation error
-        sapply(data$time, function(t) out$P[out$time==t]) -> simspores
-        dnorm(data$spores, simspores, unname(pars["obs_sd"]), log=T) %>% sum(., na.rm=TRUE) -> lik
-    }
-    ## return the negative log-likelihood (because optimization methods minimize)
-    return(-lik)
-}
-@
-
-<<echo=FALSE, eval=FALSE>>=
-dyn.load("Structured_parasite_model.so")
-## Simulate data
-y0 <- c(E=100, C=4000, G=0, T=0) ## Initial conditions
-str_params <- c(theta=10, r=0.1, aC=0.00005, hC=1, aG=0.00001, hG=0.5, b=200000, m=10000, t_rep=15, obs_sd=100000) ## True parameter values
-out <- ode(y0, times=seq(0, 50), func="derivs", parms=str_params, dllname="Structured_parasite_model", initfunc="initmod", events=list(func="event", time=str_params["t_rep"])) ## simulated data
-set.seed(100011011)
-data.frame(time=rep(seq(5,50,5), each=10),
-           spores=sapply(out[seq(5,50,5),"T"], function(m) rnorm(10, mean=m, sd=str_params["obs_sd"])) %>% as.numeric) -> data ## simulated observations
-data$spores[data$spores<0] <- 0
-
-## I will estimate all of the parameters *except* theta, which is the
-## rate that energy becomes available to the system, and is thus
-## analogous to ingestion in the full DEB model. The parameters of the
-## ingestion model are estimated separately.
-parorder <- c("theta","r","aC","hC","aG","hG","b","m","t_rep","obs_sd")
-estpars <- str_params[-(((str_params %>% names)=="theta") %>% which)]
-estpars["t_rep"] <- estpars["t_rep"]/max(data$time)
-fixpars <- str_params["theta"]
-transform <- rep("log",length(estpars))
-transform[which(names(estpars)=="t_rep")] <- "logit"
-## Testing
-all(estpars-par_untransform(par_transform(estpars, transform), transform) < 1e-10)
-str_obj(par_transform(estpars, transform), data, fixpars, parorder, transform)==
-    traj_match(estpars=estpars, fixpars=fixpars, parorder=parorder, transform=transform, obsdata=data, eval.only=TRUE, method="subplex")$lik
-
-## Generate a large number of different initial guesses distributed around the true parameter values
-## Generate a ton of parameter estimates
-box <- cbind(lower=estpars/100, upper=estpars*100)
-sobolDesign(lower=box[,"lower"], upper=box[,"upper"], nseq=500000) %>%
-    apply(., 1, as.list) %>%
-        lapply(., function(l) unlist(l)) -> guesses
-mclapply(guesses,
-         traj_match,
-         fixpars=fixpars,
-         parorder=parorder,
-         transform=transform,
-         obsdata=data,
-         eval.only=TRUE,
-         method="subplex",
-         mc.cores=10) %>%
-    lapply(., function(x) x$lik) %>%
-        unlist-> guess_lik
-## Most of these guesses were total shit
-## Pick the best 1000 of these and use them as starting points for further refinement
-guesses[order(guess_lik)[1:1000]] -> refine
-mclapply(refine,
-         traj_match,
-         fixpars=fixpars,
-         parorder=parorder,
-         transform=transform,
-         obsdata=data,
-         eval.only=FALSE,
-         method="Nelder-Mead",
-         mc.cores=10) -> refine_lik
-
-refine_lik %>%
-    lapply(., function(l) c(l$params, l$lik)) %>%
-        unlist %>%
-            matrix(., ncol=10, byrow=TRUE) %>%
-                as.data.frame -> refine_pars
-colnames(refine_pars) = c(names(estpars), "lik")
-refine_pars <- arrange(refine_pars, lik)
-saveRDS(refine_pars, file="Simulated_data_fits_Structured_parasite_model.RDS")
-
-@
-
 I generated a set of simulated data using the structured model, and then fit the structured model to that data to look at the best-fit parameter estimates.
 I visualize the parameter estimates using histograms (Fig. \ref{fig:hist2}), focusing on the best-fit parameter values (shown as blue lines) and all parameter sets that had a log-likelhiood within ten units (which is quite a big range) of the best-fit likelihood.
 The true parameter values are shown by the red lines in the histograms (not all panels have the red lines, if all of the estimates were really far from the truth).
@@ -778,65 +291,9 @@ hist(best_pars$obs_sd, breaks=30, main="", xlab=expression(sigma[obs]), ylab="")
 abline(v=str_params["obs_sd"], col="red")
 abline(v=best_pars$obs_sd[1], col="blue")
 
-
 @
 
 The other issue was whether a simpler model would actually be able to fit the data better than the more complex, data-generating model.
-
-<<echo=FALSE, eval=FALSE>>=
-
-dyn.load("Unstructured_parasite_model.so")
-fixpars <- c(theta=10)
-estpars <- c(r=1, aP=1e-4, hP=1, b=100000, P0=1000, obs_sd=1e5)
-parorder <- c("theta", "r", "aP", "hP", "b", "P0", "obs_sd")
-transform <- rep("log",6)
-## testing
-all(estpars-par_untransform(par_transform(estpars, transform), transform)<1e-10)
-unstr_obj(par_transform(estpars,transform), data=data, fixpars=fixpars, parorder=parorder, transform=transform)==traj_match2(estpars, fixpars, parorder, transform, data, eval.only=TRUE)$lik
-
-## Generate a ton of parameter estimates
-library(pomp)
-box <- cbind(lower=estpars/1000, upper=estpars*1000)
-sobolDesign(lower=box[,"lower"], upper=box[,"upper"], nseq=500000) %>%
-    apply(., 1, as.list) %>%
-        lapply(., function(l) unlist(l)) -> guesses
-## compute the likelihood of each of these guesses
-mclapply(guesses,
-         traj_match2,
-         fixpars=fixpars,
-         parorder=parorder,
-         transform=transform,
-         obsdata=data,
-         eval.only=TRUE,
-         method="Nelder-Mead",
-         mc.cores=10) -> guess_lik
-guess_lik %>%
-    lapply(., function(l) l$lik) %>%
-        unlist -> guess_lik
-
-## Pick the best 1000 for further refinement
-guesses[order(guess_lik)[1:1000]] -> refine
-mclapply(refine,
-         traj_match2,
-         fixpars=fixpars,
-         parorder=parorder,
-         transform=transform,
-         obsdata=data,
-         eval.only=FALSE,
-         method="Nelder-Mead",
-         mc.cores=10) -> refine_lik
-
-lapply(refine_lik, function(l) c(l$params, l$lik)) %>%
-    unlist %>%
-        matrix(., ncol=7, byrow=TRUE) %>%
-            as.data.frame -> refine_pars
-colnames(refine_pars) = c(names(estpars), "lik")
-arrange(refine_pars, lik) -> refine_pars
-saveRDS(refine_pars, file="Simulated_data_fits_Untructured_parasite_model.RDS")
-
-@
-
-They key is to ask whether the structured model provides a better fit to the data than does the unstructured model.
 To see that we need to compare the likelihoods of the best-fitting datasets.
 However, we want to weight the likelihood differences by the number of parameters: all else equal, a model with more parameters will always be able to fit the data better.
 AIC is a handy metric for such a comparison, defined as $2*k - 2\ln L$, where $k$ is the number of parameters and $L$ is the maximum likelihood.
@@ -848,150 +305,39 @@ refine_pars1 <- readRDS(file="Simulated_data_fits_Structured_parasite_model.RDS"
 refine_pars2 <- readRDS(file="Simulated_data_fits_Unstructured_parasite_model.RDS")
 AICstructured <- 2*(ncol(refine_pars1)-1 + refine_pars1$lik[1])
 AICunstructured <- 2*(ncol(refine_pars2)-1 + refine_pars2$lik[1])
+
+system("rm Structured_parasite_model.so")
+system("R CMD SHLIB Structured_parasite_model.c")
+dyn.load("Structured_parasite_model.so")
 y0 <- c(E=100, C=4000, G=0, T=0) ## Initial conditions
 str_params <- c(theta=10, r=0.1, aC=0.00005, hC=1, aG=0.00001, hG=0.5, b=200000, m=10000, t_rep=15, obs_sd=100000) ## True parameter values
+## Simulate data
 out <- ode(y0, times=seq(0, 50), func="derivs", parms=str_params, dllname="Structured_parasite_model", initfunc="initmod", events=list(func="event", time=str_params["t_rep"])) ## simulated data
+set.seed(100011011)
+data.frame(time=rep(seq(5,50,5), each=10),
+           spores=sapply(out[seq(5,50,5),"T"], function(m) rnorm(10, mean=m, sd=str_params["obs_sd"])) %>% as.numeric) -> data ## simulated observations
+data$spores[data$spores<0] <- 0
 out <- as.data.frame(out)
 sapply(data$time, function(t) out$T[out$time==t]) -> simspores
-dnorm(data$spores, simspores, unname(pars["obs_sd"]), log=T) %>% sum(., na.rm=TRUE) -> lik
+dnorm(data$spores, simspores, unname(str_params["obs_sd"]), log=T) %>% sum(., na.rm=TRUE) -> lik
 AICtruth <- 2*(ncol(refine_pars2)-1 - lik)
 @
-<<echo=TRUE>>=
-AICstructured
-AICunstructured
-AICtruth
+
+<<echo=TRUE, results='show'>>=
+print(AICstructured)
+print(AICunstructured)
+print(AICtruth)
 @
 
 Here you can see that the true parameter values do provide a better fit to the observed data than do either the unstructured or the structured model.
 Importantly, however, the structured model outperforms the unstructured model.
 This at least gives me some confidence that data only on transmission stages might still provide enough information to support a structured over an unstructured model.
 
-<<echo=FALSE, eval=FALSE>>=
-dyn.load("Structured_parasite_model.so")
-## Simulate data
-y0 <- c(E=100, C=4000, G=0, T=0) ## Initial conditions
-## Baseline set of parameters - sample around these
-pars <- c(theta=10, r=0.1, aC=0.0005, hC=20, aG=0.0001, hG=15, b=20000, m=10000, t_rep=15, obs_sd=100000)
-datasets <- vector(mode='list', length=10)
-i <- 1
-set.seed(12340987)
-while (is.null(datasets[[10]])) {
-    this_pars <- rnorm(length(pars), mean=pars, sd=pars)
-    while (any(this_pars < 0))
-        this_pars <- rnorm(length(pars), mean=pars, sd=pars)
-    names(this_pars) <- names(pars)
-    this_pars["theta"] <- 10
-    this_pars["t_rep"] <- round(this_pars["t_rep"])
-    out <- ode(y0, times=seq(0, 50), func="derivs", parms=this_pars, dllname="Structured_parasite_model", initfunc="initmod", events=list(func="event", time=round(this_pars["t_rep"]))) ## simulated data
-    if (all(out >= 0)) {
-        data.frame(time=rep(seq(5,50,5), each=10),
-                   spores=sapply(out[seq(5,50,5),"T"], function(m) rnorm(10, mean=m, sd=this_pars["obs_sd"])) %>% as.numeric) -> data
-        data$spores[data$spores < 0] <- 0
-        datasets[[i]] <- list(params=this_pars, data=data)
-        i <- i+1
-    }
-}
-
-str_parorder <- c("theta","r","aC","hC","aG","hG","b","m","t_rep","obs_sd")
-unstr_parorder <- c("theta", "r", "aP", "hP", "b", "P0", "obs_sd")
-unstr_fixpars <- str_fixpars <- c(theta=10)
-str_transform <- rep("log",length(str_parorder)-1)
-str_transform[which(str_parorder=="t_rep")-1] <- "logit"
-unstr_transform <- rep("log",length(unstr_parorder)-1)
-
-est_params <- vector(mode='list', length=10)
-for (i in 1:10) {
-    data <- datasets[[i]]$data
-
-    ## STRUCTURED MODEL
-    ## Generate a large number of different initial parameter guesses
-    str_box <- cbind(lower=pars[-which(names(pars)=="theta")]/1000, upper=pars[-which(names(pars)=="theta")]*1000)
-    str_box[rownames(str_box)=="t_rep",] <- c(0, 1)
-    sobolDesign(lower=str_box[,"lower"], upper=str_box[,"upper"], nseq=500000) %>%
-        apply(., 1, as.list) %>%
-            lapply(., function(l) unlist(l)) -> guesses
-    dyn.load("Structured_parasite_model.so")
-    mclapply(guesses,
-             traj_match,
-             fixpars=str_fixpars,
-             parorder=str_parorder,
-             transform=str_transform,
-             obsdata=data,
-             eval.only=TRUE,
-             method="subplex",
-             mc.cores=10) %>%
-        lapply(., function(x) x$lik) %>%
-            unlist-> guess_lik
-    ## Pick the best 1000 of these and use them as starting points for further refinement
-    guesses[order(guess_lik)[1:1000]] -> refine
-    mclapply(refine,
-             traj_match,
-             fixpars=str_fixpars,
-             parorder=str_parorder,
-             transform=str_transform,
-             obsdata=data,
-             eval.only=FALSE,
-             method="Nelder-Mead",
-             mc.cores=10) -> refine_lik
-    refine_lik %>%
-        lapply(., function(l) c(l$params, l$lik)) %>%
-            unlist %>%
-                matrix(., ncol=10, byrow=TRUE) %>%
-                    as.data.frame -> refine_pars
-    colnames(refine_pars) = c("r","aC","hC","aG","hG","b","m","t_rep","obs_sd", "lik")
-    str_refine_pars <- arrange(refine_pars, lik)
-
-    ## STRUCTURED MODEL
-    ## Generate a large number of different initial parameter guesses
-    unstr_box <- cbind(lower=c(r=1, aP=1e-4, hP=1, b=100000, P0=1000, obs_sd=1e5)/1000,
-                       upper=c(r=1, aP=1e-4, hP=1, b=100000, P0=1000, obs_sd=1e5)*1000)
-    sobolDesign(lower=unstr_box[,"lower"], upper=unstr_box[,"upper"], nseq=5000) %>%
-        apply(., 1, as.list) %>%
-            lapply(., function(l) unlist(l)) -> guesses
-    ## compute the likelihood of each of these guesses
-    dyn.load("Unstructured_parasite_model.so")
-    mclapply(guesses,
-             traj_match2,
-             fixpars=unstr_fixpars,
-             parorder=unstr_parorder,
-             transform=unstr_transform,
-             obsdata=data,
-             eval.only=TRUE,
-             method="Nelder-Mead",
-             mc.cores=10) %>%
-        lapply(., function(l) l$lik) %>%
-            unlist -> guess_lik
-    ## Pick the best 1000 for further refinement
-    guesses[order(guess_lik)[1:1000]] -> refine
-    mclapply(refine,
-             traj_match2,
-             fixpars=unstr_fixpars,
-             parorder=unstr_parorder,
-             transform=unstr_transform,
-             obsdata=data,
-             eval.only=FALSE,
-             method="Nelder-Mead",
-             mc.cores=10) -> refine_lik
-    lapply(refine_lik, function(l) c(l$params, l$lik)) %>%
-        unlist %>%
-            matrix(., ncol=7, byrow=TRUE) %>%
-                as.data.frame -> refine_pars
-    colnames(refine_pars) = c( "r", "aP", "hP", "b", "P0", "obs_sd", "lik")
-    arrange(refine_pars, lik) -> unstr_refine_pars
-
-    est_params[[i]] <- list(str=str_refine_pars, unstr=unstr_refine_pars)
-    saveRDS(est_params, file="Comparing_structred_unstructured_model_fits.RDS")
-}
-
-
-@
-
 I further checked this by running 40 different parameter sets and looking at the comparison between the best-fit parameter estimates and the truth (Fig. \ref{fig:forty}).
 Again, you can see that the parameters are estimated very poorly (very small, $< 10^{-5}$, and very large $>10^{10}$ parameter estimates were dropped).
 However, of all of the parameters, the observation error is actually pretty well estimated.
 
 <<echo=FALSE, fig.height=7, fig.width=7, units='in', fig.cap="Comparison of best-fit estimates to true parameter values across 40 parameter sets.", label=forty>>=
-dyn.load("Structured_parasite_model.so")
 ## Simulate data
 y0 <- c(E=100, C=4000, G=0, T=0) ## Initial conditions
 ## Baseline set of parameters - sample around these
@@ -1051,132 +397,8 @@ ggplot(liks, aes(x=parset, y=aic, colour=kind)) +
     geom_point(aes(shape=kind)) +
         theme(legend.position="none")
 
-ddply(liks, "parset", summarize, min(aic)) -> asdf
-#(asdf[seq(2,80,2),2]-asdf[seq(1,79,2),2] > 0) %>% sum
-
 @
 
-\textbf{One thing I am concerned about is the fact that most of the structured model parameter sets had similar likelihoods}.
-By assuming that every individual has identical parameters, all of the variation among individuals at sacrifice in spore load that has to be explained by observation error.
-There is a considerable amount of variation in spore load at death in the real dataset, which means a lot of observation error.
-I fear that this large observation error greatly expands the number of parameter sets that become plausible - with huge measurement error, even observations that are very far from the truth may be fairly likely.
-This high observation error also may explain why many parameter sets have identical likelihoods even though they are different.
-
-For a lark, I ran two parameter sets with much lower observation error, to see if this helped tighten up any of the other parameter estimates (Fig. \ref{fig:low-obs-sd-1}-\ref{fig:low-obs-sd-2}).
-The short answer is, absolutely not.
-For the first parameter set (Fig. \ref{fig:low-obs-sd-1}), all 1000 fit parameter sets were within 5 log-likelihood units of one another, but the parameter spread was huge.
-For the second parameter set (Fig. (Fig. \ref{fig:low-obs-sd-1}), there were only 11 fit parameter sets within 5 log-likelihood units of the best, but the parameter spread was still very large.
-<<fig.width=4, fig.height=4, units="in", fig.cap="Parameter estimate variation when observation error is small (parameter set 1)", label=low-obs-sd-1>>=
-ndatasets <- 2
-dyn.load("Structured_parasite_model.so")
-## Simulate data
-y0 <- c(E=100, C=4000, G=0, T=0) ## Initial conditions
-## Baseline set of parameters - sample around these
-pars <- c(theta=10, r=0.1, aC=0.0005, hC=20, aG=0.0001, hG=15, b=20000, m=10000, t_rep=15, obs_sd=1000)
-datasets <- vector(mode='list', length=ndatasets)
-i <- 1
-set.seed(12340987)
-while (is.null(datasets[[ndatasets]])) {
-    this_pars <- rnorm(length(pars), mean=pars, sd=pars)
-    while (any(this_pars < 0))
-        this_pars <- rnorm(length(pars), mean=pars, sd=pars)
-    names(this_pars) <- names(pars)
-    this_pars["theta"] <- 10
-    this_pars["t_rep"] <- round(this_pars["t_rep"])
-    out <- ode(y0, times=seq(0, 50), func="derivs", parms=this_pars, dllname="Structured_parasite_model", initfunc="initmod", events=list(func="event", time=round(this_pars["t_rep"]))) ## simulated data
-    if (all(out >= 0)) {
-        data.frame(time=rep(seq(5,50,5), each=10),
-                   spores=sapply(out[seq(5,50,5),"T"], function(m) rnorm(10, mean=m, sd=this_pars["obs_sd"])) %>% as.numeric) -> data
-        data$spores[data$spores < 0] <- 0
-        datasets[[i]] <- list(params=this_pars, data=data)
-        i <- i+1
-    }
-}
-
-est_params <- readRDS("Comparing_structured_unstructured_model_fits_2.RDS")
-lapply(est_params, function(x) x$str[with(x$str, which(lik < (min(lik) + 5))),1:9]) -> bp
-cbind(bp[[1]], parset=rep(1,1000)) -> best_pars
-best_pars$t_rep <- best_pars$t_rep*50
-
-par(mfrow=c(3,3), mar=c(5,2,0.5,0.5), oma=c(0, 0.5, 0.5, 0.5))
-hist(log(best_pars$r), main="", breaks=100, xlab=expression(log(r)), ylab="", xlim=c(-2, 20))
-abline(v=log(datasets[[1]]$params["r"]), col="red")
-abline(v=log(best_pars$r[1]), col="blue")
-
-hist(log(best_pars$aC), breaks=100, main="", xlab=expression(log(a[C])), ylab="", xlim=c(-15, 15))
-abline(v=log(datasets[[1]]$params["aC"]), col="red")
-abline(v=log(best_pars$aC[1]), col="blue")
-
-hist(log(best_pars$hC), breaks=60, main="", xlab=expression(log(h[C])), ylab="", xlim=c(0, 25))
-abline(v=log(datasets[[1]]$params["hC"]), col="red")
-abline(v=log(best_pars$hC[1]), col="blue")
-
-hist(log(best_pars$aG), breaks=100, main="", xlab=expression(log(a[G])), ylab="", xlim=c(-50,50))
-abline(v=log(datasets[[1]]$params["aG"]), col="red")
-abline(v=log(best_pars$aG[1]), col="blue")
-
-hist(log(best_pars$hG), breaks=100, main="", xlab=expression(log(h[G])), ylab="", xlim=c(-50,50))
-abline(v=log(datasets[[1]]$params["hG"]), col="red")
-abline(v=log(best_pars$hG[1]), col="blue")
-
-hist(log(best_pars$b), breaks=50, main="", xlab=expression(log(b)), ylab="", xlim=c(0,45))
-abline(v=log(datasets[[1]]$params["b"]), col="red")
-abline(v=log(best_pars$b[1]), col="blue")
-
-hist(log(best_pars$m), breaks=80, main="", xlab=expression(log(m)), ylab="", xlim=c(0,100))
-abline(v=log(datasets[[1]]$params["m"]), col="red")
-abline(v=log(best_pars$m[1]), col="blue")
-
-hist(best_pars$t_rep, breaks=30, main="", xlab=expression(t[rep]), ylab="")
-abline(v=datasets[[1]]$params["t_rep"], col="red")
-abline(v=best_pars$t_rep[1], col="blue")
-
-hist(best_pars$obs_sd, breaks=2, main="", xlab=expression(sigma[obs]), ylab="", xlim=c(1000, 58000))
-abline(v=datasets[[1]]$params["obs_sd"], col="red")
-abline(v=best_pars$obs_sd[1], col="blue")
-@
-
-<<fig.width=4, fig.height=4, units="in", fig.cap="Parameter estimate variation when observation error is small (parameter set 2)", label=low-obs-sd-2>>=
-cbind(bp[[2]], parset=rep(2,11)) -> best_pars
-best_pars$t_rep <- best_pars$t_rep*50
-
-par(mfrow=c(3,3), mar=c(5,2,0.5,0.5), oma=c(0, 0.5, 0.5, 0.5))
-hist(log(best_pars$r), main="", breaks=10, xlab=expression(log(r)), ylab="")
-abline(v=log(datasets[[2]]$params["r"]), col="red")
-abline(v=log(best_pars$r[2]), col="blue")
-
-hist(log(best_pars$aC), breaks=10, main="", xlab=expression(log(a[C])), ylab="")
-abline(v=log(datasets[[2]]$params["aC"]), col="red")
-abline(v=log(best_pars$aC[2]), col="blue")
-
-hist(log(best_pars$hC), breaks=10, main="", xlab=expression(log(h[C])), ylab="")
-abline(v=log(datasets[[2]]$params["hC"]), col="red")
-abline(v=log(best_pars$hC[2]), col="blue")
-
-hist(log(best_pars$aG), breaks=10, main="", xlab=expression(log(a[G])), ylab="")
-abline(v=log(datasets[[2]]$params["aG"]), col="red")
-abline(v=log(best_pars$aG[2]), col="blue")
-
-hist(log(best_pars$hG), breaks=10, main="", xlab=expression(log(h[G])), ylab="")
-abline(v=log(datasets[[2]]$params["hG"]), col="red")
-abline(v=log(best_pars$hG[2]), col="blue")
-
-hist(log(best_pars$b), breaks=10, main="", xlab=expression(log(b)), ylab="")
-abline(v=log(datasets[[2]]$params["b"]), col="red")
-abline(v=log(best_pars$b[2]), col="blue")
-
-hist(log(best_pars$m), breaks=2, main="", xlab=expression(log(m)), ylab="", xlim=c(5.1, 10.2))
-abline(v=log(datasets[[2]]$params["m"]), col="red")
-abline(v=log(best_pars$m[2]), col="blue")
-
-hist(best_pars$t_rep, breaks=10, main="", xlab=expression(t[rep]), ylab="")
-abline(v=datasets[[2]]$params["t_rep"], col="red")
-abline(v=best_pars$t_rep[2], col="blue")
-
-hist(best_pars$obs_sd, breaks=2, main="", xlab=expression(sigma[obs]), ylab="", xlim=c(1000, 9300))
-abline(v=datasets[[2]]$params["obs_sd"], col="red")
-abline(v=best_pars$obs_sd[2], col="blue")
-@
 
 \clearpage
 
@@ -1464,7 +686,7 @@ I will use a more accurate model of the actual food treatments, with feeding rat
 I will then fit all of the DEB parameters.
 Hopefully there will be a clear best-fitting set of parameter values that will identify both the value of $f_h$ and the DEB parameters.
 
-<<echo=F,fig.width=6, fig.height=4.5, units='in', fig.cap='Feeding model parameters for uninfected animals as $f_h$ is varied. Black points show the maximum likelihood parameter estimates.', label='feeding'>>=
+<<echo=F,fig.width=4, fig.height=7, out.width="0.8\\textwidth", units='in', fig.cap='Feeding model parameters for \\textbf{uninfected} animals as $f_h$ is varied. Black points show the maximum likelihood parameter estimates.', label='feeding'>>=
 library(tidyr)
 library(ggplot2)
 library(plyr)
@@ -1476,12 +698,16 @@ res$lik <- -res$lik
 res$fh <- rep(seq(100,10000,100), each=500)
 gather(res, var, val, 1:5) -> res2
 arrange(res2, best) -> res2
+levels(res2$var) <- c(expression(I[max]), "g", expression(F[0]), expression(sigma[F]), "Log-likelihood")
 ggplot(res2, aes(x=fh, y=val, colour=factor(best))) +
-    facet_wrap(~var, scales="free") +
+    facet_grid(var~., scales="free", labeller=label_parsed) +
         geom_point() +
             theme_bw() +
                 theme(axis.text.x=element_text(angle=45, hjust=1), legend.position='none') +
-                    scale_colour_manual(values=c("gray","black"))
+                    scale_colour_manual(values=c("gray","black")) +
+                        xlab(expression("Half-saturation constant"~~f[h])) +
+                            ylab("Parameter estimate") +
+                                labs(title=expression(I[max]~frac(F, f[h]+F)~L^g))
 @
 
 But, before I go on, I want to see whether this fitting procedure supports a lower feeding rate for infected \emph{Daphnia}.
@@ -1492,7 +718,7 @@ Whether $f_h$ and $g$ should also be the same is less clear to me.
 Fig. \ref{fig:inf-feeding} shows the results of this feeding.
 While $I_{max}$ is definitely much lower for infected animals compared to uninfected animals, the really huge change is the estimates of $g$: whereas $g > 1$ for uninfected animals, for infected animals, feeding rate is nearly independent of size.
 This is kind of interesting, actually, although I am not sure what to make of it.
-<<echo=F,fig.width=6, fig.height=4.5, units='in', fig.cap='Feeding model parameters for infected animals as $f_h$ is varied. Black points show the maximum likelihood parameter estimates for each value of $f_h$.', label='inf-feeding'>>=
+<<echo=F,fig.width=4, fig.height=7, units='in', out.width="0.8\\textwidth", fig.cap='Feeding model parameters for \\textbf{infected} animals as $f_h$ is varied. Black points show the maximum likelihood parameter estimates for each value of $f_h$.', label='inf-feeding'>>=
 library(tidyr)
 library(ggplot2)
 x <- readRDS("Feeding_model_fitting_infecteds_all_pars.RDS")
@@ -1503,18 +729,22 @@ res$lik <- -res$lik
 res$fh <- rep(seq(100,10000,100), each=500)
 gather(res, var, val, 1:5) -> res2
 arrange(res2, best) -> res2
+levels(res2$var) <- c(expression(I[max]), "g", expression(F[0]), expression(sigma[F]), "Log-likelihood")
 ggplot(res2, aes(x=fh, y=val, colour=factor(best))) +
-    facet_wrap(~var, scales="free") +
+    facet_grid(var~., scales="free", labeller=label_parsed) +
         geom_point() +
             theme_bw() +
                 theme(axis.text.x=element_text(angle=45, hjust=1), legend.position='none') +
-                    scale_colour_manual(values=c("gray","black"))
+                    scale_colour_manual(values=c("gray","black")) +
+                        xlab(expression("Half-saturation constant"~~f[h])) +
+                            ylab("Parameter estimate") +
+                                labs(title=expression(I[max]~frac(F, f[h]+F)~L^g))
 @
 
 I also did the fitting fixing $F_0$, $\sigma_F$, and $g$ at the same values as for uninfected animals, so the only parameter I was estimating was $I_{max}$.
 In this case, you see an even larger reduction in the estimate of $I_{max}$ between uninfected and infected individuals (Fig. \ref{fig:Imax-comp}).
 The likelihood of the $I_{max}$-only model is about 20 log-likelihood units worse than the model where all of the parameters were estimated.
-<<echo=F, fig.height=2.5, fig.width=4, units='in', fig.cap="Estimates of $I_{max}$ as $f_h$ varies for uninfected animals (black line), for infected animals when all feeding parameters are estimated simultaneously (blue), and for infected animals when $g$ takes the same value as for uninfected animals (red).", label="Imax-comp">>=
+<<echo=F, fig.height=2.5, fig.width=4, units='in', out.width="0.7\\textwidth", fig.cap="Estimates of $I_{max}$ as $f_h$ varies for uninfected animals (black line), for infected animals when all feeding parameters are estimated simultaneously (blue), and for infected animals when $g$ takes the same value as for uninfected animals (red).", label="Imax-comp">>=
 x0 <- readRDS("Feeding_model_fitting_uninfecteds.RDS")
 Imax0 <- x0 %>% lapply(., function(l) subset(l, lik==min(lik))$Imax) %>% unlist
 x1 <- readRDS("Feeding_model_fitting_infecteds_all_pars.RDS")
@@ -1528,7 +758,9 @@ library(ggplot2)
 ggplot(x, aes(x=fh, y=Imax, group=fit, colour=fit)) +
     geom_line(size=1) +
         scale_colour_manual(values=c("blue","red","black")) +
-            theme_bw()
+            theme_bw() +
+                xlab(expression("Half-saturation constant"~~f[h])) +
+                    ylab(expression("Ingestion rate"~~I[max]))
 @
 
 Another possibility considered by Spencer is that feeding rate in infected animals is also affected by spore load.
@@ -1551,11 +783,13 @@ The lack of variation in size among clearly infected animals makes $g$ nearly im
 Focusing only on parameter sets with log-likelihoods within 1 units of the best-fitting dataset, you can see that the estimates are pretty consistent for a given $f_h$ value (Fig. \ref{fig:spore-dep-feeding}).
 Moreover, as $f_h$ increases, the estimates of $a$ and $h$ are basically constant, while $I_{max}$ increases linearly.
 The highest likelihood occurs for very small values of $f_h$, though the likelihood difference is small.
-However, the likelihood of this model, compared to the models without spore-dependent feeding is huge (compare the likelihoods in Fig. \ref{fig:inf-feeding} and Fig. \ref{fig:spore-dep-feeding}).
+The likelihood of this model cannot be compared against the likelihood of the model that did not include spore-dependent feeding reductions because all animals with NA spore counts were dropped here.
 
-<<echo=F,fig.width=4, fig.height=4, units='in', out.width="0.8\\textwidth",fig.cap='Spore-dependent feeding model parameters for infected animals as $f_h$ is varied. Black points show the maximum likelihood parameter estimates for each value of $f_h$. For this fitting, all individuals with NA spore counts were dropped.', label='spore-dep-feeding'>>=
+<<echo=F,fig.width=4, fig.height=7, units='in', out.width="0.8\\textwidth",fig.cap='Spore-dependent feeding model parameters for infected animals as $f_h$ is varied. Black points show the maximum likelihood parameter estimates for each value of $f_h$. For this fitting, all individuals with NA spore counts were dropped.', label='spore-dep-feeding'>>=
 library(tidyr)
 library(ggplot2)
+library(magrittr)
+library(dplyr)
 x <- readRDS("Feeding_model_fitting_infecteds_spore_dependent.RDS")
 lapply(1:length(x),
        function(i) subset(x[[i]], lik < min(lik)+1) %>% mutate(., best=ifelse(lik==min(lik),1,0), fh=seq(100,10000,100)[i])) -> x
@@ -1564,20 +798,32 @@ for (i in 1:length(x)) res <- rbind(res, x[[i]])
 res$lik <- -res$lik
 gather(res, var, val, 1:4) -> res2
 arrange(res2, best) -> res2
+levels(res2$var) <- c("a", "h", expression(I[max]), "Log-likelihood")
 ggplot(res2, aes(x=fh, y=val, colour=factor(best))) +
-    facet_wrap(~var, scales="free") +
+    facet_grid(var~., scales="free_y", labeller=label_parsed) +
         geom_point() +
             theme_bw() +
-                theme(axis.text.x=element_text(angle=90, hjust=1), legend.position='none') +
-                    scale_colour_manual(values=c("gray","black"))
+                theme(legend.position='none') +
+                    scale_colour_manual(values=c("gray","black")) +
+                        xlab(expression("Half-saturation constant"~~f[h])) +
+                            ylab("Parameter estimate") +
+                                labs(title=expression(I[max]~frac(F, f[h]+F)~L^g~"exp"~(-a~frac(Z,L^h))))
 
 @
 
-If I treat all of the young exposed individuals as infected, but with 0 spore counts instead, the results are \textbf{fill in the blank}.
+If I treat all of the young exposed individuals as infected, but with 0 spore counts instead, the results are quite different.
+Comparing Figs. \ref{fig:spore-dep-feeding} and \ref{fig:spore-dep-feeding-2}, you can see that all three parameters ($a$, $h$, and $I_{max}$ increase in value quite a lot when you assume that all of the individuals with NA spore counts are actually infected and have 0 transmission stage spores.
+However, although the best-fitting parameter sets have the same values of $a$ and $h$ as $f_h$ increases, there is much more spread around each estimate.
+That is, a much greater range of parameter values have nearly equal likelihoods.
+That said, I think, in the end, that the parameter estimates shown in Fig. \ref{fig:spore-dep-feeding-2} are the better ones to use.
+This is because $Z$ is only considering mature transmission spores, so if you assume that all of the young animals are infected but with 0 transmission spores, then this is the right thing to do.
+It also seems reasonable to assume 100\% infection success, given that all of the exposed animals that were sacrificed after day 12 were infected.
 
-<<echo=F,fig.width=4, fig.height=4, units='in', out.width="0.8\\textwidth",fig.cap='Spore-dependent feeding model parameters for infected animals as $f_h$ is varied. For this fitting, all individuals with NA spore counts were assumed to have a spore count of zero. Black points show the maximum likelihood parameter estimates for each value of $f_h$.', label='spore-dep-feeding-2'>>=
+<<echo=F,fig.width=4, fig.height=7, units='in', out.width="0.8\\textwidth",fig.cap='Spore-dependent feeding model parameters for infected animals as $f_h$ is varied. For this fitting, all individuals with NA spore counts were assumed to have a spore count of 0. Black points show the maximum likelihood parameter estimates for each value of $f_h$.', label='spore-dep-feeding-2'>>=
 library(tidyr)
 library(ggplot2)
+library(magrittr)
+library(dplyr)
 x <- readRDS("Feeding_model_fitting_infecteds_spore_dependent_2.RDS")
 lapply(1:length(x),
        function(i) subset(x[[i]], lik < min(lik)+1) %>% mutate(., best=ifelse(lik==min(lik),1,0), fh=seq(100,10000,100)[i])) -> x
@@ -1586,19 +832,58 @@ for (i in 1:length(x)) res <- rbind(res, x[[i]])
 res$lik <- -res$lik
 gather(res, var, val, 1:4) -> res2
 arrange(res2, best) -> res2
+levels(res2$var) <- c("a", "h", expression(I[max]), "Log-likelihood")
 ggplot(res2, aes(x=fh, y=val, colour=factor(best))) +
-    facet_wrap(~var, scales="free") +
+    facet_grid(var~., scales="free_y", labeller=label_parsed) +
         geom_point() +
             theme_bw() +
-                theme(axis.text.x=element_text(angle=90, hjust=1), legend.position='none') +
-                    scale_colour_manual(values=c("gray","black"))
+                theme(legend.position='none') +
+                    scale_colour_manual(values=c("gray","black")) +
+                        xlab(expression("Half-saturation constant"~~f[h])) +
+                            ylab("Parameter estimate") +
+                                labs(title=expression(I[max]~frac(F, f[h]+F)~L^g~"exp"~(-a~frac(Z,L^h))))
 
 @
 
-Let's compare the observed data against what is predicted by the model for both infected and uninfected animals.
-Here, for animals that were exposed but not counted, I will assume their feeding parameters are identical to those of infected animals that were clearly infected.
-There are some potential problems with that assumption, but I think it is the correct assumption.
+The issue is whether this spore-dependent feeding model has a significantly higher likelihood than the simpler model than assumed spore-independent feeding (the model that fit only $I_{max}$), since that model was also fitted to the data for all exposed individuals.
+The likelihood of the spore-dependent model is higher, of course, because there are more free parameters.
+Based on AIC$_{\text{c}}$ differences, the spore-dependent model is preferred over the spore-independent model: the AIC$_{\text{c}}$ of the spore-dependent model is 16 units smaller than the AIC$_{\text{c}}$ of the spore-independent model, suggesting that the spore-independent model is about 0.0002 times as probable as the spore-dependent model.
+This conclusion is also supported by a likelihood ratio test, which suggests that the probability of such a likelihood difference occurring by chance as less than $10^{-4}$.
+
 <<echo=FALSE>>=
+## number of datapoints
+n <- read.csv("Cat_data/feeding_infection.csv") %>% subset(., infected==1) %>% nrow
+## number of estimated parameters for the spore-dependent model
+k <- 3
+## -log-likelihoods for the spore-dependent model
+L1 <- readRDS("Feeding_model_fitting_infecteds_spore_dependent_2.RDS") %>%
+    lapply(., function(l) min(l$lik)) %>% unlist
+## AICc for the spore-dependent model
+AICc1 <- 2*k+2*L1+2*k*(k+1)/(n-k-1)
+
+## number of estimated parameters for the spore-independent model
+k <- 1
+## -log-likelihoods for the spore-independent model
+L2 <- readRDS("Feeding_model_fitting_infecteds_Imax_only.RDS")[2,]
+## AICc for the spore-independent model
+AICc2 <- 2*k+2*L2+2*k*(k+1)/(n-k-1)
+
+## likelihood ratio test
+LR <- 1-pchisq(2*L2-2*L1, df=2)
+
+@
+
+I can also compare the observed data against model predictions for both infected and uninfected animals.
+
+In particular, I will calculate the expected clearance rate for every animal, based on the best-fitting model (assuming $f_h = 5000$), and compare that prediction against the observed clearance rate.
+For this model, the parameter estimates were $g=1.43$, $a=3.2\times10^{-5}$, and $h=3.56$, with $I_{max}=16264$ for uninfected animals and $I_{max}=8293$ for infected animals.
+Clearance rate was calculated as $\log\left(\frac{F(0)}{F(t)}\right)~\frac{V}{t}$, where $V$ is the volume of beaker, $t$ is the total time of the trial, and $F(0)$ and $F(t)$ give the concentration of food at time 0 and time $t$, respectively.
+Fig. \ref{fig:clearance-thru-time} shows how clearance rate changes across the age of the individuals.
+You can see clearly that infected animals feed at a lower rate than uninfected animals.
+The model tends to underpredict feeding rate early in life for both sick and healthy animals, and the variance in the expected feeding rate among animals of the same age is much smaller than the observed variance.
+However, the predicted variance is higher than what is observed here because I am not taking account of the observation error - I could have plotted error bars around each of the predicted points based on the observation error in both initial and final food concentrations.
+
+<<echo=FALSE, fig.height=4, fig.width=6, fig.cap="Comparing observed versus predicted clearance rates for both infected and uninfected animals across the lifespan, assuming the best fit parameter values.", label="clearance-thru-time">>=
 ## the actual data
 data <- read.csv("Cat_data/feeding_infection.csv")
 ## focus on uninfected animals first
@@ -1614,16 +899,12 @@ mutate(uninf_data,
        clearance=log(F0/Ft)*0.01/0.125,
        E.clearance=log(E.F0/E.Ft)*0.01/0.125) -> uninf_data
 
-ggplot(uninf_data, aes(x=clearance, y=E.clearance)) +
-    geom_point() +
-        geom_abline(slope=1, intercept=0) +
-            theme_bw()
-
 ## change spore load to zero for all infected animals, even if they weren't counted
 inf_data <- subset(data, infected==1)
+inf_data$Z[is.na(inf_data$Z)] <- 0
 ## calculate the expected F0 and Ft
 source("Infected_feeding_model_fitting_functions.R")
-p1 <- readRDS("Feeding_model_fitting_infecteds_spore_dependent.RDS")[[50]] %>% subset(., lik==min(lik))
+p1 <- readRDS("Feeding_model_fitting_infecteds_spore_dependent_2.RDS")[[50]] %>% subset(., lik==min(lik))
 pars1 <- c(pars["g"],pars["F0"],pars["Fobs"],pars["fh"],p1[1:3]) %>% unlist
 ## calculate the clearance rate as Cat did
 mutate(inf_data,
@@ -1632,12 +913,74 @@ mutate(inf_data,
        clearance=log(F0/Ft)*0.01/0.125,
        E.clearance=log(E.F0/E.Ft)*0.01/0.125) -> inf_data
 
-library(tidyr)
-gather(uninf_data, rate, type, 11:12) -> uninf_data
+rbind(gather(uninf_data, clear, rate, (ncol(uninf_data)-1):ncol(uninf_data)),
+      gather(inf_data, clear, rate, (ncol(inf_data)-1):ncol(inf_data))) -> dat
+mutate(dat, type=paste0(clear,infected)) -> dat
+
+ggplot(dat, aes(x=day, y=rate, shape=clear, colour=factor(infected))) +
+    geom_point() +
+        theme_bw() +
+            scale_colour_manual(values=c("black","red"), name="", labels=c("Uninfected","Infected")) +
+                scale_shape_discrete(solid=F, name="", labels=c("Observed","Predicted")) +
+                    xlab("Age") + ylab("Clearance rate")
+@
+
+The last thing that I want to do is to see if my feeding model does a better job fitting the data than does the parameter estimates reported by Spencer.
+Let's hope so, since I spent so much time fitting the data!
+To evaluate this, I will plot the observed versus predicted clearance rates for each individual and then calculate an $R^2$ value based on the difference between each individual datapoint and the one-to-one line.
+I will do this for my model, and also for Spencer's model, which predicted the clearance rates as
+\begin{align}
+f_U~L^g & \text{for uninfected animals}, \\
+f_I~L^g~\exp\left(-a~\frac{Z}{L^h}\right) & \text{for infected animals},
+\end{align}
+with $f_u = 0.0126$, $g=1.3704$, $f_i=0.0061$, $a=0.0205$, and $h=2.6420$.
+What you notice right away from Fig. \ref{fig:Clay-vs-Spencer} is that the predicted clearance rate is zero for many of the infected animals, under Spencer's model.
+This is because the estimate of $a$ that Spencer reports is much, much higher than my estimate (0.0205 vs. $3.2\times10^{-5}$).
+Because of this, the $R^2$ for my model is much higher than Spencer's, 0.36 versus 0.28.
+If you focus only on the uninfected animals, our models are equally good (0.257 for my model versus 0.258 for Spencer's model).
+Thus, I feel confident moving forward with my model for feeding, with the caveat that I still don't know what the appropriate value of $f_h$ is.
+To address this, I will fit growth and reproduction trajectories, with algae having their own dynamics, to see whether this helps at all with tightening up the estimates of both $f_h$ and also $v$, the energy conductance.
+I will begin with generating simulated datasets, as before, and fitting the DEB models to those datasets.
+It is my hope that the dynamic food resource will reveal both the value of $f_h$ (because algal abundance will drop low enough for it to matter) and $v$ (because dynamic food will cause more dynamism in the value of $E$, thereby making the value of $v$ more important).
+
+<<echo=FALSE, fig.height=5, fig.width=3, out.width="0.6\\textwidth", fig.cap="Comparing the fits of my model to Spencer's model by plotting observed clearance rates against model-predicted clearance rates for both uninfected and infected animals.", label="Clay-vs-Spencer">>=
+
+## Spencer's model predicted clearance rate as fu*L^g (for uninfected animals) and fi*L^g*exp(-a*Z/L^h) (for infected animals), with
+fu=0.0126; g=1.3704; fi=0.0061; a=0.0205; h=2.6420;
+mutate(uninf_data, spencer=fu*length^g) -> uninf_data
+mutate(inf_data, spencer=fi*length^g*exp(-a*Z/length^h)) -> inf_data
+rbind(uninf_data, inf_data) -> dat
+
+par(mfrow=c(2,1), oma=c(2,2,1,1), mar=c(2,2,0,0))
+with(dat, plot(clearance, E.clearance, xlab="", ylab="", col=infected+1, xlim=range(c(clearance,E.clearance)), ylim=range(c(clearance,E.clearance))))
+legend(x='topleft', 'Clay', bty='n')
+abline(a=0, b=1)
+
+with(dat, plot(clearance, spencer, xlab="", ylab="Predicted clearance rate", col=infected+1, xlim=range(c(clearance,E.clearance)), ylim=range(c(clearance,E.clearance))))
+legend(x='topleft', 'Spencer', bty='n')
+abline(a=0, b=1)
+mtext(side=1, line=0.5, outer=T, "Observed clearance rate")
+mtext(side=2, line=0.5, outer=T, "Predicted clearance rate")
+
+## R^2 for each
+SStot <- with(dat, (clearance-mean(clearance))^2) %>% sum
+SSresClay <- with(dat, (E.clearance-clearance)^2) %>% sum
+SSresSpencer <- with(dat, (spencer-clearance)^2) %>% sum
+R2Clay <- 1-SSresClay/SStot
+R2Spencer <- 1-SSresSpencer/SStot
+
+SStot <- with(subset(dat, infected==0), (clearance-mean(clearance))^2) %>% sum
+SSresClay <- with(subset(dat, infected==0), (E.clearance-clearance)^2) %>% sum
+SSresSpencer <- with(subset(dat, infected==0), (spencer-clearance)^2) %>% sum
+R2Clay <- 1-SSresClay/SStot
+R2Spencer <- 1-SSresSpencer/SStot
+
 
 @
 
-\subsection*{Including parasitism}
+
+\clearpage
+\section*{Including parasitism}
 I will include the structured model of parasitism into this model.
 I will assume that the parasite shuts off reproduction by causing all energy allocated to reproduction to instead be allocated to growth.
 I need to decide how the parasite uses this energy as a resource.
@@ -1720,13 +1063,6 @@ I am going to assume that the parasites hit structure for some simulation/recove
 
 
 
-I also want to consider a ``net production'' model.
-This model eliminates the need for a consideration of reserves.
-Instead, we track the dynamics of total \emph{Daphnia} biomass.
-Net production is calculated based on assimilation minus maintenance, which depends on biomass.
-In this model, the parasite utilizes biomass as its resource.
-Whether parasites increase or decrease host size depends on how much biomass is ``consumed'' by parasites and how much additional biomass is created by eliminating reproduction.
-Previous studies have suggested that net production models might actually be a better fit to \emph{Daphnia} than net assimilation models anyway.
 
 
 \section*{Suggested future experiments}
@@ -1735,7 +1071,19 @@ If I am correct that most (all) of the replication happens early in infection, t
 However, the total number of transmission stages would be affected, because reducing the food late in infection reduces the developmental rate of the pre-transmission stages.
 It also might increase density-dependent competition for resources.
 
+another interesting thing would be to look at the adaptive value of anorexia.
+Specifically, if you had several food treatments and you measured ingestion rates for sick and healthy individuals, and then compared fitnesses of individuals across treatments and within treatments against feeding depression.
+
 \section*{Notes to self}
+
+I also want to consider a ``net production'' model.
+This model eliminates the need for a consideration of reserves.
+Instead, we track the dynamics of total \emph{Daphnia} biomass.
+Net production is calculated based on assimilation minus maintenance, which depends on biomass.
+In this model, the parasite utilizes biomass as its resource.
+Whether parasites increase or decrease host size depends on how much biomass is ``consumed'' by parasites and how much additional biomass is created by eliminating reproduction.
+Previous studies have suggested that net production models might actually be a better fit to \emph{Daphnia} than net assimilation models anyway.
+
 \subsection*{Derivation of the clearance model}
 The clearance rate was calculated as $\log(F_0/F_T) (V/T)$, where $F_T$ is the final number of cells, $F_0$ is the initial number of cells, $V$ is the volume of the container, and $T$ is the amount of time the feeding trial lasted.
 This comes from the following model of feeding (where $F(t)$ is the amount of food at any time $t$:

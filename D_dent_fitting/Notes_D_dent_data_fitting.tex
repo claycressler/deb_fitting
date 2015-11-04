@@ -1,5 +1,4 @@
-
-\documentclass[11pt,reqno,final,pdftex]{amsart}\usepackage[]{graphicx}\usepackage[]{color}
+\documentclass[12pt,reqno,final,pdftex]{amsart}\usepackage[]{graphicx}\usepackage[]{color}
 %% maxwidth is the original width if it is less than linewidth
 %% otherwise use linewidth (to make sure the graphics do not exceed the margin)
 \makeatletter
@@ -235,10 +234,6 @@ This simpler model is just:
 In this model, parasites take up resources and convert them directly into new parasites.
 The question is whether the simpler model will be better supported than the true model because it has fewer parameters.
 
-
-
-
-
 I generated a set of simulated data using the structured model, and then fit the structured model to that data to look at the best-fit parameter estimates.
 I visualize the parameter estimates using histograms (Fig. \ref{fig:hist2}), focusing on the best-fit parameter values (shown as blue lines) and all parameter sets that had a log-likelhiood within ten units (which is quite a big range) of the best-fit likelihood.
 The true parameter values are shown by the red lines in the histograms (not all panels have the red lines, if all of the estimates were really far from the truth).
@@ -269,10 +264,6 @@ Hopefully the addition of host-specific data will aid with this problem.
 \end{knitrout}
 
 The other issue was whether a simpler model would actually be able to fit the data better than the more complex, data-generating model.
-
-
-
-They key is to ask whether the structured model provides a better fit to the data than does the unstructured model.
 To see that we need to compare the likelihoods of the best-fitting datasets.
 However, we want to weight the likelihood differences by the number of parameters: all else equal, a model with more parameters will always be able to fit the data better.
 AIC is a handy metric for such a comparison, defined as $2*k - 2\ln L$, where $k$ is the number of parameters and $L$ is the maximum likelihood.
@@ -280,21 +271,33 @@ The model with the \emph{minimum} AIC is the preferred one.
 Another interesting thing to do is to ask what the likelihood of the \emph{true} parameter values is.
 
 
+
 \begin{knitrout}\scriptsize
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
 \begin{alltt}
-\hlstd{AICstructured}
-\hlstd{AICunstructured}
-\hlstd{AICtruth}
+\hlkwd{print}\hlstd{(AICstructured)}
 \end{alltt}
+\begin{verbatim}
+## [1] 2594.641
+\end{verbatim}
+\begin{alltt}
+\hlkwd{print}\hlstd{(AICunstructured)}
+\end{alltt}
+\begin{verbatim}
+## [1] 2600.815
+\end{verbatim}
+\begin{alltt}
+\hlkwd{print}\hlstd{(AICtruth)}
+\end{alltt}
+\begin{verbatim}
+## [1] 2590.27
+\end{verbatim}
 \end{kframe}
 \end{knitrout}
 
 Here you can see that the true parameter values do provide a better fit to the observed data than do either the unstructured or the structured model.
 Importantly, however, the structured model outperforms the unstructured model.
 This at least gives me some confidence that data only on transmission stages might still provide enough information to support a structured over an unstructured model.
-
-
 
 I further checked this by running 40 different parameter sets and looking at the comparison between the best-fit parameter estimates and the truth (Fig. \ref{fig:forty}).
 Again, you can see that the parameters are estimated very poorly (very small, $< 10^{-5}$, and very large $>10^{10}$ parameter estimates were dropped).
@@ -327,37 +330,6 @@ That suggests that, indeed, it may be hard to estimate the parameters of a struc
 
 \end{knitrout}
 
-\textbf{One thing I am concerned about is the fact that most of the structured model parameter sets had similar likelihoods}.
-By assuming that every individual has identical parameters, all of the variation among individuals at sacrifice in spore load that has to be explained by observation error.
-There is a considerable amount of variation in spore load at death in the real dataset, which means a lot of observation error.
-I fear that this large observation error greatly expands the number of parameter sets that become plausible - with huge measurement error, even observations that are very far from the truth may be fairly likely.
-This high observation error also may explain why many parameter sets have identical likelihoods even though they are different.
-
-For a lark, I ran two parameter sets with much lower observation error, to see if this helped tighten up any of the other parameter estimates (Fig. \ref{fig:low-obs-sd-1}-\ref{fig:low-obs-sd-2}).
-The short answer is, absolutely not.
-For the first parameter set (Fig. \ref{fig:low-obs-sd-1}), all 1000 fit parameter sets were within 5 log-likelihood units of one another, but the parameter spread was huge.
-For the second parameter set (Fig. (Fig. \ref{fig:low-obs-sd-1}), there were only 11 fit parameter sets within 5 log-likelihood units of the best, but the parameter spread was still very large.
-\begin{knitrout}\scriptsize
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-
-\includegraphics[width=\linewidth]{figure/low-obs-sd-1-1} \hfill{}
-
-\caption[Parameter estimate variation when observation error is small (parameter set 1)]{Parameter estimate variation when observation error is small (parameter set 1)}\label{fig:low-obs-sd-1}
-\end{figure}
-
-
-\end{knitrout}
-
-\begin{knitrout}\scriptsize
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-
-\includegraphics[width=\linewidth]{figure/low-obs-sd-2-1} \hfill{}
-
-\caption[Parameter estimate variation when observation error is small (parameter set 2)]{Parameter estimate variation when observation error is small (parameter set 2)}\label{fig:low-obs-sd-2}
-\end{figure}
-
-
-\end{knitrout}
 
 \clearpage
 
@@ -545,9 +517,9 @@ Hopefully there will be a clear best-fitting set of parameter values that will i
 \begin{knitrout}\scriptsize
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
-\includegraphics[width=\linewidth]{figure/feeding-1} \hfill{}
+\includegraphics[width=0.8\textwidth]{figure/feeding-1} \hfill{}
 
-\caption[Feeding model parameters for uninfected animals as ]{Feeding model parameters for uninfected animals as $f_h$ is varied. Black points show the maximum likelihood parameter estimates.}\label{fig:feeding}
+\caption[Feeding model parameters for \textbf{uninfected} animals as ]{Feeding model parameters for \textbf{uninfected} animals as $f_h$ is varied. Black points show the maximum likelihood parameter estimates.}\label{fig:feeding}
 \end{figure}
 
 
@@ -564,9 +536,9 @@ This is kind of interesting, actually, although I am not sure what to make of it
 \begin{knitrout}\scriptsize
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
-\includegraphics[width=\linewidth]{figure/inf-feeding-1} \hfill{}
+\includegraphics[width=0.8\textwidth]{figure/inf-feeding-1} \hfill{}
 
-\caption[Feeding model parameters for infected animals as ]{Feeding model parameters for infected animals as $f_h$ is varied. Black points show the maximum likelihood parameter estimates for each value of $f_h$.}\label{fig:inf-feeding}
+\caption[Feeding model parameters for \textbf{infected} animals as ]{Feeding model parameters for \textbf{infected} animals as $f_h$ is varied. Black points show the maximum likelihood parameter estimates for each value of $f_h$.}\label{fig:inf-feeding}
 \end{figure}
 
 
@@ -578,7 +550,7 @@ The likelihood of the $I_{max}$-only model is about 20 log-likelihood units wors
 \begin{knitrout}\scriptsize
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
-\includegraphics[width=\linewidth]{figure/Imax-comp-1} \hfill{}
+\includegraphics[width=0.7\textwidth]{figure/Imax-comp-1} \hfill{}
 
 \caption[Estimates of ]{Estimates of $I_{max}$ as $f_h$ varies for uninfected animals (black line), for infected animals when all feeding parameters are estimated simultaneously (blue), and for infected animals when $g$ takes the same value as for uninfected animals (red).}\label{fig:Imax-comp}
 \end{figure}
@@ -594,31 +566,110 @@ The model he uses, and that I will consider as well, is
 where $Z$ is the spore load, $h$ scales body length, and $a$ is the reduction in feeding as the spore load per unit of body size increases.
 There is one problem that I don't know how Spencer dealt with, which is how to treat individuals that were exposed but were sacrificed too young to know whether they were infected or not (and were not even checked for spores).
 There are two ways to deal with them: either ignore them and only include individuals that were counted, or to treat them all as zeros.
-I think the only thing that you can do is focus on the animals that could be counted.
-(\textbf{Note to self: if I treat these NAs as zeros, I might actually be able to use a structured model.}
-There are, of course, problems here unless infection success can be assumed to be 100\%.)
+I will try both ways.
+(\textbf{Note to self: if I treat these NAs as zeros, I might actually be able to use a structured model.
+There are, of course, problems here unless infection success can be assumed to be 100\%.})
 
-For this model, I estimated $I_{max}$, $a$, and $h$ for a range of $f_h$ values.
+For the first attempt, I drop all individuals with NA spore counts.
+I estimated $I_{max}$, $a$, and $h$ for a range of $f_h$ values.
 I did not attempt to estimate $g$ here, by fixed it at the value estimated for uninfected animals.
 The reason for this is that the only infected animals that were counted were fairly large (and thus not growing much).
 The lack of variation in size among clearly infected animals makes $g$ nearly impossible to estimate.
 Focusing only on parameter sets with log-likelihoods within 1 units of the best-fitting dataset, you can see that the estimates are pretty consistent for a given $f_h$ value (Fig. \ref{fig:spore-dep-feeding}).
 Moreover, as $f_h$ increases, the estimates of $a$ and $h$ are basically constant, while $I_{max}$ increases linearly.
 The highest likelihood occurs for very small values of $f_h$, though the likelihood difference is small.
-However, the likelihood of this model, compared to the models without spore-dependent feeding is huge (compare the likelihoods in Fig. \ref{fig:inf-feeding} and Fig. \ref{fig:spore-dep-feeding}).
+The likelihood of this model cannot be compared against the likelihood of the model that did not include spore-dependent feeding reductions because all animals with NA spore counts were dropped here.
 
 \begin{knitrout}\scriptsize
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 \includegraphics[width=0.8\textwidth]{figure/spore-dep-feeding-1} \hfill{}
 
-\caption[Spore-dependent feeding model parameters for infected animals as ]{Spore-dependent feeding model parameters for infected animals as $f_h$ is varied. Black points show the maximum likelihood parameter estimates for each value of $f_h$.}\label{fig:spore-dep-feeding}
+\caption[Spore-dependent feeding model parameters for infected animals as ]{Spore-dependent feeding model parameters for infected animals as $f_h$ is varied. Black points show the maximum likelihood parameter estimates for each value of $f_h$. For this fitting, all individuals with NA spore counts were dropped.}\label{fig:spore-dep-feeding}
 \end{figure}
 
 
 \end{knitrout}
 
-\subsection*{Including parasitism}
+If I treat all of the young exposed individuals as infected, but with 0 spore counts instead, the results are quite different.
+Comparing Figs. \ref{fig:spore-dep-feeding} and \ref{fig:spore-dep-feeding-2}, you can see that all three parameters ($a$, $h$, and $I_{max}$ increase in value quite a lot when you assume that all of the individuals with NA spore counts are actually infected and have 0 transmission stage spores.
+However, although the best-fitting parameter sets have the same values of $a$ and $h$ as $f_h$ increases, there is much more spread around each estimate.
+That is, a much greater range of parameter values have nearly equal likelihoods.
+That said, I think, in the end, that the parameter estimates shown in Fig. \ref{fig:spore-dep-feeding-2} are the better ones to use.
+This is because $Z$ is only considering mature transmission spores, so if you assume that all of the young animals are infected but with 0 transmission spores, then this is the right thing to do.
+It also seems reasonable to assume 100\% infection success, given that all of the exposed animals that were sacrificed after day 12 were infected.
+
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=0.8\textwidth]{figure/spore-dep-feeding-2-1} \hfill{}
+
+\caption[Spore-dependent feeding model parameters for infected animals as ]{Spore-dependent feeding model parameters for infected animals as $f_h$ is varied. For this fitting, all individuals with NA spore counts were assumed to have a spore count of 0. Black points show the maximum likelihood parameter estimates for each value of $f_h$.}\label{fig:spore-dep-feeding-2}
+\end{figure}
+
+
+\end{knitrout}
+
+The issue is whether this spore-dependent feeding model has a significantly higher likelihood than the simpler model than assumed spore-independent feeding (the model that fit only $I_{max}$), since that model was also fitted to the data for all exposed individuals.
+The likelihood of the spore-dependent model is higher, of course, because there are more free parameters.
+Based on AIC$_{\text{c}}$ differences, the spore-dependent model is preferred over the spore-independent model: the AIC$_{\text{c}}$ of the spore-dependent model is 16 units smaller than the AIC$_{\text{c}}$ of the spore-independent model, suggesting that the spore-independent model is about 0.0002 times as probable as the spore-dependent model.
+This conclusion is also supported by a likelihood ratio test, which suggests that the probability of such a likelihood difference occurring by chance as less than $10^{-4}$.
+
+
+
+I can also compare the observed data against model predictions for both infected and uninfected animals.
+
+In particular, I will calculate the expected clearance rate for every animal, based on the best-fitting model (assuming $f_h = 5000$), and compare that prediction against the observed clearance rate.
+For this model, the parameter estimates were $g=1.43$, $a=3.2\times10^{-5}$, and $h=3.56$, with $I_{max}=16264$ for uninfected animals and $I_{max}=8293$ for infected animals.
+Clearance rate was calculated as $\log\left(\frac{F(0)}{F(t)}\right)~\frac{V}{t}$, where $V$ is the volume of beaker, $t$ is the total time of the trial, and $F(0)$ and $F(t)$ give the concentration of food at time 0 and time $t$, respectively.
+Fig. \ref{fig:clearance-thru-time} shows how clearance rate changes across the age of the individuals.
+You can see clearly that infected animals feed at a lower rate than uninfected animals.
+The model tends to underpredict feeding rate early in life for both sick and healthy animals, and the variance in the expected feeding rate among animals of the same age is much smaller than the observed variance.
+However, the predicted variance is higher than what is observed here because I am not taking account of the observation error - I could have plotted error bars around each of the predicted points based on the observation error in both initial and final food concentrations.
+
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=\linewidth]{figure/clearance-thru-time-1} \hfill{}
+
+\caption[Comparing observed versus predicted clearance rates for both infected and uninfected animals across the lifespan, assuming the best fit parameter values]{Comparing observed versus predicted clearance rates for both infected and uninfected animals across the lifespan, assuming the best fit parameter values.}\label{fig:clearance-thru-time}
+\end{figure}
+
+
+\end{knitrout}
+
+The last thing that I want to do is to see if my feeding model does a better job fitting the data than does the parameter estimates reported by Spencer.
+Let's hope so, since I spent so much time fitting the data!
+To evaluate this, I will plot the observed versus predicted clearance rates for each individual and then calculate an $R^2$ value based on the difference between each individual datapoint and the one-to-one line.
+I will do this for my model, and also for Spencer's model, which predicted the clearance rates as
+\begin{align}
+f_U~L^g & \text{for uninfected animals}, \\
+f_I~L^g~\exp\left(-a~\frac{Z}{L^h}\right) & \text{for infected animals},
+\end{align}
+with $f_u = 0.0126$, $g=1.3704$, $f_i=0.0061$, $a=0.0205$, and $h=2.6420$.
+What you notice right away from Fig. \ref{fig:Clay-vs-Spencer} is that the predicted clearance rate is zero for many of the infected animals, under Spencer's model.
+This is because the estimate of $a$ that Spencer reports is much, much higher than my estimate (0.0205 vs. $3.2\times10^{-5}$).
+Because of this, the $R^2$ for my model is much higher than Spencer's, 0.36 versus 0.28.
+If you focus only on the uninfected animals, our models are equally good (0.257 for my model versus 0.258 for Spencer's model).
+Thus, I feel confident moving forward with my model for feeding, with the caveat that I still don't know what the appropriate value of $f_h$ is.
+To address this, I will fit growth and reproduction trajectories, with algae having their own dynamics, to see whether this helps at all with tightening up the estimates of both $f_h$ and also $v$, the energy conductance.
+I will begin with generating simulated datasets, as before, and fitting the DEB models to those datasets.
+It is my hope that the dynamic food resource will reveal both the value of $f_h$ (because algal abundance will drop low enough for it to matter) and $v$ (because dynamic food will cause more dynamism in the value of $E$, thereby making the value of $v$ more important).
+
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=0.6\textwidth]{figure/Clay-vs-Spencer-1} \hfill{}
+
+\caption[Comparing the fits of my model to Spencer's model by plotting observed clearance rates against model-predicted clearance rates for both uninfected and infected animals]{Comparing the fits of my model to Spencer's model by plotting observed clearance rates against model-predicted clearance rates for both uninfected and infected animals.}\label{fig:Clay-vs-Spencer}
+\end{figure}
+
+
+\end{knitrout}
+
+
+\clearpage
+\section*{Including parasitism}
 I will include the structured model of parasitism into this model.
 I will assume that the parasite shuts off reproduction by causing all energy allocated to reproduction to instead be allocated to growth.
 I need to decide how the parasite uses this energy as a resource.
@@ -701,13 +752,6 @@ I am going to assume that the parasites hit structure for some simulation/recove
 
 
 
-I also want to consider a ``net production'' model.
-This model eliminates the need for a consideration of reserves.
-Instead, we track the dynamics of total \emph{Daphnia} biomass.
-Net production is calculated based on assimilation minus maintenance, which depends on biomass.
-In this model, the parasite utilizes biomass as its resource.
-Whether parasites increase or decrease host size depends on how much biomass is ``consumed'' by parasites and how much additional biomass is created by eliminating reproduction.
-Previous studies have suggested that net production models might actually be a better fit to \emph{Daphnia} than net assimilation models anyway.
 
 
 \section*{Suggested future experiments}
@@ -716,7 +760,19 @@ If I am correct that most (all) of the replication happens early in infection, t
 However, the total number of transmission stages would be affected, because reducing the food late in infection reduces the developmental rate of the pre-transmission stages.
 It also might increase density-dependent competition for resources.
 
+another interesting thing would be to look at the adaptive value of anorexia.
+Specifically, if you had several food treatments and you measured ingestion rates for sick and healthy individuals, and then compared fitnesses of individuals across treatments and within treatments against feeding depression.
+
 \section*{Notes to self}
+
+I also want to consider a ``net production'' model.
+This model eliminates the need for a consideration of reserves.
+Instead, we track the dynamics of total \emph{Daphnia} biomass.
+Net production is calculated based on assimilation minus maintenance, which depends on biomass.
+In this model, the parasite utilizes biomass as its resource.
+Whether parasites increase or decrease host size depends on how much biomass is ``consumed'' by parasites and how much additional biomass is created by eliminating reproduction.
+Previous studies have suggested that net production models might actually be a better fit to \emph{Daphnia} than net assimilation models anyway.
+
 \subsection*{Derivation of the clearance model}
 The clearance rate was calculated as $\log(F_0/F_T) (V/T)$, where $F_T$ is the final number of cells, $F_0$ is the initial number of cells, $V$ is the volume of the container, and $T$ is the amount of time the feeding trial lasted.
 This comes from the following model of feeding (where $F(t)$ is the amount of food at any time $t$:
