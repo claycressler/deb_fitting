@@ -691,11 +691,10 @@ library(tidyr)
 library(ggplot2)
 library(plyr)
 x <- readRDS("Feeding_model_fitting_uninfecteds.RDS")
-lapply(x, function(y) mutate(y, best=ifelse(lik==min(lik),1,0))) -> x
+lapply(1:length(x), function(i) mutate(subset(x[[i]], lik < min(lik)+2), best=ifelse(lik==min(lik),1,0), fh=seq(100,50000,100)[i])) -> x
 res <- vector()
 for (i in 1:length(x)) res <- rbind(res, x[[i]])
 res$lik <- -res$lik
-res$fh <- rep(seq(100,10000,100), each=500)
 gather(res, var, val, 1:5) -> res2
 arrange(res2, best) -> res2
 levels(res2$var) <- c(expression(I[max]), "g", expression(F[0]), expression(sigma[F]), "Log-likelihood")
@@ -751,7 +750,7 @@ x1 <- readRDS("Feeding_model_fitting_infecteds_all_pars.RDS")
 Imax1 <- x1 %>% lapply(., function(l) subset(l, lik==min(lik))$Imax) %>% unlist
 x2 <- readRDS("Feeding_model_fitting_infecteds_Imax_only.RDS")
 Imax2 <- x2[1,]
-x <- data.frame(Imax=c(Imax0,Imax1,Imax2),
+x <- data.frame(Imax=c(Imax0[1:100],Imax1,Imax2),
                 fh=rep(seq(100,10000,100),3),
                 fit=rep(c("Uninf","Inf-fit-all","Inf-fit-Imax"),each=100))
 library(ggplot2)
@@ -978,6 +977,45 @@ R2Spencer <- 1-SSresSpencer/SStot
 
 @
 
+\clearpage
+\section*{DEB fitting with dynamic algae}
+To begin, I am going to do some simulation/recovery experiments with a DEB model with a dynamically varying resource.
+The model I am going to start with is the following:
+\begin{align}
+\frac{dF}{dt} &= -I_{max} \frac{F}{f_h+F} L_{obs}^g \\
+\frac{dE}{dt} &= \rho \epsilon V I_{max} \frac{F}{f_h+F} L_{obs}^g - p_C,
+\frac{dW}{dt} &= \kappa~p_C - k_M~W, \\
+\frac{dR}{dt} &= \frac{(1-\kappa)~p_C}{E_R}, \\
+p_C &= E \left(\frac{\frac{v}{L} + k_m}{1+\frac{\kappa E}{W}}\right).
+\end{align}
+This model makes the simplifying assumption that the algae are not reproducing.
+I will deal with that problem next.
+However, I will assume that an amount of food $F_{a}$ is added every day, and that every fifth day the food is reset to $F_{a}$, corresponding to the transfer of the animal to a clean beaker.
+The parameters of the feeding model are specified by the best-fitting model above.
+However, this model tracks the dynamics of the concentration of algae in cells/ml; to get the total amount of carbon assimilated by the daphnid, I simply multiply the ingestion by $\rho$, the assimilation efficiency, $\epsilon$, the carbon content per cell, and $V$, the total volume of the container.
+
+<<echo=FALSE>>=
+library(tidyr)
+fitpars <- readRDS(file="Growth_reproduction_trajectory_fitting_dyn_food.RDS")
+subset(fitpars, lik < min(lik)+2 & conv==0) %>%
+    mutate(., log.v=log(v)) %>%
+        gather(., var, val, c(K,km,ER,log.v,Lobs)) -> fits
+## true parameter values
+pars <- c(Imax=22500, fh=10000, g=1.45, rho=0.1, eps=44.5e-9, V=30, F0=1000000/30, xi=2.62e-3, q=2.4, K=0.3, km=0.15, ER=1.51e-3, v=10, Lobs=0.1)
+levels(fits$var) <- c(paste0("K=",unname(pars["K"])),
+                      paste0("km=",unname(pars["km"])),
+                      paste0("ER=",unname(pars["ER"])),
+                      paste0("log(v)=",signif(log(unname(pars["v"]))),3),
+                      paste0("sigma_L=",unname(pars["Lobs"])))
+
+library(ggplot2)
+ggplot(fits, aes(x=val)) +
+    geom_histogram() +
+        facet_wrap(~var, scales="free") +
+            theme_bw() +
+                theme(axis.text.x=element_text(angle=45, hjust=1))
+
+@
 
 \clearpage
 \section*{Including parasitism}

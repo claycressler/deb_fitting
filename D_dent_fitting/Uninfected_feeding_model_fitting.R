@@ -17,8 +17,8 @@ mutate(data,
          ) %>% sum
 
 ## Ranges for the estimated parameters
-box <- cbind(lower=c(Imax=1e2, g=1, F0=5000, Fobs=1e2),
-             upper=c(Imax=1e5, g=4, F0=15000, Fobs=1e3))
+box <- cbind(lower=c(Imax=1e3, g=1, F0=5000, Fobs=1e2),
+             upper=c(Imax=1e7, g=4, F0=15000, Fobs=1e3))
 sobolDesign(lower=box[,'lower'],
             upper=box[,'upper'],
             nseq=100000) %>%
@@ -31,7 +31,7 @@ if (run) {
 data <- subset(data, infected==0)
 ## Pick a huge range of potential fh values, and perform the fitting
 ## estimating the other parameters
-fh_vals <- seq(100, 10000, 100)
+fh_vals <- seq(100, 50000, 100)
 est_params <- vector(mode='list', length=length(fh_vals))
 for (i in 1:length(fh_vals)) {
     fixpars <- c(fh=fh_vals[i])
