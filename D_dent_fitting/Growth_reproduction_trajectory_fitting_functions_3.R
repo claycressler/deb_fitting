@@ -77,6 +77,8 @@ traj_match <- function(estpars, fixpars, parorder, transform, obsdata, events, e
         opt <- list(params=par_untransform(x$par,transform),
                     lik=x$value,
                     conv=x$convergence)
+        print(x$counts)
+        print(x$value)
     }
     return(opt)
 }
