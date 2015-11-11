@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015) (preloaded format=pdflatex 2015.5.24)  4 NOV 2015 17:55
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015) (preloaded format=pdflatex 2015.5.24)  11 NOV 2015 17:50
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -595,15 +595,107 @@ File: figure/Clay-vs-Spencer-1.png Graphic file (type png)
 Package pdftex.def Info: figure/Clay-vs-Spencer-1.png used on input line 662.
 (pdftex.def)             Requested size: 271.01524pt x 451.71396pt.
  [24 <./figure/clearance-thru-time-1.png>]
-[25 <./figure/Clay-vs-Spencer-1.png>] [26
+[25 <./figure/Clay-vs-Spencer-1.png>]
+Package color Info: Redefining color shadecolor on input line 694.
 
-] [27] [28] [29]
+<figure/dyn-food-hist-1.png, id=126, 903.375pt x 602.25pt>
+File: figure/dyn-food-hist-1.png Graphic file (type png)
+
+<use figure/dyn-food-hist-1.png>
+Package pdftex.def Info: figure/dyn-food-hist-1.png used on input line 696.
+(pdftex.def)             Requested size: 451.6875pt x 301.13344pt.
+Package color Info: Redefining color shadecolor on input line 707.
+
+<figure/dyn-food-prof-lik-v-1.png, id=127, 903.375pt x 526.96875pt>
+File: figure/dyn-food-prof-lik-v-1.png Graphic file (type png)
+
+<use figure/dyn-food-prof-lik-v-1.png>
+Package pdftex.def Info: figure/dyn-food-prof-lik-v-1.png used on input line 70
+9.
+(pdftex.def)             Requested size: 451.6875pt x 263.49176pt.
+ [26
+
+]
+Package color Info: Redefining color shadecolor on input line 726.
+
+<figure/dyn-food-pairwise-1.png, id=131, 752.8125pt x 752.8125pt>
+File: figure/dyn-food-pairwise-1.png Graphic file (type png)
+
+<use figure/dyn-food-pairwise-1.png>
+Package pdftex.def Info: figure/dyn-food-pairwise-1.png used on input line 728.
+
+(pdftex.def)             Requested size: 451.6875pt x 451.70247pt.
+Package color Info: Redefining color shadecolor on input line 742.
+
+<figure/dyn-food-fh-est-profile-v-1.png, id=132, 903.375pt x 526.96875pt>
+File: figure/dyn-food-fh-est-profile-v-1.png Graphic file (type png)
+
+<use figure/dyn-food-fh-est-profile-v-1.png>
+Package pdftex.def Info: figure/dyn-food-fh-est-profile-v-1.png used on input l
+ine 744.
+(pdftex.def)             Requested size: 451.6875pt x 263.49176pt.
+ [27 <./figure/dyn-food-hist-1.png>]
+Package color Info: Redefining color shadecolor on input line 762.
+ <figure/estimating-rho-1.png, id=137, 752.8125pt x 752.8125pt>
+File: figure/estimating-rho-1.png Graphic file (type png)
+
+<use figure/estimating-rho-1.png>
+Package pdftex.def Info: figure/estimating-rho-1.png used on input line 764.
+(pdftex.def)             Requested size: 451.6875pt x 451.70247pt.
+Package color Info: Redefining color shadecolor on input line 779.
+
+<figure/rho-profile-1.png, id=138, 903.375pt x 526.96875pt>
+File: figure/rho-profile-1.png Graphic file (type png)
+
+<use figure/rho-profile-1.png>
+Package pdftex.def Info: figure/rho-profile-1.png used on input line 781.
+(pdftex.def)             Requested size: 451.6875pt x 263.49176pt.
+Package color Info: Redefining color shadecolor on input line 797.
+
+<figure/est-rho-fix-ER-1.png, id=139, 752.8125pt x 752.8125pt>
+File: figure/est-rho-fix-ER-1.png Graphic file (type png)
+
+<use figure/est-rho-fix-ER-1.png>
+Package pdftex.def Info: figure/est-rho-fix-ER-1.png used on input line 799.
+(pdftex.def)             Requested size: 451.6875pt x 451.70247pt.
+Package color Info: Redefining color shadecolor on input line 811.
+
+<figure/profile-lik-v-estimating-rho-1.png, id=140, 526.96875pt x 903.375pt>
+File: figure/profile-lik-v-estimating-rho-1.png Graphic file (type png)
+
+<use figure/profile-lik-v-estimating-rho-1.png>
+Package pdftex.def Info: figure/profile-lik-v-estimating-rho-1.png used on inpu
+t line 813.
+(pdftex.def)             Requested size: 451.6875pt x 774.36482pt.
+
+
+LaTeX Warning: Float too large for page by 193.00233pt on input line 816.
+
+
+Underfull \vbox (badness 3364) has occurred while \output is active []
+
+ [28 <./figure/dyn-food-prof-lik-v-1.png>] [29 <./figure/dyn-food-pairwise-1.pn
+g>]
+Package color Info: Redefining color shadecolor on input line 831.
+
+<figure/sim-datasets-1.png, id=149, 903.375pt x 526.96875pt>
+File: figure/sim-datasets-1.png Graphic file (type png)
+
+<use figure/sim-datasets-1.png>
+Package pdftex.def Info: figure/sim-datasets-1.png used on input line 833.
+(pdftex.def)             Requested size: 451.6875pt x 263.49176pt.
+ [30 <./figure/dyn-food-fh-est-profile-v-1.png>] [31 <./figure/estimating-rho-1
+.png>] [32 <./figure/rho-profile-1.png>]
+[33 <./figure/est-rho-fix-ER-1.png>] [34 <./figure/profile-lik-v-estimating-rho
+-1.png>] [35 <./figure/sim-datasets-1.png>] [36
+
+] [37] [38] [39]
 (./Notes_D_dent_data_fitting.aux) ) 
 Here is how much of TeX's memory you used:
- 6654 strings out of 493089
- 108838 string characters out of 6134842
- 181353 words of memory out of 5000000
- 9869 multiletter control sequences out of 15000+600000
+ 6717 strings out of 493089
+ 110755 string characters out of 6134842
+ 182353 words of memory out of 5000000
+ 9923 multiletter control sequences out of 15000+600000
  22324 words of font info for 59 fonts, out of 8000000 for 9000
  1302 hyphenation exceptions out of 8191
  44i,21n,42p,1244b,376s stack positions out of 5000i,500n,10000p,200000b,80000s
@@ -621,10 +713,10 @@ usr/local/texlive/2015/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/loca
 l/texlive/2015/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/
 2015/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2015/texmf
 -dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on Notes_D_dent_data_fitting.pdf (29 pages, 1079762 bytes).
+Output written on Notes_D_dent_data_fitting.pdf (39 pages, 1825439 bytes).
 PDF statistics:
- 182 PDF objects out of 1000 (max. 8388607)
- 106 compressed objects within 2 object streams
+ 234 PDF objects out of 1000 (max. 8388607)
+ 130 compressed objects within 2 object streams
  0 named destinations out of 1000 (max. 500000)
- 76 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 121 words of extra memory for PDF output out of 10000 (max. 10000000)
 

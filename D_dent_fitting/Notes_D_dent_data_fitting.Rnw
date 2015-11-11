@@ -442,11 +442,11 @@ How to deal with starvation is a huge uncertainty in these models.
 
 I am going to use this model for some simulation/recovery experiments.
 In particular, I am going to assume that all of the parameters relating to ingestion ($\rho$, $\epsilon$, $I_{max}$, $g$, $F$, $\xi$, and $q$) are known, and focus only on estimating $\kappa$, $k_m$, $E_R$, $v$, and the error in the observation of length.
-However, even under these circumstances, estimation is a huge challenge.
-You can see in Fig. \ref{fig:growth-reprod-1} very clearly that (1) none of the best-fit parameter values are correct; (2) the estimates of $\kappa$, $k_m$, and $E_R$ trade-off against one another; (3) there is very little signal to detect the value of $v$.
-There is some evidence that when $v$ is small, it also is highly correlated with $\kappa$, $k_m$, and $E_R$.
+Even under these circumstances, estimation is a huge challenge.
+You can see in Fig. \ref{fig:growth-reprod-1} very clearly that (1) none of the best-fit parameter values are correct (the true values are $\kappa=0.3$, $k_m=0.33$, $E_R=4.27\times10^{-4}$, and $v=5$); (2) the estimates of $\kappa$, $k_m$, and $E_R$ are highly correlated with one another; (3) there is very little signal to detect the value of $v$.
+There is some evidence that when $v$ is small, it is also highly correlated with $\kappa$, $k_m$, and $E_R$.
 
-<<echo=FALSE, fig.height=4, fig.width=4, fig.cap="Scatterplots showing pairs of parameter estimates for a single parameter set. Only parameter sets within 2 log-likelihood units of the best-fitting parameter set are included. The red dot shows the true parameter value.", label="growth-reprod-1">>=
+<<echo=FALSE, fig.height=4, fig.width=4, fig.cap="Scatterplots showing pairs of parameter estimates for a single parameter set. Only parameter sets within 2 log-likelihood units of the best-fitting parameter set are included. The red points show the true parameter values.", label="growth-reprod-1">>=
 x <- readRDS("Growth_reproduction_trajectory_fitting.RDS")
 
 library(deSolve)
@@ -510,9 +510,25 @@ for (i in 1:20) {
 subset(x[[1]], lik < (min(lik)+2)) -> sx
 sx[,1:5]->sx
 rbind(sx, datasets[[1]]$params[8:12]) -> sx
-mutate(sx, "log(v)"=log(v)) -> sx
-pairs(sx[,-which(colnames(sx)=="v")], col=c(rep(1, nrow(sx)-1),2))
-
+mutate(sx, log.v=log(v)) -> sx
+panel.dens <- function(x, ...) {
+    d <- density(x)
+    plot.window(xlim=range(d$x), ylim=range(d$y))
+    lines(d)
+}
+## put (absolute) correlations on the upper panels,
+## with size proportional to the correlations.
+panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
+    {
+        usr <- par("usr"); on.exit(par(usr))
+        par(usr = c(0, 1, 0, 1))
+        r <- cor(x, y)
+        txt <- format(c(r, 0.123456789), digits = digits)[1]
+        txt <- paste0(prefix, txt)
+        if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
+        text(0.5, 0.5, txt, cex = cex.cor)
+    }
+pairs(sx[,c(1:3,5:6)], pch=21, cex=1.5, bg=c(rep(0,nrow(sx)-1),2), diag.panel=panel.dens, upper.panel=panel.cor)
 
 @
 
@@ -1057,17 +1073,17 @@ There is a peak in the likelihood surface at intermediate $f_h$, which is encour
 The best-fit parameter value is shown by the blue point, and the true value is shown by the red point, so, again, all of the parameters are slightly mis-estimated, but this is probably to be expected.
 I still have good evidence that the model can be recovered reasonably well, which is, in an of itself, pretty encouraging.
 
-<<echo=F, label="dyn-food-pairwise", fig.width=6, fig.height=3.5, fig.cap="Pairwise scatterplot of estimates of $f_h$ and DEB parameters when $v=10$.">>=
+<<echo=F, label="dyn-food-pairwise", fig.width=5, fig.height=5, fig.cap="Pairwise scatterplot of estimates of $f_h$ and DEB parameters when $v=10$.">>=
 v_vals <- c(seq(10, 100, 10), seq(200, 1000, 100))
 fitpars <- readRDS(file="~/Dropbox/Growth_reproduction_trajectory_fitting_dyn_food_profile_v_2.RDS")
 
 subset(fitpars[[1]], lik < min(lik)+2 & conv==0)[,1:6] %>%
     mutate(., lik=-lik, best=ifelse(lik==max(lik),4,1)) %>%
-        rbind(., c(10000, 0.3, 0.15, 1.51e-3, 0.1, NA, 2)) -> fit
+        rbind(., c(10000, 0.3, 0.15, 1.51e-3, 0.1, -90.69359, 2)) -> fit
 fit$bg <- with(fit, ifelse(best==1, 0, best))
 arrange(fit, best) -> fit
 fit$best <- with(fit, ifelse(best==1, gray(0.5), best))
-pairs(fit[,1:6], pch=21, col=fit$best, bg=fit$bg)
+pairs(fit[,1:6], pch=21, col=fit$best, bg=fit$bg, diag.panel=panel.dens, upper.panel=panel.cor)
 
 @
 
@@ -1076,7 +1092,7 @@ Fig. \ref{fig:dyn-food-fh-est-profile-v} shows all of the parameter estimates wi
 Again, you can see that a large number of $f_h$ values are reasonably well supported, driving a lot of variation in the other estimates.
 Still, however, the estimate of $f_h$ is reasonably good, and smaller values of $v$, though they have lower likelihoods, produce better estimates of the DEB parameters (though worse estimates of $f_h$).
 
-<<echo=FALSE, label=dyn-food-fh-est-profile-v>>=
+<<echo=FALSE, label="dyn-food-fh-est-profile-v", fig.width=6, fig.height=3.5, fig.cap="Estimates of $f_h$ and the DEB parmaeters as $v$ is varied.">>=
 fitpars <- fitpars[1:18]
 lapply(1:length(fitpars), function(i) subset(fitpars[[i]], lik < min(lik)+2 & conv==0) %>% mutate(., lik=-lik, best=ifelse(lik==max(lik),1,0), v=v_vals[i])) -> fitpars
 
@@ -1111,9 +1127,10 @@ There are also clear correlationshp between the estimates of $\rho$ and $\kappa$
 These make sense: as assimilation efficiency increases, $\kappa$ must decrease to keep size reasonable; but as $\kappa$ decreases, the cost of reproduction must increase to keep the total egg production reasonable.
 The estimates of  $f_h$, $k_m$, and $\sigma_L$ are all still centered near their true values, with likelihood peaks at those values.
 
-<<echo=F, label="estimating-rho", fig.width=4, fig.height=4, units='in', out.width="0.6\\textwidth", fig.cap="Scatterplot of parameter estimates when $\rho$ is estimated along with $f_h$ and the other DEB parameters. $v$ was fixed at $v=100$ for this estimation.">>=
+<<echo=F, label="estimating-rho", fig.width=5, fig.height=5, units='in', fig.cap="Scatterplot of parameter estimates when $\rho$ is estimated along with $f_h$ and the other DEB parameters. $v$ was fixed at $v=100$ for this estimation.">>=
  x <- readRDS("Estimating-rho.RDS")
-subset(x, lik < min(lik)+2 & conv==0) %>% mutate(., lik=-lik) %>% ggpairs(., 1:7)
+subset(x, lik < min(lik)+2 & conv==0) %>% mutate(., lik=-lik) -> d
+pairs(d[,1:7], pch=21, bg=1, diag.panel=panel.dens, upper.panel=panel.cor)
 @
 
 To further determine how big of a problem estimating $\rho$ is, I did the same kind of profile likelihood calculation, fixing $\rho$ at values between 0.1 and 0.9 and estimating all of the other parameters.
@@ -1122,7 +1139,7 @@ More problematically, however, the likelihood increases with increasing values o
 This certainly supports my supposition that $\rho$ is very hard to estimate.
 
 <<echo=F, label="rho-profile", fig.height=3.5, fig.width=6, fig.cap="Estimates of $f_h$ and DEB parameters for different fixed values of $\rho$. For these $v$ was fixed at $v=100$ since there is no evidence so far that the value of that parameter affects the other parameter estimates.">>=
-x <- readRDS("~/Dropbox/Growth_reproduction_trajectory_fitting_dyn_food_profile_rho.RDS")
+x <- readRDS("Growth_reproduction_trajectory_fitting_dyn_food_profile_rho.RDS")
 rho_vals <- seq(0.1, 0.9, 0.05)
 fitpars <- x[1:11]
 lapply(1:length(fitpars), function(i) subset(fitpars[[i]], lik < min(lik)+2 & conv==0) %>% mutate(., lik=-lik, best=ifelse(lik==max(lik),1,0), rho=rho_vals[i])) -> fitpars
@@ -1151,7 +1168,135 @@ ggplot(fitp, aes(x=rho, y=val, col=factor(best))) +
 However, the strong linear relationship between the fixed value of $\rho$ and the maximum likelihood estimate of $E_R$ suggests a way to estimate $\rho$:
 if the value of $E_R$ could be fixed, rather than estimated, that should much more greatly constrain the value of $\rho$.
 And, fortunately, $E_R$ is a parameter that is likely plausibly estimated based on the size (and thus, carbon content) of a newborn daphnid.
-With that in mind, I redid the fitting, assuming that the
+With that in mind, I redid the fitting, assuming that $E_R = 1.51\times10^{-3}$, the true value in the simulated dataset.
+Fig. \ref{fig:est-rho-fix-ER} shows pairwise scatterplots of the parameter estimates when $E_R$ is fixed at its true value and $v$ is fixed at 1000.
+You can see from the density plots along the diagonal that the bulk of the estimates are, indeed, close to the true values ($f_h=10000$, $\rho=0.1$, $\kappa=0.3$, $k_m=0.15$, $\sigma_L=0.1$), and that these values correspond to peaks on the likelihood surface.
+<<echo=FALSE, label="est-rho-fix-ER", fig.width=5, fig.height=5, units='in', fig.cap="Parameter estimates when $E_R$ is fixed at the true value and $v=1000$.">>=
+library(magrittr)
+library(plyr)
+x <- readRDS("Growth_reproduction_trajectory_fitting_dyn_food_profile_v_est_rho.RDS")
+subset(x[[19]], lik < min(lik)+2 & conv==0) %>%
+    mutate(., lik=-lik) -> d
+pairs(d[,1:6], pch=21, bg=1, diag.panel=panel.dens, upper.panel=panel.cor)
+
+@
+
+If you look across a range of fixed $v$ values, the best-fitting parameter estimates also seem to hone right in on parameter estimates that are close to the true values (Fig. \ref{fig:profile-lik-v-estimating-rho}; the black points show the parameter estimate with highest likelihood).
+In particular, the estimates of $\rho$ are quite good.
+
+<<echo=FALSE, label="profile-lik-v-estimating-rho", fig.width=3.5, fig.height=6, fig.cap="Estimates of DEB parameters across a range of $v$ values, when $E_R$ is fixed at its true value.">>=
+v_vals <- c(seq(10, 100, 10), seq(200, 1000, 100))
+x <- readRDS("Growth_reproduction_trajectory_fitting_dyn_food_profile_v_est_rho.RDS")
+lapply(1:length(x),
+       function(i) subset(x[[i]], lik < min(lik)+2 & conv==0) %>% mutate(., lik=-lik, best=ifelse(lik==max(lik), 1, 0), v=v_vals[i])) -> p
+fitp <- vector()
+for (i in 1:length(p)) fitp <- rbind(fitp, p[[i]])
+library(tidyr)
+fitp <- gather(fitp, var, val, 1:6)
+fitp <- arrange(fitp, best)
+pars <- c(Imax=22500, fh=10000, g=1.45, rho=0.1, eps=44.5e-9, V=30, F0=1000000/30, xi=2.62e-3, q=2.4, K=0.3, km=0.15, ER=1.51e-3, v=10, Lobs=0.1)
+levels(fitp$var) <- c(paste0("fh=",unname(pars["fh"])),
+                      paste0("rho=",unname(pars["rho"])),
+                      paste0("K=",unname(pars["K"])),
+                      paste0("km=",unname(pars["km"])),
+                      paste0("sigma_L=",unname(pars["Lobs"])),
+                      "lik")
+library(ggplot2)
+ggplot(fitp, aes(x=v, y=val, col=factor(best))) +
+    facet_wrap(~var, scales="free") +
+        geom_point() +
+            theme_bw() +
+                scale_colour_manual(values=c("gray","black")) +
+                    theme(legend.position='none')
+
+
+@
+
+Okay, all of the preceding has been based on fitting a single dataset, and hence a single parameter set.
+The last thing to do before moving on to deal with the real data is to simulate datasets with a much wider range of parameter values and attempt to fit those datasets as well.
+For this, I generated 20 simulated datasets.
+There were some constraints on the parameters and the simulated datasets, to ensure they were somewhat biologically realistic for \emph{Daphnia}.
+In particular, all of the parameters had to be positive and $\rho$ and $\kappa$ had to be between 0.1 and 0.9.
+I also only accepted parameter sets that produced simulated data such that the observed length at day 5 was less than 2 mm and the observed egg production was 0; moreover, the length at day 35 had to be between 0.5 and 4mm and the egg production at day 35 had to between 5 and 200 eggs.
+Finally, some growth had to be observable in the data (a linear regression of length against time had to have a significantly positive slope).
+These are fairly tame restrictions; Fig. \ref{fig:sim-datasets} shows smoothed fits of the growth and reproduction data through time to show the variability in growth and reproduction trajectories across the datasets.
+
+<<echo=FALSE, label="sim-datasets", fig.width=6, fig.height=3.5, fig.cap="Growth and reproduction trajectories across the 20 simulated datasets. What is shown is not the raw data, but a smoothed fit of that data. This cleans up the figures but still shows the variability among datasets.">>=
+library(ggplot2)
+library(tidyr)
+source("Growth_reproduction_trajectory_fitting_functions_3.R")
+pars <- c(Imax=22500, fh=10000, g=1.45, rho=0.5, eps=44.5e-9, V=30, F0=1000000/30, xi=2.62e-3, q=2.4, K=0.5, km=0.3, ER=1.51e-3, v=10, Lobs=0.1)
+parorder <- c("Imax","fh","g","rho","eps","V","F0","xi","q","K","km","ER","v","Lobs")
+fixpars <- pars[c("Imax","g","eps","V","F0","xi","q")]
+varpars <- pars[c("fh","rho","K","km","ER","v","Lobs")]
+y0 <- c(F=1000000/30, E=0.00025, W=0.00025, R=0)
+times <- seq(0, 35, 0.001)
+## feeding schedule
+eventdat <- data.frame(var="F",
+                       time=1:35,
+                       value=unname(pars["F0"]),
+                       method=rep(c(rep("add",4),"rep"),max(times)/5))
+days <- c(5,10,12,15,18,25,30,35)
+datasets <- vector(mode='list', length=20)
+set.seed(1231239478)
+for (i in 1:20) {
+    data.frame(times=rep(days, each=12),
+               length=rep(0,96),
+               eggs=rep(0,96)) -> data
+    ## ensure that the data give you something that looks reasonably like a Daphnia
+    while ( (min(data$length) < 0.5) | (max(data$length) > 5) |
+               any(subset(data, times==5)$length > 2) |
+                   coef(lm(length~times,data))[2] < 0.01 |
+                       summary(lm(length~times, data))$coefficients[2,4] > 0.05  |
+                           (max(data[,"eggs"]) < 5) | (max(data[,"eggs"]) > 200) |
+                               any(subset(data, times==5)$eggs > 0) |
+                                   any(is.na(data))
+           ) {
+        ## GENERATE NOVEL PARAMETERS
+        rnorm(length(varpars), mean=varpars, sd=varpars/2) -> p
+        names(p) <- names(varpars)
+        while (p["K"] > 0.9 | p["K"] < 0.1 | any(p < 0) | p["rho"] > 0.9 | p["rho"] < 0.1) {
+            rnorm(length(varpars), mean=varpars, sd=varpars/2) -> p
+            names(p) <- names(varpars)
+        }
+        ## combine fixpars with p
+        pars <- c(p, fixpars)
+        pars <- pars[match(parorder, names(pars))]
+        ## calculate the value of Imax and g, given the value of fh
+        pars["Imax"] <- calc_Imax(unname(pars["fh"]))
+        pars["g"] <- calc_g(unname(pars["fh"]))
+        ## simulate
+        ode(y0, times=0:35, func="derivs", parms=pars, dllname="deb2", initfunc="initmod", events=list(data=eventdat)) %>% as.data.frame -> out
+        mutate(out, R=R-R[which((E+W) < 5e-3) %>% max]) -> out
+        out$R[out$R < 0] <- 0
+        data.frame(times=rep(days, each=12),
+                   length=sapply(with(out, ((E[days+1]+W[days+1])/fixpars["xi"])^(1/fixpars["q"])),
+                       function(x)
+                           rnorm(12, mean=x, sd=varpars["Lobs"])
+                                 ) %>% as.numeric,
+                   eggs=sapply(out$R[days+1],
+                       function(x)
+                           rpois(12, lambda=x)
+                               ) %>% as.numeric
+                   ) -> data
+    }
+    datasets[[i]] <- list(params=pars, data=data)
+}
+d <- vector()
+for (i in 1:20)
+    d <- rbind(d, lapply(1:length(datasets), function(i) mutate(datasets[[i]]$data, set=i))[[i]])
+d <- gather(d, var, val, 2:3)
+ggplot(d, aes(x=times, y=val, colour=factor(set), group=factor(set))) +
+    facet_wrap(~var, scales="free") +
+        stat_smooth() +
+            theme_bw() +
+                theme(legend.position='none')
+
+
+
+@
+
+Based on the above simulation-recovery experiments, it seems clear that the half-saturation constant, which could not be estimated on the basis
 
 \clearpage
 \section*{Including parasitism}
