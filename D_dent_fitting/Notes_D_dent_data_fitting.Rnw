@@ -1184,7 +1184,7 @@ pairs(d[,1:6], pch=21, bg=1, diag.panel=panel.dens, upper.panel=panel.cor)
 If you look across a range of fixed $v$ values, the best-fitting parameter estimates also seem to hone right in on parameter estimates that are close to the true values (Fig. \ref{fig:profile-lik-v-estimating-rho}; the black points show the parameter estimate with highest likelihood).
 In particular, the estimates of $\rho$ are quite good.
 
-<<echo=FALSE, label="profile-lik-v-estimating-rho", fig.width=3.5, fig.height=6, fig.cap="Estimates of DEB parameters across a range of $v$ values, when $E_R$ is fixed at its true value.">>=
+<<echo=FALSE, label="profile-lik-v-estimating-rho", fig.width=6, fig.height=3.5, fig.cap="Estimates of DEB parameters across a range of $v$ values, when $E_R$ is fixed at its true value.">>=
 v_vals <- c(seq(10, 100, 10), seq(200, 1000, 100))
 x <- readRDS("Growth_reproduction_trajectory_fitting_dyn_food_profile_v_est_rho.RDS")
 lapply(1:length(x),
@@ -1294,7 +1294,40 @@ ggplot(d, aes(x=times, y=val, colour=factor(set), group=factor(set))) +
 
 
 
+
 @
+
+Fig. \ref{fig:mult-datasets-fitting} plots the results of the fitting.
+For every parameter set (1-20), I plot all of the parameter estimates that were within 2 log-likelihood units of the best-fitting parameter set.
+The parameter set with highest likelihood is shown in black.
+The true parameter value is shown in red.
+There are bunch of interesting things to see, even here.
+First off, it is clear that, for some trajectories, a much greater diversity of parameter sets had nearly equal likelihoods, as shown both by the number and spread of gray points.
+When this happened, the best-fitting parameter set was almost always far from the truth (e.g., for datasets
+
+<<echo=F>>=
+x <- readRDS("Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets.RDS")
+lapply(1:length(x),
+       function(i)
+           subset(x[[i]], conv==0) %>%
+               subset(., lik < min(lik)+2) %>%
+                   mutate(., type=ifelse(lik==min(lik), 1, 0), dataset=i) %>%
+                       rbind(., c(unname(datasets[[i]]$params[c("fh","rho","K","km","Lobs")]), rep(NA, 2), 2, i))
+       ) -> dt
+d <- vector()
+for (i in 1:length(dt)) d <- rbind(d, dt[[i]])
+d <- gather(d, var, val, 1:5)
+d <- arrange(d, type)
+
+ggplot(d, aes(x=dataset, y=val, colour=factor(type))) +
+    geom_point() +
+        facet_wrap(~var, scales="free") +
+            theme_bw() +
+                theme(legend.position="none") +
+                    scale_colour_manual(values=c("gray","black","red"))
+
+@
+
 
 Based on the above simulation-recovery experiments, it seems clear that the half-saturation constant, which could not be estimated on the basis
 
