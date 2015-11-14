@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015) (preloaded format=pdflatex 2015.5.24)  11 NOV 2015 17:50
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015) (preloaded format=pdflatex 2015.5.24)  13 NOV 2015 17:58
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -660,17 +660,13 @@ Package pdftex.def Info: figure/est-rho-fix-ER-1.png used on input line 799.
 (pdftex.def)             Requested size: 451.6875pt x 451.70247pt.
 Package color Info: Redefining color shadecolor on input line 811.
 
-<figure/profile-lik-v-estimating-rho-1.png, id=140, 526.96875pt x 903.375pt>
+<figure/profile-lik-v-estimating-rho-1.png, id=140, 903.375pt x 526.96875pt>
 File: figure/profile-lik-v-estimating-rho-1.png Graphic file (type png)
 
 <use figure/profile-lik-v-estimating-rho-1.png>
 Package pdftex.def Info: figure/profile-lik-v-estimating-rho-1.png used on inpu
 t line 813.
-(pdftex.def)             Requested size: 451.6875pt x 774.36482pt.
-
-
-LaTeX Warning: Float too large for page by 193.00233pt on input line 816.
-
+(pdftex.def)             Requested size: 451.6875pt x 263.49176pt.
 
 Underfull \vbox (badness 3364) has occurred while \output is active []
 
@@ -684,39 +680,73 @@ File: figure/sim-datasets-1.png Graphic file (type png)
 <use figure/sim-datasets-1.png>
 Package pdftex.def Info: figure/sim-datasets-1.png used on input line 833.
 (pdftex.def)             Requested size: 451.6875pt x 263.49176pt.
- [30 <./figure/dyn-food-fh-est-profile-v-1.png>] [31 <./figure/estimating-rho-1
-.png>] [32 <./figure/rho-profile-1.png>]
-[33 <./figure/est-rho-fix-ER-1.png>] [34 <./figure/profile-lik-v-estimating-rho
--1.png>] [35 <./figure/sim-datasets-1.png>] [36
+Package color Info: Redefining color shadecolor on input line 852.
 
-] [37] [38] [39]
-(./Notes_D_dent_data_fitting.aux) ) 
+<figure/mult-datasets-fitting-1.png, id=150, 903.375pt x 526.96875pt>
+File: figure/mult-datasets-fitting-1.png Graphic file (type png)
+
+<use figure/mult-datasets-fitting-1.png>
+Package pdftex.def Info: figure/mult-datasets-fitting-1.png used on input line 
+854.
+(pdftex.def)             Requested size: 451.6875pt x 263.49176pt.
+Package color Info: Redefining color shadecolor on input line 865.
+
+<figure/mult-datasets-relerr-1.png, id=151, 903.375pt x 526.96875pt>
+File: figure/mult-datasets-relerr-1.png Graphic file (type png)
+
+<use figure/mult-datasets-relerr-1.png>
+Package pdftex.def Info: figure/mult-datasets-relerr-1.png used on input line 8
+67.
+(pdftex.def)             Requested size: 451.6875pt x 263.49176pt.
+
+Underfull \vbox (badness 3590) has occurred while \output is active []
+
+ [30 <./figure/dyn-food-fh-est-profile-v-1.png>]
+Package color Info: Redefining color shadecolor on input line 879.
+
+<figure/truth-est-corr-1.png, id=156, 903.375pt x 526.96875pt>
+File: figure/truth-est-corr-1.png Graphic file (type png)
+
+<use figure/truth-est-corr-1.png>
+Package pdftex.def Info: figure/truth-est-corr-1.png used on input line 881.
+(pdftex.def)             Requested size: 451.6875pt x 263.49176pt.
+
+Underfull \vbox (badness 8113) has occurred while \output is active []
+
+ [31 <./figure/estimating-rho-1.png>] [32 <./figure/rho-profile-1.png>] [33 <./
+figure/est-rho-fix-ER-1.png>] [34 <./figure/profile-lik-v-estimating-rho-1.png>
+] [35 <./figure/sim-datasets-1.png>] [36 <./figure/mult-datasets-fitting-1.png>
+] [37 <./figure/mult-datasets-relerr-1.png> <./figure/truth-est-corr-1.png>] [3
+8
+
+] [39]
+[40] [41] (./Notes_D_dent_data_fitting.aux) ) 
 Here is how much of TeX's memory you used:
- 6717 strings out of 493089
- 110755 string characters out of 6134842
+ 6738 strings out of 493089
+ 111422 string characters out of 6134842
  182353 words of memory out of 5000000
- 9923 multiletter control sequences out of 15000+600000
+ 9941 multiletter control sequences out of 15000+600000
  22324 words of font info for 59 fonts, out of 8000000 for 9000
  1302 hyphenation exceptions out of 8191
  44i,21n,42p,1244b,376s stack positions out of 5000i,500n,10000p,200000b,80000s
-{/usr/local/texlive/2015/texmf-dist/fonts/en
-c/dvips/base/8r.enc}</usr/local/texlive/2015/texmf-dist/fonts/type1/public/amsf
-onts/cm/cmex10.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/public/amsfo
-nts/cm/cmmi12.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/public/amsfon
-ts/cm/cmmi6.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/public/amsfonts
-/cm/cmmi8.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/public/amsfonts/c
-m/cmr12.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/public/amsfonts/cm/
-cmr8.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/public/amsfonts/cm/cms
-y10.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy
-8.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/urw/courier/ucrb8a.pfb></
-usr/local/texlive/2015/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/loca
-l/texlive/2015/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/
-2015/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2015/texmf
--dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on Notes_D_dent_data_fitting.pdf (39 pages, 1825439 bytes).
+{/usr/local/texlive/2015/texmf-dis
+t/fonts/enc/dvips/base/8r.enc}</usr/local/texlive/2015/texmf-dist/fonts/type1/p
+ublic/amsfonts/cm/cmex10.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/pu
+blic/amsfonts/cm/cmmi12.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/pub
+lic/amsfonts/cm/cmmi6.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/publi
+c/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/public/
+amsfonts/cm/cmr12.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/public/am
+sfonts/cm/cmr8.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/public/amsfo
+nts/cm/cmsy10.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/public/amsfon
+ts/cm/cmsy8.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/urw/courier/ucr
+b8a.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb>
+</usr/local/texlive/2015/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/loca
+l/texlive/2015/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/
+2015/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on Notes_D_dent_data_fitting.pdf (41 pages, 2018775 bytes).
 PDF statistics:
- 234 PDF objects out of 1000 (max. 8388607)
- 130 compressed objects within 2 object streams
+ 246 PDF objects out of 1000 (max. 8388607)
+ 134 compressed objects within 2 object streams
  0 named destinations out of 1000 (max. 500000)
- 121 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 136 words of extra memory for PDF output out of 10000 (max. 10000000)
 

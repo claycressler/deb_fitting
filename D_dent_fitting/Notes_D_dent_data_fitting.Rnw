@@ -1292,9 +1292,6 @@ ggplot(d, aes(x=times, y=val, colour=factor(set), group=factor(set))) +
             theme_bw() +
                 theme(legend.position='none')
 
-
-
-
 @
 
 Fig. \ref{fig:mult-datasets-fitting} plots the results of the fitting.
@@ -1307,7 +1304,7 @@ When this happened, the best-fitting parameter set was almost always far from th
 However, for almost every dataset, some of the parameter sets contained the true parameter value.
 However, I think that the overall message here is basically optimistic.
 
-<<echo=F, label=''mult-datasets-fitting'', fig.height=3.5, fig.width=6, fig.cap=''Parameter estimates across 20 different parameter sets. The black point shows the best-fitting parameter estimate. The grey points are parameter estimates within 2 log-likelihood units of the best. The red point is the true parameter value.''>>=
+<<echo=F, label="mult-datasets-fitting", fig.height=3.5, fig.width=6, fig.cap='Parameter estimates across 20 different parameter sets. The black point shows the best-fitting parameter estimate. The grey points are parameter estimates within 2 log-likelihood units of the best. The red point is the true parameter value.'>>=
 x <- readRDS("Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets.RDS")
 lapply(1:length(x),
        function(i)
@@ -1352,9 +1349,25 @@ ggplot(df4, aes(x=dataset, y=relerr, colour=factor(type))) +
 
 @
 
-The other thing that is useful here is to compare the best-fitting trajectories to the datasets and see what characteristics determine whether a fit is good or not.
+You can also look at the relationship between the true parameter values and the error in the estimates, to see if the the true value of the parameter influences whether the parameter will be poorly estimated or not (Fig. \ref{fig:truth-est-corr}).
+Other than a general trend towards slightly higher relative error when the true value is small (which you would expect, given that the denominator is smaller in this case), there doesn't seem to be much of a pattern.
 
-<<echo=F, fig.height=3.5, fig.width=6, fig.cap='Comparing growth and reproduction trajectories for the true parameters (red) and the best-ftting parameters (black), with the observed data shown by the points.'>>=
+<<echo=F, label='truth-est-corr', fig.width=6, fig.height=3.5, fig.cap='Relationship between the true parameter value and the relative error in the best-fitting estimate across 20 datasets.'>>=
+ggplot(subset(df4,type==1), aes(x=truth, y=relerr, colour=factor(dataset))) +
+    geom_point() +
+        facet_wrap(~var, scales="free") +
+            theme_bw() +
+                theme(legend.position='none')
+
+
+@
+
+What is more useful is to look at the actual data from datasets that were more poorly estimated, to see if there are characteristics are the data itself that leads to highly variable parameter estimation.
+This actually makes a lot more sense that comparing prediction error against the true parameter values, given that those parameter values are actually unknown, whereas I can study the characteristics of an observed dataset to evaluate whether those characteristics are likely to make estimation hard, or easy.
+I will plot the observed data, along with the deterministic growth and reproduction trajectories for the true parameter set (in red) and the best-estimate parameter set (in black), for all 20 datasets.
+In addition, I will report the variance in the parameter estimates and the
+
+<<echo=F, fig.height=4, fig.width=4, out.width='0.5\\textwidth', fig.keep='high', fig.cap='Comparing growth and reproduction trajectories for the true parameters (red) and the best-ftting parameters (black), with the observed data shown by the points.'>>=
 x <- readRDS("Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets.RDS")
 lapply(1:length(x),
        function(i)
@@ -1374,30 +1387,59 @@ eventdat <- data.frame(var="F",
                        value=unname(y0["F"]),
                        method=rep(c(rep("add",4),"rep"),35/5))
 
-par(mfrow=c(4,2), mar=c(1,4,1,0), oma=c(3,1,0,1))
-for (i in 1:4) {
+for (i in 1:20) {
     tpars <- datasets[[i]]$params ## true parameter values
     bpars <- tpars
     bpars[c("fh","rho","K","km","Lobs")] <- subset(d, dataset==i & type==1)[c("fh","rho","K","km","Lobs")] %>% unlist
-ode(y0,times=times,func="derivs",parms=tpars,dllname="deb2",initfunc="initmod",events=list(data=eventdat)) %>%
-    as.data.frame %>%
-        mutate(.,
-               L=((W+E)/pars["xi"])^(1/pars["q"]),
-               R=R-R[which((E+W) < 0.005) %>% max]) -> tout
+    bpars["Imax"] <- calc_Imax(unname(bpars["fh"]))
+    bpars["g"] <- calc_g(unname(bpars["fh"]))
+    bpars["v"] <- 100
+    ode(y0,times=times,func="derivs",parms=tpars,dllname="deb2",initfunc="initmod",events=list(data=eventdat)) %>%
+        as.data.frame %>%
+            mutate(.,
+                   L=((W+E)/pars["xi"])^(1/pars["q"]),
+                   R=R-R[which((E+W) < 0.005) %>% max]) -> tout
+    tout$R[tout$R < 0] <- 0
+    ## likelihood of the true parameter set
+    (dnorm(datasets[[i]]$data$length,
+           sapply(datasets[[i]]$data$times,
+                  function(t) tout$L[tout$time==t]),
+           unname(tpars["Lobs"]),
+           log=TRUE) +
+         dpois(datasets[[i]]$data$eggs,
+               sapply(datasets[[i]]$data$times,
+                      function(t) tout$R[tout$time==t]),
+               log=TRUE)) %>%
+        sum(., na.rm=TRUE) -> tlik
 
-ode(y0,times=times,func="derivs",parms=bpars,dllname="deb2",initfunc="initmod",events=list(data=eventdat)) %>%
-    as.data.frame %>%
-        mutate(.,
-               L=((W+E)/pars["xi"])^(1/pars["q"]),
-               R=R-R[which((E+W) < 0.005) %>% max]) -> bout
+    ode(y0,times=times,func="derivs",parms=bpars,dllname="deb2",initfunc="initmod",events=list(data=eventdat)) %>%
+        as.data.frame %>%
+            mutate(.,
+                   L=((W+E)/pars["xi"])^(1/pars["q"]),
+                   R=R-R[which((E+W) < 0.005) %>% max]) -> bout
+    bout$R[bout$R < 0] <- 0
+    ## likelihood of the true parameter set
+    (dnorm(datasets[[i]]$data$length,
+           sapply(datasets[[i]]$data$times,
+                  function(t) bout$L[bout$time==t]),
+           unname(bpars["Lobs"]),
+           log=TRUE) +
+         dpois(datasets[[i]]$data$eggs,
+               sapply(datasets[[i]]$data$times,
+                      function(t) bout$R[bout$time==t]),
+               log=TRUE)) %>%
+        sum(., na.rm=TRUE) -> blik
 
+    png()
+    par(mfrow=c(2,2), mar=c(3.5, 3.5, 1, 1), oma=c(0,0,2.5,0))
     plot.new()
     plot.window(xlim=c(0,35), ylim=range(datasets[[i]]$data$length))
     axis(1); axis(2); box('plot')
     with(tout, lines(time, L, col=2))
     with(bout, lines(time, L))
     with(datasets[[i]]$data, points(times, length))
-    mtext(side=2, line=2.5, 'Length')
+    mtext(side=2, line=2, 'Length')
+    mtext(side=1, line=2, "Age")
 
     plot.new()
     plot.window(xlim=c(0,35), ylim=range(datasets[[i]]$data$eggs))
@@ -1405,165 +1447,33 @@ ode(y0,times=times,func="derivs",parms=bpars,dllname="deb2",initfunc="initmod",e
     with(tout, lines(time, R, col=2))
     with(bout, lines(time, R))
     with(datasets[[i]]$data, points(times, eggs))
-    mtext(side=2, line=2.5, 'Eggs')
-    legend(x='topleft', paste("Dataset",i), bty='n')
-    if(i%%4==0) mtext(side=1, outer=T, line=1, "Age")
-}
-
-@
-
-<<echo=F, fig.height=3.5, fig.width=6, fig.cap='Comparing growth and reproduction trajectories for the true parameters (red) and the best-ftting parameters (black), with the observed data shown by the points.'>>=
-par(mfrow=c(4,2), mar=c(1,4,1,0), oma=c(3,1,0,1))
-for (i in 5:8) {
-    tpars <- datasets[[i]]$params ## true parameter values
-    bpars <- tpars
-    bpars[c("fh","rho","K","km","Lobs")] <- subset(d, dataset==i & type==1)[c("fh","rho","K","km","Lobs")] %>% unlist
-ode(y0,times=times,func="derivs",parms=tpars,dllname="deb2",initfunc="initmod",events=list(data=eventdat)) %>%
-    as.data.frame %>%
-        mutate(.,
-               L=((W+E)/pars["xi"])^(1/pars["q"]),
-               R=R-R[which((E+W) < 0.005) %>% max]) -> tout
-
-ode(y0,times=times,func="derivs",parms=bpars,dllname="deb2",initfunc="initmod",events=list(data=eventdat)) %>%
-    as.data.frame %>%
-        mutate(.,
-               L=((W+E)/pars["xi"])^(1/pars["q"]),
-               R=R-R[which((E+W) < 0.005) %>% max]) -> bout
+    mtext(side=2, line=2, 'Eggs')
+    mtext(side=3, line=0, outer=T, paste("Dataset",i))
+    mtext(side=1, line=2, "Age")
 
     plot.new()
-    plot.window(xlim=c(0,35), ylim=range(datasets[[i]]$data$length))
-    axis(1); axis(2); box('plot')
-    with(tout, lines(time, L, col=2))
-    with(bout, lines(time, L))
-    with(datasets[[i]]$data, points(times, length))
-    mtext(side=2, line=2.5, 'Length')
+    legend(x='topleft',
+           c(paste("var(fh) =", signif(subset(d, dataset==i)$fh %>% var,3)),
+             paste("var(rho) =", signif(subset(d, dataset==i)$rho %>% var,3)),
+             paste("var(K) =", signif(subset(d, dataset==i)$K %>% var,3)),
+             paste("var(km) =", signif(subset(d, dataset==i)$km %>% var,3)),
+             paste("var(Lobs) =", signif(subset(d, dataset==i)$Lobs %>% var,3))
+             ),
+           bty='n'
+           )
 
     plot.new()
-    plot.window(xlim=c(0,35), ylim=range(datasets[[i]]$data$eggs))
-    axis(1); axis(2); box('plot')
-    with(tout, lines(time, R, col=2))
-    with(bout, lines(time, R))
-    with(datasets[[i]]$data, points(times, eggs))
-    mtext(side=2, line=2.5, 'Eggs')
-    legend(x='topleft', paste("Dataset",i), bty='n')
-    if(i%%4==0) mtext(side=1, outer=T, line=1, "Age")
-}
+    legend(x='topleft',
+           c(paste("fh diff =", signif(unname(subset(d, dataset==i & type==1)$fh-datasets[[i]]$params["fh"]), 3)),
+             paste("rho diff =", signif(unname(subset(d, dataset==i & type==1)$rho-datasets[[i]]$params["rho"]), 3)),
+             paste("K diff =", signif(unname(subset(d, dataset==i & type==1)$K-datasets[[i]]$params["K"]), 3)),
+             paste("km diff =", signif(unname(subset(d, dataset==i & type==1)$km-datasets[[i]]$params["km"]), 3)),
+             paste("Lobs diff =", signif(unname(subset(d, dataset==i & type==1)$Lobs-datasets[[i]]$params["Lobs"]), 3))
+             ),
+           bty='n'
+           )
+    dev.off()
 
-@
-
-<<echo=F, fig.height=3.5, fig.width=6, fig.cap='Comparing growth and reproduction trajectories for the true parameters (red) and the best-ftting parameters (black), with the observed data shown by the points.'>>=
-par(mfrow=c(4,2), mar=c(1,4,1,0), oma=c(3,1,0,1))
-for (i in 9:12) {
-    tpars <- datasets[[i]]$params ## true parameter values
-    bpars <- tpars
-    bpars[c("fh","rho","K","km","Lobs")] <- subset(d, dataset==i & type==1)[c("fh","rho","K","km","Lobs")] %>% unlist
-ode(y0,times=times,func="derivs",parms=tpars,dllname="deb2",initfunc="initmod",events=list(data=eventdat)) %>%
-    as.data.frame %>%
-        mutate(.,
-               L=((W+E)/pars["xi"])^(1/pars["q"]),
-               R=R-R[which((E+W) < 0.005) %>% max]) -> tout
-
-ode(y0,times=times,func="derivs",parms=bpars,dllname="deb2",initfunc="initmod",events=list(data=eventdat)) %>%
-    as.data.frame %>%
-        mutate(.,
-               L=((W+E)/pars["xi"])^(1/pars["q"]),
-               R=R-R[which((E+W) < 0.005) %>% max]) -> bout
-
-    plot.new()
-    plot.window(xlim=c(0,35), ylim=range(datasets[[i]]$data$length))
-    axis(1); axis(2); box('plot')
-    with(tout, lines(time, L, col=2))
-    with(bout, lines(time, L))
-    with(datasets[[i]]$data, points(times, length))
-    mtext(side=2, line=2.5, 'Length')
-
-    plot.new()
-    plot.window(xlim=c(0,35), ylim=range(datasets[[i]]$data$eggs))
-    axis(1); axis(2); box('plot')
-    with(tout, lines(time, R, col=2))
-    with(bout, lines(time, R))
-    with(datasets[[i]]$data, points(times, eggs))
-    mtext(side=2, line=2.5, 'Eggs')
-    legend(x='topleft', paste("Dataset",i), bty='n')
-    if(i%%4==0) mtext(side=1, outer=T, line=1, "Age")
-}
-
-@
-
-<<echo=F, fig.height=3.5, fig.width=6, fig.cap='Comparing growth and reproduction trajectories for the true parameters (red) and the best-ftting parameters (black), with the observed data shown by the points.'>>=
-par(mfrow=c(4,2), mar=c(1,4,1,0), oma=c(3,1,0,1))
-for (i in 13:16) {
-    tpars <- datasets[[i]]$params ## true parameter values
-    bpars <- tpars
-    bpars[c("fh","rho","K","km","Lobs")] <- subset(d, dataset==i & type==1)[c("fh","rho","K","km","Lobs")] %>% unlist
-ode(y0,times=times,func="derivs",parms=tpars,dllname="deb2",initfunc="initmod",events=list(data=eventdat)) %>%
-    as.data.frame %>%
-        mutate(.,
-               L=((W+E)/pars["xi"])^(1/pars["q"]),
-               R=R-R[which((E+W) < 0.005) %>% max]) -> tout
-
-ode(y0,times=times,func="derivs",parms=bpars,dllname="deb2",initfunc="initmod",events=list(data=eventdat)) %>%
-    as.data.frame %>%
-        mutate(.,
-               L=((W+E)/pars["xi"])^(1/pars["q"]),
-               R=R-R[which((E+W) < 0.005) %>% max]) -> bout
-
-    plot.new()
-    plot.window(xlim=c(0,35), ylim=range(datasets[[i]]$data$length))
-    axis(1); axis(2); box('plot')
-    with(tout, lines(time, L, col=2))
-    with(bout, lines(time, L))
-    with(datasets[[i]]$data, points(times, length))
-    mtext(side=2, line=2.5, 'Length')
-
-    plot.new()
-    plot.window(xlim=c(0,35), ylim=range(datasets[[i]]$data$eggs))
-    axis(1); axis(2); box('plot')
-    with(tout, lines(time, R, col=2))
-    with(bout, lines(time, R))
-    with(datasets[[i]]$data, points(times, eggs))
-    mtext(side=2, line=2.5, 'Eggs')
-    legend(x='topleft', paste("Dataset",i), bty='n')
-    if(i%%4==0) mtext(side=1, outer=T, line=1, "Age")
-}
-
-@
-
-<<echo=F, fig.height=3.5, fig.width=6, fig.cap='Comparing growth and reproduction trajectories for the true parameters (red) and the best-ftting parameters (black), with the observed data shown by the points.'>>=
-par(mfrow=c(4,2), mar=c(1,4,1,0), oma=c(3,1,0,1))
-for (i in 16:20) {
-    tpars <- datasets[[i]]$params ## true parameter values
-    bpars <- tpars
-    bpars[c("fh","rho","K","km","Lobs")] <- subset(d, dataset==i & type==1)[c("fh","rho","K","km","Lobs")] %>% unlist
-ode(y0,times=times,func="derivs",parms=tpars,dllname="deb2",initfunc="initmod",events=list(data=eventdat)) %>%
-    as.data.frame %>%
-        mutate(.,
-               L=((W+E)/pars["xi"])^(1/pars["q"]),
-               R=R-R[which((E+W) < 0.005) %>% max]) -> tout
-
-ode(y0,times=times,func="derivs",parms=bpars,dllname="deb2",initfunc="initmod",events=list(data=eventdat)) %>%
-    as.data.frame %>%
-        mutate(.,
-               L=((W+E)/pars["xi"])^(1/pars["q"]),
-               R=R-R[which((E+W) < 0.005) %>% max]) -> bout
-
-    plot.new()
-    plot.window(xlim=c(0,35), ylim=range(datasets[[i]]$data$length))
-    axis(1); axis(2); box('plot')
-    with(tout, lines(time, L, col=2))
-    with(bout, lines(time, L))
-    with(datasets[[i]]$data, points(times, length))
-    mtext(side=2, line=2.5, 'Length')
-
-    plot.new()
-    plot.window(xlim=c(0,35), ylim=range(datasets[[i]]$data$eggs))
-    axis(1); axis(2); box('plot')
-    with(tout, lines(time, R, col=2))
-    with(bout, lines(time, R))
-    with(datasets[[i]]$data, points(times, eggs))
-    mtext(side=2, line=2.5, 'Eggs')
-    legend(x='topleft', paste("Dataset",i), bty='n')
-    if(i%%4==0) mtext(side=1, outer=T, line=1, "Age")
 }
 
 @

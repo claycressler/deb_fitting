@@ -836,6 +836,61 @@ These are fairly tame restrictions; Fig. \ref{fig:sim-datasets} shows smoothed f
 
 \end{knitrout}
 
+Fig. \ref{fig:mult-datasets-fitting} plots the results of the fitting.
+For every parameter set (1-20), I plot all of the parameter estimates that were within 2 log-likelihood units of the best-fitting parameter set.
+The parameter set with highest likelihood is shown in black.
+The true parameter value is shown in red.
+There are bunch of interesting things to see, even here.
+First off, it is clear that, for some trajectories, a much greater diversity of parameter sets had nearly equal likelihoods, as shown both by the number and spread of gray points.
+When this happened, the best-fitting parameter set was almost always far from the truth (e.g., for dataset 18).
+However, for almost every dataset, some of the parameter sets contained the true parameter value.
+However, I think that the overall message here is basically optimistic.
+
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=\linewidth]{figure/mult-datasets-fitting-1} \hfill{}
+
+\caption[Parameter estimates across 20 different parameter sets]{Parameter estimates across 20 different parameter sets. The black point shows the best-fitting parameter estimate. The grey points are parameter estimates within 2 log-likelihood units of the best. The red point is the true parameter value.}\label{fig:mult-datasets-fitting}
+\end{figure}
+
+
+\end{knitrout}
+
+The basic optimism can be confirmed to some extent by Fig. \ref{fig:mult-datasets-relerr}, which shows the relative error (the absolute value of the difference between the estimate and the truth, divided by the truth) in the parameter estimates.
+
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=\linewidth]{figure/mult-datasets-relerr-1} \hfill{}
+
+\caption[Relative error in the parameter estimates across the 20 datasets]{Relative error in the parameter estimates across the 20 datasets.}\label{fig:mult-datasets-relerr}
+\end{figure}
+
+
+\end{knitrout}
+
+You can also look at the relationship between the true parameter values and the error in the estimates, to see if the the true value of the parameter influences whether the parameter will be poorly estimated or not (Fig. \ref{fig:truth-est-corr}).
+Other than a general trend towards slightly higher relative error when the true value is small (which you would expect, given that the denominator is smaller in this case), there doesn't seem to be much of a pattern.
+
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=\linewidth]{figure/truth-est-corr-1} \hfill{}
+
+\caption[Relationship between the true parameter value and the relative error in the best-fitting estimate across 20 datasets]{Relationship between the true parameter value and the relative error in the best-fitting estimate across 20 datasets.}\label{fig:truth-est-corr}
+\end{figure}
+
+
+\end{knitrout}
+
+What is more useful is to look at the actual data from datasets that were more poorly estimated, to see if there are characteristics are the data itself that leads to highly variable parameter estimation.
+This actually makes a lot more sense that comparing prediction error against the true parameter values, given that those parameter values are actually unknown, whereas I can study the characteristics of an observed dataset to evaluate whether those characteristics are likely to make estimation hard, or easy.
+I will plot the observed data, along with the deterministic growth and reproduction trajectories for the true parameter set (in red) and the best-estimate parameter set (in black), for all 20 datasets.
+In addition, I will report the variance in the parameter estimates and the
+
+
+
 Based on the above simulation-recovery experiments, it seems clear that the half-saturation constant, which could not be estimated on the basis
 
 \clearpage

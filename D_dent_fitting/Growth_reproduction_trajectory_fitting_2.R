@@ -526,3 +526,51 @@ for (i in 1:length(datasets)) {
     ests[[i]] <- refine_pars
     saveRDS(ests, file="~/Dropbox/Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets.RDS")
 }
+
+ests <- vector(mode='list', length=length(datasets))
+for (i in 1:length(datasets)) {
+    print(i)
+    ## although ER varied in the simulations, we need to fix its value
+    ## for the recovery to have any hope of estimating rho (and
+    ## kappa). Similarly, we are holding v fixed at 100, since it
+    ## doesn't seem to possible to recover this parameter and it
+    ## doesn't seem to really affect any of the other parameter
+    ## estimatesa
+    fixpars <- c(Imax=22500, g=1.45, eps=44.5e-9, V=30, F0=1000000/30, xi=2.62e-3, q=2.4, datasets[[i]]$params["ER"], v=10)
+    eventdat <- data.frame(var="F",
+                           time=1:35,
+                           value=unname(fixpars["F0"]),
+                           method=rep(c(rep("add",4),"rep"),35/5))
+    mclapply(guesses,
+             traj_match,
+             fixpars=fixpars,
+             parorder=parorder,
+             transform=transform,
+             obsdata=datasets[[i]]$data,
+             events=eventdat,
+             eval.only=TRUE,
+             mc.cores=12) %>%
+        lapply(., function(x) x$lik) %>%
+            unlist -> guess_lik
+    guesses[order(guess_lik)[1:1000]] -> refine
+    mclapply(refine,
+             traj_match,
+             fixpars=fixpars,
+             parorder=parorder,
+             transform=transform,
+             obsdata=datasets[[i]]$data,
+             events=eventdat,
+             eval.only=FALSE,
+             method="Nelder-Mead",
+             mc.cores=12) -> refine_lik
+    refine_lik %>%
+        lapply(., unlist) %>%
+            unlist %>%
+                matrix(., ncol=(nrow(box)+2), byrow=TRUE, dimnames=list(1:length(refine_lik), c(rownames(box),"lik","conv"))) %>%
+                    as.data.frame -> refine_pars
+    refine_pars <- arrange(refine_pars, lik)
+    print(refine_pars[1,1:5]-datasets[[i]]$params[c("fh","rho","K","km","Lobs")])
+
+    ests[[i]] <- refine_pars
+    saveRDS(ests, file="~/Dropbox/Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets_v=10.RDS")
+}
