@@ -1361,13 +1361,14 @@ ggplot(subset(df4,type==1), aes(x=truth, y=relerr, colour=factor(dataset))) +
 
 
 @
+\clearpage
 
 What is more useful is to look at the actual data from datasets that were more poorly estimated, to see if there are characteristics are the data itself that leads to highly variable parameter estimation.
 This actually makes a lot more sense that comparing prediction error against the true parameter values, given that those parameter values are actually unknown, whereas I can study the characteristics of an observed dataset to evaluate whether those characteristics are likely to make estimation hard, or easy.
 I will plot the observed data, along with the deterministic growth and reproduction trajectories for the true parameter set (in red) and the best-estimate parameter set (in black), for all 20 datasets.
 In addition, I will report the variance in the parameter estimates and the
 
-<<echo=F, fig.height=4, fig.width=4, out.width='0.5\\textwidth', fig.keep='high', fig.cap='Comparing growth and reproduction trajectories for the true parameters (red) and the best-ftting parameters (black), with the observed data shown by the points.'>>=
+<<echo=F, fig.height=rep(5,20), fig.width=rep(5,20), out.width='0.6\\textwidth', fig.keep='high'>>=
 x <- readRDS("Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets.RDS")
 lapply(1:length(x),
        function(i)
@@ -1430,7 +1431,6 @@ for (i in 1:20) {
                log=TRUE)) %>%
         sum(., na.rm=TRUE) -> blik
 
-    png()
     par(mfrow=c(2,2), mar=c(3.5, 3.5, 1, 1), oma=c(0,0,2.5,0))
     plot.new()
     plot.window(xlim=c(0,35), ylim=range(datasets[[i]]$data$length))
@@ -1472,7 +1472,6 @@ for (i in 1:20) {
              ),
            bty='n'
            )
-    dev.off()
 
 }
 
