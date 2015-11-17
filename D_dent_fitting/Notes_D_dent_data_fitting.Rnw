@@ -1304,7 +1304,7 @@ When this happened, the best-fitting parameter set was almost always far from th
 However, for almost every dataset, some of the parameter sets contained the true parameter value.
 However, I think that the overall message here is basically optimistic.
 
-<<echo=F, label="mult-datasets-fitting", fig.height=3.5, fig.width=6, fig.cap='Parameter estimates across 20 different parameter sets. The black point shows the best-fitting parameter estimate. The grey points are parameter estimates within 2 log-likelihood units of the best. The red point is the true parameter value.'>>=
+<<echo=F, label="mult-datasets-fitting", fig.height=3.5, fig.width=6, fig.cap='Parameter estimates across 20 different parameter sets. The black point shows the best-fitting parameter estimate. The grey points are parameter estimates within 2 log-likelihood units of the best. The red point is the true parameter value. For these fits, $v$ was fixed at 100.'>>=
 x <- readRDS("Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets.RDS")
 lapply(1:length(x),
        function(i)
@@ -1331,6 +1331,48 @@ ggplot(d2, aes(x=dataset, y=val, colour=factor(type))) +
 
 <<echo=F, fig.height=rep(2.5,20), fig.width=rep(7.5,20), fig.keep='high'>>=
 x <- readRDS("Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets.RDS")
+for (i in 1:20) {
+    y <- x[[i]] %>% subset(., conv==0 & lik < min(lik)+2) %>% mutate(., lik=-lik)
+    par(mfrow=c(1,4), oma=c(1,3,1,1), mar=c(4,2,1,1))
+    for (var in c('fh','rho','K','km')) {
+        with(y, plot(get(var), lik, xlab=var, ylab=''))
+        abline(v=datasets[[i]]$params[var], col=2)
+    }
+}
+
+@
+
+\clearpage
+
+We can also look at fit results with $v$ was fixed at 10, rather than 100.
+
+<<echo=F, label="mult-datasets-fitting-2", fig.height=3.5, fig.width=6, fig.cap='Parameter estimates across 20 different parameter sets. The black point shows the best-fitting parameter estimate. The grey points are parameter estimates within 2 log-likelihood units of the best. The red point is the true parameter value. For these fits, $v$ was fixed at 10.'>>=
+x <- readRDS("Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets_v=10.RDS")
+lapply(1:length(x),
+       function(i)
+           subset(x[[i]], conv==0) %>%
+               subset(., lik < min(lik)+2) %>%
+                   mutate(., type=ifelse(lik==min(lik), 1, 0), dataset=i) %>%
+                       rbind(., c(unname(datasets[[i]]$params[c("fh","rho","K","km","Lobs")]), rep(NA, 2), 2, i))
+       ) -> dt
+d <- vector()
+for (i in 1:length(dt)) d <- rbind(d, dt[[i]])
+d2 <- gather(d, var, val, 1:5)
+d2 <- arrange(d2, type)
+
+ggplot(d2, aes(x=dataset, y=val, colour=factor(type))) +
+    geom_point() +
+        facet_wrap(~var, scales="free") +
+            theme_bw() +
+                theme(legend.position="none") +
+                    scale_colour_manual(values=c("gray","black","red"))
+
+@
+
+\clearpage
+
+<<echo=F, fig.height=rep(2.5,20), fig.width=rep(7.5,20), fig.keep='high'>>=
+x <- readRDS("Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets_v=10.RDS")
 for (i in 1:20) {
     y <- x[[i]] %>% subset(., conv==0 & lik < min(lik)+2) %>% mutate(., lik=-lik)
     par(mfrow=c(1,4), oma=c(1,3,1,1), mar=c(4,2,1,1))
@@ -1496,28 +1538,6 @@ for (i in 1:20) {
 
 \clearpage
 
-<<echo=F, label="mult-datasets-fitting-2", fig.height=3.5, fig.width=6, fig.cap='Parameter estimates across 20 different parameter sets. The black point shows the best-fitting parameter estimate. The grey points are parameter estimates within 2 log-likelihood units of the best. The red point is the true parameter value.'>>=
-x <- readRDS("Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets_v=10.RDS")
-lapply(1:length(x),
-       function(i)
-           subset(x[[i]], conv==0) %>%
-               subset(., lik < min(lik)+2) %>%
-                   mutate(., type=ifelse(lik==min(lik), 1, 0), dataset=i) %>%
-                       rbind(., c(unname(datasets[[i]]$params[c("fh","rho","K","km","Lobs")]), rep(NA, 2), 2, i))
-       ) -> dt
-d <- vector()
-for (i in 1:length(dt)) d <- rbind(d, dt[[i]])
-d2 <- gather(d, var, val, 1:5)
-d2 <- arrange(d2, type)
-
-ggplot(d2, aes(x=dataset, y=val, colour=factor(type))) +
-    geom_point() +
-        facet_wrap(~var, scales="free") +
-            theme_bw() +
-                theme(legend.position="none") +
-                    scale_colour_manual(values=c("gray","black","red"))
-
-@
 
 Parameter that are important, and that can be measured, include the cost of reproduction (which you can get from the size of neonates and a length-dry mass regression); the weight required for sexual maturity; and $f_h$.
 
