@@ -527,20 +527,83 @@ for (i in 1:length(datasets)) {
     saveRDS(ests, file="~/Dropbox/Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets.RDS")
 }
 
+##############################################################
+###### Refitting some of the datasets with more constrained
+###### initial guess of the parameters
+##############################################################
+
+source("Growth_reproduction_trajectory_fitting_functions_3.R")
+pars <- c(Imax=22500, fh=10000, g=1.45, rho=0.5, eps=44.5e-9, V=30, F0=1000000/30, xi=2.62e-3, q=2.4, K=0.5, km=0.3, ER=1.51e-3, v=10, Lobs=0.1)
+parorder <- c("Imax","fh","g","rho","eps","V","F0","xi","q","K","km","ER","v","Lobs")
+fixpars <- pars[c("Imax","g","eps","V","F0","xi","q")]
+varpars <- pars[c("fh","rho","K","km","ER","v","Lobs")]
+y0 <- c(F=1000000/30, E=0.00025, W=0.00025, R=0)
+times <- seq(0, 35, 0.001)
+## feeding schedule
+eventdat <- data.frame(var="F",
+                       time=1:35,
+                       value=unname(pars["F0"]),
+                       method=rep(c(rep("add",4),"rep"),max(times)/5))
+days <- c(5,10,12,15,18,25,30,35)
+datasets <- vector(mode='list', length=20)
+set.seed(1231239478)
+for (i in 1:20) {
+    data.frame(times=rep(days, each=12),
+               length=rep(0,96),
+               eggs=rep(0,96)) -> data
+    ## ensure that the data give you something that looks reasonably like a Daphnia
+    while ( (min(data$length) < 0.5) | (max(data$length) > 5) |
+               any(subset(data, times==5)$length > 2) |
+                   coef(lm(length~times,data))[2] < 0.01 |
+                       summary(lm(length~times, data))$coefficients[2,4] > 0.05  |
+                           (max(data[,"eggs"]) < 5) | (max(data[,"eggs"]) > 200) |
+                               any(subset(data, times==5)$eggs > 0) |
+                                   any(is.na(data))
+           ) {
+        ## GENERATE NOVEL PARAMETERS
+        rnorm(length(varpars), mean=varpars, sd=varpars/2) -> p
+        names(p) <- names(varpars)
+        while (p["K"] > 0.9 | p["K"] < 0.1 | any(p < 0) | p["rho"] > 0.9 | p["rho"] < 0.1) {
+            rnorm(length(varpars), mean=varpars, sd=varpars/2) -> p
+            names(p) <- names(varpars)
+        }
+        ## combine fixpars with p
+        pars <- c(p, fixpars)
+        pars <- pars[match(parorder, names(pars))]
+        ## calculate the value of Imax and g, given the value of fh
+        pars["Imax"] <- calc_Imax(unname(pars["fh"]))
+        pars["g"] <- calc_g(unname(pars["fh"]))
+        ## simulate
+        ode(y0, times=0:35, func="derivs", parms=pars, dllname="deb2", initfunc="initmod", events=list(data=eventdat)) %>% as.data.frame -> out
+        mutate(out, R=R-R[which((E+W) < 5e-3) %>% max]) -> out
+        out$R[out$R < 0] <- 0
+        data.frame(times=rep(days, each=12),
+                   length=sapply(with(out, ((E[days+1]+W[days+1])/fixpars["xi"])^(1/fixpars["q"])),
+                       function(x)
+                           rnorm(12, mean=x, sd=varpars["Lobs"])
+                                 ) %>% as.numeric,
+                   eggs=sapply(out$R[days+1],
+                       function(x)
+                           rpois(12, lambda=x)
+                               ) %>% as.numeric
+                   ) -> data
+    }
+    datasets[[i]] <- list(params=pars, data=data)
+}
 
 ## initial guesses for the estimated parameters
-box <- cbind(lower=c(rho=0, K=0, km=0.001, Lobs=0.0001),
-             upper=c(rho=1, K=1, km=10, Lobs=2))
+box <- cbind(lower=c(fh=2000, rho=0, K=0, km=0.001, Lobs=0.001),
+             upper=c(fh=20000, rho=1, K=1, km=1, Lobs=2))
 sobolDesign(lower=box[,'lower'],
             upper=box[,'upper'],
             nseq=250000) %>%
     apply(., 1, as.list) %>%
         lapply(., unlist) -> guesses
-transform <- c(rep("logit",2), rep("log",2))
+transform <- c("log", rep("logit",2), rep("log",2))
 parorder <- c("Imax","fh","g","rho","eps","V","F0","xi","q","K","km","ER","v","Lobs")
 
 ests <- vector(mode='list', length=length(datasets))
-for (i in 1:length(datasets)) {
+for (i in c(3,8,9,10,12,17,18,20)) {
     print(i)
     ## although ER varied in the simulations, we need to fix its value
     ## for the recovery to have any hope of estimating rho (and
@@ -548,7 +611,7 @@ for (i in 1:length(datasets)) {
     ## doesn't seem to possible to recover this parameter and it
     ## doesn't seem to really affect any of the other parameter
     ## estimatesa
-    fixpars <- c(Imax=22500, datasets[[i]]$params["fh"], g=1.45, eps=44.5e-9, V=30, F0=1000000/30, xi=2.62e-3, q=2.4, datasets[[i]]$params["ER"], v=100)
+    fixpars <- c(Imax=22500, g=1.45, eps=44.5e-9, V=30, F0=1000000/30, xi=2.62e-3, q=2.4, datasets[[i]]$params["ER"], v=100)
     eventdat <- data.frame(var="F",
                            time=1:35,
                            value=unname(fixpars["F0"]),
@@ -584,6 +647,5 @@ for (i in 1:length(datasets)) {
     print(refine_pars[1,1:5]-datasets[[i]]$params[c("fh","rho","K","km","Lobs")])
 
     ests[[i]] <- refine_pars
-    saveRDS(ests, file="~/Dropbox/Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets.RDS")
+    saveRDS(ests, file="~/Dropbox/Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets_2.RDS")
 }
-
