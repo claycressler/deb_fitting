@@ -1337,6 +1337,8 @@ for (i in 1:20) {
     for (var in c('fh','rho','K','km')) {
         with(y, plot(get(var), lik, xlab=var, ylab=''))
         abline(v=datasets[[i]]$params[var], col=2)
+        abline(v=y[1,var], col=3)
+        mtext(side=2, line=1, outer=T, paste("Dataset",i,"lik"))
     }
 }
 
@@ -1379,6 +1381,8 @@ for (i in 1:20) {
     for (var in c('fh','rho','K','km')) {
         with(y, plot(get(var), lik, xlab=var, ylab=''))
         abline(v=datasets[[i]]$params[var], col=2)
+        abline(v=y[1,var], col=3)
+        mtext(side=2, line=1, outer=T, paste("Dataset",i,"lik"))
     }
 }
 
