@@ -527,6 +527,18 @@ for (i in 1:length(datasets)) {
     saveRDS(ests, file="~/Dropbox/Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets.RDS")
 }
 
+
+## initial guesses for the estimated parameters
+box <- cbind(lower=c(rho=0, K=0, km=0.001, Lobs=0.0001),
+             upper=c(rho=1, K=1, km=10, Lobs=2))
+sobolDesign(lower=box[,'lower'],
+            upper=box[,'upper'],
+            nseq=250000) %>%
+    apply(., 1, as.list) %>%
+        lapply(., unlist) -> guesses
+transform <- c(rep("logit",2), rep("log",2))
+parorder <- c("Imax","fh","g","rho","eps","V","F0","xi","q","K","km","ER","v","Lobs")
+
 ests <- vector(mode='list', length=length(datasets))
 for (i in 1:length(datasets)) {
     print(i)
@@ -536,7 +548,7 @@ for (i in 1:length(datasets)) {
     ## doesn't seem to possible to recover this parameter and it
     ## doesn't seem to really affect any of the other parameter
     ## estimatesa
-    fixpars <- c(Imax=22500, g=1.45, eps=44.5e-9, V=30, F0=1000000/30, xi=2.62e-3, q=2.4, datasets[[i]]$params["ER"], v=10)
+    fixpars <- c(Imax=22500, datasets[[i]]$params["fh"], g=1.45, eps=44.5e-9, V=30, F0=1000000/30, xi=2.62e-3, q=2.4, datasets[[i]]$params["ER"], v=100)
     eventdat <- data.frame(var="F",
                            time=1:35,
                            value=unname(fixpars["F0"]),
@@ -572,5 +584,6 @@ for (i in 1:length(datasets)) {
     print(refine_pars[1,1:5]-datasets[[i]]$params[c("fh","rho","K","km","Lobs")])
 
     ests[[i]] <- refine_pars
-    saveRDS(ests, file="~/Dropbox/Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets_v=10.RDS")
+    saveRDS(ests, file="~/Dropbox/Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets.RDS")
 }
+
