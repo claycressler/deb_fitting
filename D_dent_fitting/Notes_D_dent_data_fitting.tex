@@ -843,8 +843,6 @@ The true parameter value is shown in red.
 There are bunch of interesting things to see, even here.
 First off, it is clear that, for some trajectories, a much greater diversity of parameter sets had nearly equal likelihoods, as shown both by the number and spread of gray points.
 When this happened, the best-fitting parameter set was almost always far from the truth (e.g., for dataset 18).
-However, for almost every dataset, some of the parameter sets contained the true parameter value.
-However, I think that the overall message here is basically optimistic.
 
 \begin{knitrout}\scriptsize
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
@@ -857,122 +855,85 @@ However, I think that the overall message here is basically optimistic.
 
 \end{knitrout}
 
-\clearpage
-
+An examination of the plots of the likelihood against the parameter estimates can help to understand when the parameter estimates were close the true parameter values.
+Fig. \ref{fig:lik-against-ests-1} shows some likelihood surfaces when the parameter estimates were quite close to the truth.
+Here you can see a single, well-defined likelihood peak.
+In this case, the best-fitting parameter estimate (shown by the vertical green line) is quite close to the true parameter estimate (shown by the vertical red line).
 \begin{knitrout}\scriptsize
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-4-1} \hfill{}
+\includegraphics[width=\linewidth]{figure/lik-against-ests-1-1} \hfill{}
 
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-4-2} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-4-3} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-4-4} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-4-5} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-4-6} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-4-7} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-4-8} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-4-9} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-4-10} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-4-11} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-4-12} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-4-13} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-4-14} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-4-15} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-4-16} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-4-17} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-4-18} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-4-19} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-4-20} \hfill{}
-
+\caption[Plots of the likelihood against the parameter estimates for many of the datasets reveals a single likelihood peak, and most of the parameter estimates are quite close]{Plots of the likelihood against the parameter estimates for many of the datasets reveals a single likelihood peak, and most of the parameter estimates are quite close.}\label{fig:lik-against-ests-1}
+\end{figure}
 
 
 \end{knitrout}
 
-\clearpage
-
-We can also look at fit results with $v$ was fixed at 10, rather than 100.
+On the other hand, Fig. \ref{fig:lik-against-ests-2} reveals that, for some of the datasets where the parameter estimates were far from the truth, the likelihood surface has multiple peaks.
+In all of these cases, one of the likelihood peaks is centered around a high $f_h$ value.
+In Fig. \ref{fig:lik-against-ests-2}, the likelihood is higher at this large $f_h$ peak, pulling all of the other parameter estimates away from their true values.
 
 \begin{knitrout}\scriptsize
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
-\includegraphics[width=\linewidth]{figure/mult-datasets-fitting-2-1} \hfill{}
+\includegraphics[width=\linewidth]{figure/lik-against-ests-2-1} \hfill{}
 
-\caption[Parameter estimates across 20 different parameter sets]{Parameter estimates across 20 different parameter sets. The black point shows the best-fitting parameter estimate. The grey points are parameter estimates within 2 log-likelihood units of the best. The red point is the true parameter value. For these fits, $v$ was fixed at 10.}\label{fig:mult-datasets-fitting-2}
+\caption[Plots of the likelihood against hte parameter estimates for some of the datasets reveals the existence of multiple likelihood peaks, one centered around a very high ]{Plots of the likelihood against hte parameter estimates for some of the datasets reveals the existence of multiple likelihood peaks, one centered around a very high $f_h$ value. When the likelihood is higher at this large $f_h$ peak, all of the other parameter estimates are pulled away from their true values.}\label{fig:lik-against-ests-2}
+\end{figure}
+
+
+\end{knitrout}
+
+However, in Fig. \ref{fig:lik-against-ests-3}, you see cases where there are two peaks but the likelihood is higher at the peak with a low $f_h$ value.
+
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=\linewidth]{figure/lik-against-ests-3-1} \hfill{}
+
+\caption[Plots of the likelihood against the parameter estimates for some of the datasets reveals the existence of multiple likelihood peaks]{Plots of the likelihood against the parameter estimates for some of the datasets reveals the existence of multiple likelihood peaks; in this case the likelihood is higher at the lower, more accurate, estimate.}\label{fig:lik-against-ests-3}
+\end{figure}
+
+
+\end{knitrout}
+
+For still other datasets, the problem seems to be that the search algorithm got ``trapped'' at low values of $f_h$ (Fig. \ref{fig:lik-against-ests-4}).
+It is possible that there was another peak in the likelihood surface at higher $f_h$ values that was never discovered by the fitting algorithm.
+
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=\linewidth]{figure/lik-against-ests-4-1} \hfill{}
+
+\caption[There were also datasets wherein the algorithm got stuck at low ]{There were also datasets wherein the algorithm got stuck at low $f_h$ values, never getting close to the truth.}\label{fig:lik-against-ests-4}
+\end{figure}
+
+
+\end{knitrout}
+
+There were datasets that were simply hard to estimate, as evidenced by the fact that very few parameter sets had similar likelihoods (Fig. \ref{fig:lik-against-ests-5}).
+
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=\linewidth]{figure/lik-against-ests-5-1} \hfill{}
+
+\caption[Some datasets were simply hard to estimate]{Some datasets were simply hard to estimate.}\label{fig:lik-against-ests-5}
+\end{figure}
+
+
+\end{knitrout}
+
+The remaining datasets were more idiosyncratic, with most, but not all, of the parameters well estimated and a likelihood surface that was oddly shaped (Fig. \ref{fig:lik-against-ests-6}).
+For example, Datasets 14 and 17 show some evidence for multiple likelihood peaks, where the likelihood peaks are very close to one another.
+
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=\linewidth]{figure/lik-against-ests-6-1} \hfill{}
+
+\caption[Other datasets were more idiosyncratic]{Other datasets were more idiosyncratic.}\label{fig:lik-against-ests-6}
 \end{figure}
 
 
@@ -980,245 +941,59 @@ We can also look at fit results with $v$ was fixed at 10, rather than 100.
 
 \clearpage
 
-\begin{knitrout}\scriptsize
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-5-1} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-5-2} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-5-3} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-5-4} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-5-5} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-5-6} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-5-7} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-5-8} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-5-9} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-5-10} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-5-11} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-5-12} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-5-13} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-5-14} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-5-15} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-5-16} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-5-17} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-5-18} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-5-19} \hfill{}
-
-
-
-
-\includegraphics[width=\linewidth]{figure/unnamed-chunk-5-20} \hfill{}
-
-
-
-\end{knitrout}
-
-\clearpage
-
-The basic optimism can be confirmed to some extent by Fig. \ref{fig:mult-datasets-relerr}, which shows the relative error (the absolute value of the difference between the estimate and the truth, divided by the truth) in the parameter estimates.
+However, if you compare the deterministic growth and reproduction trajectories at the true parameter values (red lines) to those trajectories at the best-fitting parameter set (black lines), you see that for all of the datasets, the best-fitting parameter set does a good job capturing the observed (stochastic) data (points).
 
 \begin{knitrout}\scriptsize
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
-\includegraphics[width=\linewidth]{figure/mult-datasets-relerr-1} \hfill{}
+\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-4-1} \hfill{}
 
-\caption[Relative error in the parameter estimates across the 20 datasets]{Relative error in the parameter estimates across the 20 datasets.}\label{fig:mult-datasets-relerr}
+\caption[Plots of the raw observed length and egg data, along with the deterministic growth and reproduction trajectories at the true and best-fitting parameter sets]{Plots of the raw observed length and egg data, along with the deterministic growth and reproduction trajectories at the true and best-fitting parameter sets. Here we show those trajectories for parameter sets that were close to the truth.}\label{fig:unnamed-chunk-4}
 \end{figure}
 
 
 \end{knitrout}
 
-You can also look at the relationship between the true parameter values and the error in the estimates, to see if the the true value of the parameter influences whether the parameter will be poorly estimated or not (Fig. \ref{fig:truth-est-corr}).
-Other than a general trend towards slightly higher relative error when the true value is small (which you would expect, given that the denominator is smaller in this case), there doesn't seem to be much of a pattern.
-
 \begin{knitrout}\scriptsize
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
-\includegraphics[width=\linewidth]{figure/truth-est-corr-1} \hfill{}
+\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-5-1} \hfill{}
 
-\caption[Relationship between the true parameter value and the relative error in the best-fitting estimate across 20 datasets]{Relationship between the true parameter value and the relative error in the best-fitting estimate across 20 datasets.}\label{fig:truth-est-corr}
+\caption[Plots of the raw observed length and egg data, along with the deterministic growth and reproduction trajectories at the true and best-fitting parameter sets]{Plots of the raw observed length and egg data, along with the deterministic growth and reproduction trajectories at the true and best-fitting parameter sets. Here are the trajectories for datasets that yielded two likelihood peaks and the best-fitting parameter set was far from the truth.}\label{fig:unnamed-chunk-5}
 \end{figure}
 
 
 \end{knitrout}
-\clearpage
-
-What is more useful is to look at the actual data from datasets that were more poorly estimated, to see if there are characteristics are the data itself that leads to highly variable parameter estimation.
-This actually makes a lot more sense that comparing prediction error against the true parameter values, given that those parameter values are actually unknown, whereas I can study the characteristics of an observed dataset to evaluate whether those characteristics are likely to make estimation hard, or easy.
-I will plot the observed data, along with the deterministic growth and reproduction trajectories for the true parameter set (in red) and the best-estimate parameter set (in black), for all 20 datasets.
-In addition, I will report the variance in the parameter estimates and the
 
 \begin{knitrout}\scriptsize
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
 \includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-6-1} \hfill{}
 
+\caption[Plots of the raw observed length and egg data, along with the deterministic growth and reproduction trajectories at the true and best-fitting parameter sets]{Plots of the raw observed length and egg data, along with the deterministic growth and reproduction trajectories at the true and best-fitting parameter sets. Here are the trajectories for datasets that yielded two likelihood peaks and the best-fitting parameter set was closer to the truth.}\label{fig:unnamed-chunk-6}
+\end{figure}
 
 
+\end{knitrout}
 
-\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-6-2} \hfill{}
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
+\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-7-1} \hfill{}
 
+\caption[Plots of the raw observed length and egg data, along with the deterministic growth and reproduction trajectories at the true and best-fitting parameter sets]{Plots of the raw observed length and egg data, along with the deterministic growth and reproduction trajectories at the true and best-fitting parameter sets. Here are the trajectories when the parameter estimates got stuck at low $f_h$ values (8,9) or where the parameters were simply hard to estimate (1,6).}\label{fig:unnamed-chunk-7}
+\end{figure}
 
 
-\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-6-3} \hfill{}
+\end{knitrout}
 
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
+\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-8-1} \hfill{}
 
-
-\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-6-4} \hfill{}
-
-
-
-
-\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-6-5} \hfill{}
-
-
-
-
-\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-6-6} \hfill{}
-
-
-
-
-\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-6-7} \hfill{}
-
-
-
-
-\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-6-8} \hfill{}
-
-
-
-
-\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-6-9} \hfill{}
-
-
-
-
-\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-6-10} \hfill{}
-
-
-
-
-\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-6-11} \hfill{}
-
-
-
-
-\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-6-12} \hfill{}
-
-
-
-
-\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-6-13} \hfill{}
-
-
-
-
-\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-6-14} \hfill{}
-
-
-
-
-\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-6-15} \hfill{}
-
-
-
-
-\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-6-16} \hfill{}
-
-
-
-
-\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-6-17} \hfill{}
-
-
-
-
-\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-6-18} \hfill{}
-
-
-
-
-\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-6-19} \hfill{}
-
-
-
-
-\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-6-20} \hfill{}
-
+\caption[Plots of the raw observed length and egg data, along with the deterministic growth and reproduction trajectories at the true and best-fitting parameter sets]{Plots of the raw observed length and egg data, along with the deterministic growth and reproduction trajectories at the true and best-fitting parameter sets. Here are the trajectories for the harder-to-classify datasets.}\label{fig:unnamed-chunk-8}
+\end{figure}
 
 
 \end{knitrout}
@@ -1228,9 +1003,6 @@ In addition, I will report the variance in the parameter estimates and the
 
 Parameter that are important, and that can be measured, include the cost of reproduction (which you can get from the size of neonates and a length-dry mass regression); the weight required for sexual maturity; and $f_h$.
 
-
-
-Based on the above simulation-recovery experiments, it seems clear that the half-saturation constant, which could not be estimated on the basis
 
 \clearpage
 \section*{Including parasitism}
