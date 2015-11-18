@@ -488,7 +488,7 @@ for (i in 1:length(datasets)) {
     ## doesn't seem to possible to recover this parameter and it
     ## doesn't seem to really affect any of the other parameter
     ## estimatesa
-    fixpars <- c(Imax=22500, g=1.45, eps=44.5e-9, V=30, F0=1000000/30, xi=2.62e-3, q=2.4, datasets[[i]]$params["ER"], v=100)
+    fixpars <- c(Imax=22500, g=1.45, eps=44.5e-9, V=30, F0=1000000/30, xi=2.62e-3, q=2.4, datasets[[i]]$params["ER"], v=20)
     eventdat <- data.frame(var="F",
                            time=1:35,
                            value=unname(fixpars["F0"]),
@@ -524,7 +524,7 @@ for (i in 1:length(datasets)) {
     print(refine_pars[1,1:5]-datasets[[i]]$params[c("fh","rho","K","km","Lobs")])
 
     ests[[i]] <- refine_pars
-    saveRDS(ests, file="~/Dropbox/Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets.RDS")
+    saveRDS(ests, file="~/Dropbox/Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets_take_2.RDS")
 }
 
 ##############################################################
