@@ -29,7 +29,7 @@ void derivs (int *neq, double *t, double *y, double *ydot) {
   double F = y[0]; // algal concentration
   double E = y[1]; // energy reserves
   double W = y[2]; // structural weight
-  double L = pow(W, 2/3); // structural length
+  double L = pow(W, 1/3); // structural length
   double Wobs = W+E; // observed weight combines E and W
   double Lobs = pow(Wobs/xi, 1/q); // observed length based on length-weight regression
 

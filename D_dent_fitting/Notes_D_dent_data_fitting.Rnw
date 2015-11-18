@@ -1888,13 +1888,55 @@ for (i in c(11, 14, 17, 20)) {
 
 The one possibility that I think is worth exploring is whether fitness peaks at very high or very low $f_h$ values can be avoided by restricting the initial sampling of parameter space during fitting.
 Right now, I explore parameter sets with $f_h$ varying between 100 and 50000; perhaps by tightening that window, it is possible to improve the final estimates.
-For this second fitting, I will focus only on the datasets that were challenging to fit (3, 8, 9, 10, 12, 17, 18, 20)
+For this second fitting, I will focus only on the datasets that were challenging to fit (3, 8, 9, 10, 12, 17, 18, 20).
+You can see that this didn't make any difference in the fitting (Fig. \ref{fig:tight-fh-mult-datasets}).
+The black points are the parameter estimates from the original fitting; the gray points are the estimates from the fitting with a tighter bound on $f_h$.
+The red line shows the true parameter value; the dashed black line shows the best-fitting parameter estimate from the weakly constrained fitting, and the green line shows the parameter estimate from the strongly constrained fitting.
+This just shows the results for 4 of the 8 datasets, but the results for the other 4 datasets show the exact same pattern.
+
+<<echo=FALSE, fig.height=6.5, fig.width=6, fig.cap='Plotting the parameter estimates when $f_h$ was weakly constrained (black points and line) and when it was strongly constrained (gray points and green line). You can see that these essentially lie atop one another, suggesting that tightening the constraint does not improve the estimates', label='tight-fh-mult-datasets'>>=
+d <- c(3, 8, 9, 10, 12, 17, 18, 20)
+x1 <- readRDS("Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets.RDS")
+x2 <- readRDS("Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets_2.RDS")
+
+par(mfrow=c(4,4), oma=c(3,3,1,1), mar=c(2,2,1,1))
+for (i in c(3, 8, 9, 10)) {
+#for (i in c(12,17,18,20)) {
+    y1 <- x1[[i]] %>% subset(., conv==0 & lik < min(lik)+5) %>% mutate(., lik=-lik)
+    y2 <- x2[[i]] %>% subset(., conv==0 & lik < min(lik)+5) %>% mutate(., lik=-lik)
+    for (var in c('fh','rho','K','km')) {
+        with(y2, plot(get(var), xlab='', ylab='', lik, pch=21, bg=gray(0.5), col=gray(0.5)))
+        with(y1, points(get(var), lik))
+        abline(v=datasets[[i]]$params[var], col=2, lwd=2)
+        abline(v=y1[1,var], col=3, lwd=2)
+        abline(v=y2[1,var], col=1, lwd=2, lty=3)
+        if (var=='fh') mtext(side=2, line=2.5, paste("Dataset",i))
+        if (i==10) mtext(side=1, line=2.5, var)
+
+    }
+}
+
+
+
+@
 
 \clearpage
 
+This suggests that it may not be possible to estimate all the parameters without error; it may be necessary to carry out profile likelihood calculations for $f_h$, in particular, to determine the topography of the likelihood surface along this direction.
+However, we have some evidence that $\rho$, $\kappa$, and $k_m$ can all be estimated, so long as the other parameters related to feeding, length-biomass conversion, and the cost of reproduction are known.
 
-Parameter that are important, and that can be measured, include the cost of reproduction (which you can get from the size of neonates and a length-dry mass regression); the weight required for sexual maturity; and $f_h$.
+\section*{Fitting the growth and reproduction trajectories of uninfected animals}
+For this section, I need to use parameter values that make more sense for \emph{Daphnia dentifera}.
+Hall et al. 2009 report that the mass of the host is $W=\alpha L^3$, where $\alpha=1.8\times 10^{-3}$ mgC mm$^{-3}$, and they assume (Appendix A) that half of the measured dry mass is carbon.
+Although it is not made totally clear in the paper, I believe that $L$ is the observed length, rather than the ``structural'' length of DEB theory.
+In other words, $\alpha$ was estimated using observed dry weights $W$, observed lengths $L$, and an assumption that $W/2$ is the carbon mass of the host.
 
+This is slightly different than what I am doing, but is not incompatible with it.
+I had assumed that observed mass $W_{obs} = W + E$, where $W$ is the ``structural'' mass and $E$ is the reserves, and that observed length was $L_{obs} = \xi W_{obs}^q$, where $\xi$ and $q$ are based on a regression of observed weight on observed length.
+I then assumed that ``structural length'' $L$ was equal to $W^{1/3}$
+
+
+I just discovered a big mistake in the code, so I need to redo some things - please oh please don't have that be a big deal!
 
 \clearpage
 \section*{Including parasitism}
