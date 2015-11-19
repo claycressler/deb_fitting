@@ -4,12 +4,17 @@ library(subplex)
 library(pomp)
 library(parallel)
 library(plyr)
+library(tidyr)
+library(ggplot2)
 
 ## rebuild source for this computer
-if (is.loaded("deb2.so")) dyn.unload("deb2.so")
-system("rm deb2.so")
-system("R CMD SHLIB deb2.c")
-dyn.load("deb2.so")
+if (is.loaded("deb_Cat.so")) dyn.unload("deb_Cat.so")
+system("rm deb_Cat.so")
+system("R CMD SHLIB deb_Cat.c")
+dyn.load("deb_Cat.so")
+
+calc_Imax <- function(fh) 10616.500976 + 1.129421*fh
+calc_g <- function(fh) 1.38413 + 9.839020e-6*fh - 2.738144e-10*fh^2 + 2.648817e-15*fh^3
 
 ## Transform the parameters.  The optimization routines work best if
 ## the parameter values are unconstrained. Most of the parameters vary
@@ -37,17 +42,18 @@ par_untransform <- function(pars, transform) {
     return(pars)
 }
 
-traj_match <- function(estpars, fixpars, parorder, transform, obsdata, eval.only=FALSE, method="subplex") {
+traj_match <- function(estpars, fixpars, parorder, transform, obsdata, events, eval.only=FALSE, method="subplex") {
     estpars <- par_transform(pars=estpars, transform=transform)
     if (any(is.na(estpars)))
         opt <- list(params=estpars,
                     lik=NA)
     else if (eval.only==TRUE) {
         x <- obj(estpars=estpars,
-                     data=obsdata,
-                     fixpars=fixpars,
-                     parorder=parorder,
-                     transform=transform)
+                 data=obsdata,
+                 fixpars=fixpars,
+                 parorder=parorder,
+                 transform=transform,
+                 events=events)
         opt <- list(params=estpars,
                     lik=x)
     }
@@ -58,7 +64,8 @@ traj_match <- function(estpars, fixpars, parorder, transform, obsdata, eval.only
                          data=obsdata,
                          fixpars=fixpars,
                          parorder=parorder,
-                         transform=transform)
+                         transform=transform,
+                         events=events)
         else
             x <- optim(par=estpars,
                        fn=obj,
@@ -67,6 +74,7 @@ traj_match <- function(estpars, fixpars, parorder, transform, obsdata, eval.only
                        fixpars=fixpars,
                        parorder=parorder,
                        transform=transform,
+                       events=events,
                        control=list(maxit=5000))
         opt <- list(params=par_untransform(x$par,transform),
                     lik=x$value,
@@ -75,11 +83,16 @@ traj_match <- function(estpars, fixpars, parorder, transform, obsdata, eval.only
     return(opt)
 }
 ## Objective function to minimize for the structured model
-obj <- function(estpars, data, fixpars, parorder, transform) {
-    ## We will give the model the true initial conditions
-    y0 <- c(F=1e6/30, E=0.00025, W=0.00025, R=0)
+obj <- function(estpars, data, fixpars, parorder, transform, events) {
+    y0 <- c(F=unname(fixpars["F0"]),
+            E=unname(fixpars["Winit"]/2),
+            W=unname(fixpars["Winit"]/2),
+            R=0)
     ## Put the estimated parameters back on the natural scale
     estpars <- par_untransform(estpars, transform)
+    ## compute Imax and g based on the estimate of fh
+    fixpars["Imax"] <- calc_Imax(unname(estpars["fh"]))
+    fixpars["g"] <- calc_g(unname(estpars["fh"]))
     ## combine the parameters to be estimated and the fixed parameters
     ## into a single vector, with an order specified by parorder
     pars <- c(estpars, fixpars)
@@ -90,9 +103,9 @@ obj <- function(estpars, data, fixpars, parorder, transform) {
             times=seq(0, max(data$time)),
             func="derivs",
             parms=pars,
-            dllname="deb2",
+            dllname="deb_Cat",
             initfunc="initmod",
-            events=list(data=eventdat)
+            events=list(data=events)
             )) -> out
     ## if this parameter set produces a simulation error, if it fails
     ## to completely run, or if any of the variables take negative
@@ -109,7 +122,7 @@ obj <- function(estpars, data, fixpars, parorder, transform) {
         out <- as.data.frame(out)
         mutate(out,
                L=((W+E)/pars["xi"])^(1/pars["q"]),
-               R=R-R[which((E+W) < 0.005) %>% max]) -> out
+               R=R-R[which((E+W) < pars["Wmat"]) %>% max]) -> out
         out$R[out$R < 0] <- 0
         ## calculate the log-likelihood of observing these data
         ## assuming only observation error

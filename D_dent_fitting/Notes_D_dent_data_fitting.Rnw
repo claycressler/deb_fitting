@@ -1303,7 +1303,10 @@ First off, it is clear that, for some trajectories, a much greater diversity of 
 When this happened, the best-fitting parameter set was almost always far from the truth (e.g., for dataset 18).
 
 <<echo=F, label="mult-datasets-fitting", fig.height=3.5, fig.width=6, fig.cap='Parameter estimates across 20 different parameter sets. The black point shows the best-fitting parameter estimate. The grey points are parameter estimates within 2 log-likelihood units of the best. The red point is the true parameter value. For these fits, $v$ was fixed at 100.'>>=
-x <- readRDS("Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets.RDS")
+x <- readRDS("~/Downloads/Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets_take_2.RDS")
+
+
+x2 <- readRDS("Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets.RDS")
 lapply(1:length(x),
        function(i)
            subset(x[[i]], conv==0) %>%
@@ -1937,6 +1940,7 @@ I then assumed that ``structural length'' $L$ was equal to $W^{1/3}$.
 So, basically, all I need to do is assume that $\xi=\alpha$ and $q=3$ and I will have recovered the same fitting.
 
 <<>>=
+
 pars <- c(Imax=22500, # fixed based on feeding data fitting and fh value
           fh=10000, # estimated from fitting growth/reproduction data
           g=1.45, # fixed based on feeding data fitting and fh value
