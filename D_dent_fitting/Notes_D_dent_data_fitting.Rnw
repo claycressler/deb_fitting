@@ -1794,6 +1794,7 @@ Basically, all I need to do is assume that $\xi=\alpha$ and $q=3$ and I will hav
 For my first attempt at fitting Cat's data for uninfected animals, I fixed
 
 <<>>=
+
 pars <- c(Imax=22500, # fixed based on feeding data fitting and fh value
           fh=10000, # estimated from fitting growth/reproduction data
           g=1.45, # fixed based on feeding data fitting and fh value
