@@ -840,9 +840,10 @@ Fig. \ref{fig:mult-datasets-fitting} plots the results of the fitting.
 For every parameter set (1-20), I plot all of the parameter estimates that were within 2 log-likelihood units of the best-fitting parameter set.
 The parameter set with highest likelihood is shown in black.
 The true parameter value is shown in red.
-There are bunch of interesting things to see, even here.
-First off, it is clear that, for some trajectories, a much greater diversity of parameter sets had nearly equal likelihoods, as shown both by the number and spread of gray points.
-When this happened, the best-fitting parameter set was almost always far from the truth (e.g., for dataset 18).
+You can see that the overall message here is really encouraging - the best-fitting parameter estimates are typically quite close to the true values.
+The exception is certainly with a few of the estimates of $f_h$ (e.g., datasets 10 and 12).
+Some datasets also elicited a lot more variability in the parameter estimates that were near the highest likelihood (e.g., dataset 18).
+The estimates of $k_m$ were the most variable
 
 \begin{knitrout}\scriptsize
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
@@ -856,9 +857,10 @@ When this happened, the best-fitting parameter set was almost always far from th
 \end{knitrout}
 
 An examination of the plots of the likelihood against the parameter estimates can help to understand when the parameter estimates were close the true parameter values.
-Fig. \ref{fig:lik-against-ests-1} shows some likelihood surfaces when the parameter estimates were quite close to the truth.
+Fig. \ref{fig:lik-against-ests-1} shows some likelihood surfaces when the parameter estimates were quite close to the truth (similar surfaces were revealed for other datasets that were well-estimated (datasets 3, 15, 16, 17, and 20).
 Here you can see a single, well-defined likelihood peak.
 In this case, the best-fitting parameter estimate (shown by the vertical green line) is quite close to the true parameter estimate (shown by the vertical red line).
+
 \begin{knitrout}\scriptsize
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
@@ -870,7 +872,7 @@ In this case, the best-fitting parameter estimate (shown by the vertical green l
 
 \end{knitrout}
 
-On the other hand, Fig. \ref{fig:lik-against-ests-2} reveals that, for some of the datasets where the parameter estimates were far from the truth, the likelihood surface has multiple peaks.
+On the other hand, Fig. \ref{fig:lik-against-ests-2} reveals that, for some of the datasets where the parameter estimates were further from the truth, the likelihood surface has multiple peaks.
 In all of these cases, one of the likelihood peaks is centered around a high $f_h$ value.
 In Fig. \ref{fig:lik-against-ests-2}, the likelihood is higher at this large $f_h$ peak, pulling all of the other parameter estimates away from their true values.
 
@@ -925,23 +927,13 @@ There were datasets that were simply hard to estimate, as evidenced by the fact 
 
 \end{knitrout}
 
-The remaining datasets were more idiosyncratic, with most, but not all, of the parameters well estimated and a likelihood surface that was oddly shaped (Fig. \ref{fig:lik-against-ests-6}).
-For example, Datasets 14 and 17 show some evidence for multiple likelihood peaks, where the likelihood peaks are very close to one another.
-
-\begin{knitrout}\scriptsize
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-
-\includegraphics[width=\linewidth]{figure/lik-against-ests-6-1} \hfill{}
-
-\caption[Other datasets were more idiosyncratic]{Other datasets were more idiosyncratic.}\label{fig:lik-against-ests-6}
-\end{figure}
-
-
-\end{knitrout}
-
 \clearpage
 
-However, if you compare the deterministic growth and reproduction trajectories at the true parameter values (red lines) to those trajectories at the best-fitting parameter set (black lines), you see that for all of the datasets, the best-fitting parameter set does a good job capturing the observed (stochastic) data (points).
+However, if you compare the deterministic growth and reproduction trajectories at the true parameter values (red lines) to those trajectories at the best-fitting parameter set (black lines), you see that for all of the datasets, the best-fitting parameter set does a good job capturing the observed data (points).
+You can see that, regardless of whether the parameter values were close to, or far from, the truth, the trajectories at the true and best-fitting parameters were always very close to one another.
+The only things that you can conclude from looking at the fits is that datasets where growth is very slow and reproduction happens only at the end are very hard to fit, which is not surprising at all.
+Otherwise, there doesn't really seem to be anything in the datasets themselves that separate the cases where the estimates were close from the cases where the estimates were far from the truth.
+There is some limited evidence that very extreme datasets (e.g., when reproduction was exorbitant or very minimal) are harder to fit (e.g., datasets 3, 12, 18).
 
 \begin{knitrout}\scriptsize
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
@@ -987,22 +979,28 @@ However, if you compare the deterministic growth and reproduction trajectories a
 
 \end{knitrout}
 
-\begin{knitrout}\scriptsize
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
-
-\includegraphics[width=0.6\textwidth]{figure/unnamed-chunk-8-1} \hfill{}
-
-\caption[Plots of the raw observed length and egg data, along with the deterministic growth and reproduction trajectories at the true and best-fitting parameter sets]{Plots of the raw observed length and egg data, along with the deterministic growth and reproduction trajectories at the true and best-fitting parameter sets. Here are the trajectories for the harder-to-classify datasets.}\label{fig:unnamed-chunk-8}
-\end{figure}
-
-
-\end{knitrout}
 
 \clearpage
 
+This suggests that it may not be possible to estimate all the parameters without error; it may be necessary to carry out profile likelihood calculations for $f_h$, in particular, to determine the topography of the likelihood surface along this direction.
+However, we have some evidence that $\rho$, $\kappa$, and $k_m$ can all be estimated, so long as the other parameters related to feeding, length-biomass conversion, and the cost of reproduction are known.
 
-Parameter that are important, and that can be measured, include the cost of reproduction (which you can get from the size of neonates and a length-dry mass regression); the weight required for sexual maturity; and $f_h$.
+\section*{Fitting the growth and reproduction trajectories of uninfected animals}
+For this section, I need to use parameter values that make more sense for \emph{Daphnia dentifera}.
+Hall et al. 2009 report that the mass of the host is $W=\alpha L^3$, where $\alpha=1.8\times 10^{-3}$ mgC mm$^{-3}$, and they assume (Appendix A) that half of the measured dry mass is carbon.
+$L$ is the observed length, rather than the ``structural'' length of DEB theory; Spencer's formulation of the standard DEB model didn't involve the structural length, so this parameter wasn't needed.
+In other words, $\alpha$ was estimated using observed dry weights $W$, observed lengths $L$, and an assumption that $W/2$ is the carbon mass of the host.
 
+This is slightly different than what I am doing, but is not incompatible with it.
+I had assumed that observed mass $W_{obs} = W + E$, where $W$ is the ``structural'' mass and $E$ is the reserves, and that observed length was $L_{obs} = \xi W_{obs}^q$, where $\xi$ and $q$ are based on a regression of observed weight on observed length.
+I then assumed that ``structural length'' $L$ was equal to $W^{1/3}$.
+So, basically, all I need to do is assume that $\xi=\alpha$ and $q=3$ and I will have recovered the same fitting.
+
+
+
+
+
+I just discovered a big mistake in the code, so I need to redo some things - please oh please don't have that be a big deal!
 
 \clearpage
 \section*{Including parasitism}
