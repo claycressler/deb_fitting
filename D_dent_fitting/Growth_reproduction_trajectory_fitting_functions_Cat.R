@@ -80,6 +80,7 @@ traj_match <- function(estpars, fixpars, parorder, transform, obsdata, events, e
                     lik=x$value,
                     conv=x$convergence)
     }
+    if (eval.only==FALSE) print(opt$lik)
     return(opt)
 }
 ## Objective function to minimize for the structured model
