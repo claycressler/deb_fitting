@@ -1791,7 +1791,9 @@ I had assumed that observed mass $W_{obs} = W + E$, where $W$ is the ``structura
 I then assumed that ``structural length'' $L$ was equal to $W^{1/3}$.
 Basically, all I need to do is assume that $\xi=\alpha$ and $q=3$ and I will have recovered more or less the same parameterization.
 
-For my first attempt at fitting Cat's data for uninfected animals, I fixed
+I am still waiting for better values from Spencer et al. for some of the parameters, so for my first attempt at fitting Cat's data for uninfected animals, I fixed $E_R = 1.51 \times 10^{-3}$, the initial biomass as $W+E = 0.00225$, and the biomass at maturity as 0.005.
+These values may change when I get better information from them.
+I also fixed $v=10$ for the fitting.
 
 <<>>=
 
