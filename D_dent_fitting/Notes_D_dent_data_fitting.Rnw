@@ -1795,25 +1795,27 @@ I am still waiting for better values from Spencer et al. for some of the paramet
 These values may change when I get better information from them.
 I also fixed $v=10$ for the fitting.
 
-<<>>=
+The results are not particularly encouraging, frankly.
+Some of the parameters are fairly tightly estimated at the highest likelihood parameter sets; in particular, $\rho=0.15$, $\kappa=0.077$, and $L_{obs}$ = 0.088.
+However, that $\kappa$ value is much too low to make biological sense.
+Neither $f_h$ nor $k_m$ are well-identified in the very highest likelihood parameter sets: for parameters sets within 1 log-likelihood unit of the maximum, $f_h$ varies between practically 0 and 10000 (although all but one estimate is less than 40, and two are essentially 0), while $k_m$ varies between essentially 0 and 0.008 (which is likely much too small).
+There is also a very strong positive correlation between the estimates of $\kappa$ and $k_m$ that I haven't noticed before in the simulation-recovery fits.
 
-pars <- c(Imax=22500, # fixed based on feeding data fitting and fh value
-          fh=10000, # estimated from fitting growth/reproduction data
-          g=1.45, # fixed based on feeding data fitting and fh value
-          rho=0.5, # estimated from fitting growth/reproduction data
-          eps=44.5e-9, # fixed based on measured carbon content of algae
-          V=30, # fixed based on experimental conditions
-          F0=1000000/30, # fixed based on experimental conditions
-          xi=1.8-3, # fixed based on Hall et al. 2009 length-weight regression
-          q=3, # fixed based on Hall et al. 2009 length-weight regression
-          K=0.5, # estimated from growth/reproduction data
-          km=0.3, # estimated from growth/reproduction data
-          ER=1.51e-3, # fixed based on observed mass of a neonate
-          v=10, # fixed based on the fact that it doesn't affect the fitting
-          Lobs=0.1) # estimated from growth/reproduction data
+The fact that the data seem to want $f_h=0$, implying food-independent feeding, is interesting/strange.
+My assumption is that this is only possible because the food is just ``piling up'' so the density never gets low enough to be even remotely limiting to \emph{Daphnia} feeding.
+
+<<echo=FALSE>>=
+x <- readRDS("Growth_reproduction_trajectory_fitting_Cat.RDS")
+library(plyr)
+library(dplyr)
+library(GGally)
+x %>% subset(., lik < min(lik) + 2 & conv==0) %>% mutate(., lik=-lik) -> y
+ggpairs(y, 1:6)
 
 @
 
+I think the best thing to do is to try fixing $f_h$ at different values, and see how that affects the other parameter estimates.
+Although I doubt if there is a parameter set with a higher likelihood that was overlooked by the algorithm, my sense is that it may be that the likelihood surface is quite flat, so $f_h$ can run off towards 0, dragging all of the other parameter estimates with it.
 
 
 
