@@ -145,7 +145,6 @@ source("Growth_reproduction_trajectory_fitting_functions_Cat.R")
 x <- read.csv("Cat_data/uninfected_growth_reproduction.csv")
 data <- x[1:103,1:3]
 
-
 parorder <- c("Imax","fh","g","rho","eps","V","F0","xi","q","K","km","ER","v","Lobs","Winit","Wmat")
 pars <- c(Imax=calc_Imax(10000), # fixed based on feeding data fitting and fh value
           fh=10000, # estimated from fitting growth/reproduction data
@@ -174,7 +173,7 @@ sobolDesign(lower=box[,'lower'],
     apply(., 1, as.list) %>%
         lapply(., unlist) -> guesses
 
-fh_vals <- seq(100,2000,100)
+fh_vals <- seq(2000,20000,500)
 ests <- vector(mode='list', length=length(fh_vals))
 for (i in 1:length(fh_vals)) {
     print(fh_vals[i])
@@ -186,6 +185,7 @@ for (i in 1:length(fh_vals)) {
                            time=1:35,
                            value=unname(fixpars["F0"]),
                            method=rep(c(rep("add",4),"rep"),35/5))
+    t1 <- Sys.time()
     mclapply(guesses,
              traj_match2,
              fixpars=fixpars,
@@ -194,11 +194,14 @@ for (i in 1:length(fh_vals)) {
              obsdata=data,
              events=eventdat,
              eval.only=TRUE,
-             mc.cores=4) %>%
+             mc.cores=12) %>%
                  lapply(., function(x) x$lik) %>%
                      unlist -> guess_lik
+    t2 <- Sys.time()
+    print(t2-t1)
     guesses[order(guess_lik)[1:2000]] -> refine
     print(fh_vals[i])
+    t1 <- Sys.time()
     mclapply(refine,
              traj_match2,
              fixpars=fixpars,
@@ -208,7 +211,9 @@ for (i in 1:length(fh_vals)) {
              events=eventdat,
              eval.only=FALSE,
              method="Nelder-Mead",
-             mc.cores=4) -> refine_lik
+             mc.cores=12) -> refine_lik
+    t2 <- Sys.time()
+    print(t2-t1)
     refine_lik %>%
         lapply(., unlist) %>%
             unlist %>%
@@ -216,5 +221,5 @@ for (i in 1:length(fh_vals)) {
                     as.data.frame -> refine_pars
     refine_pars <- arrange(refine_pars, lik)
     ests[[i]] <- refine_pars
-    saveRDS(ests, file="~/Dropbox/Growth_reproduction_trajectory_fitting_Cat_fixed_fh.RDS")
+    saveRDS(ests, file="~/Dropbox/Growth_reproduction_trajectory_fitting_Cat_fixed_fh_large.RDS")
 }

@@ -1795,16 +1795,16 @@ I am still waiting for better values from Spencer et al. for some of the paramet
 These values may change when I get better information from them.
 I also fixed $v=10$ for the fitting.
 
-The results are not particularly encouraging, frankly.
-Some of the parameters are fairly tightly estimated at the highest likelihood parameter sets; in particular, $\rho=0.15$, $\kappa=0.077$, and $L_{obs}$ = 0.088.
+The results are not particularly encouraging, frankly (Fig. \ref{fig:Cat-fits-1}).
+The parameters are fairly tightly estimated at the highest likelihood parameter sets; in particular, $\rho=0.15$, $\kappa=0.077$, and $L_{obs}$ = 0.088.
 However, that $\kappa$ value is much too low to make biological sense.
 Neither $f_h$ nor $k_m$ are well-identified in the very highest likelihood parameter sets: for parameters sets within 1 log-likelihood unit of the maximum, $f_h$ varies between practically 0 and 10000 (although all but one estimate is less than 40, and two are essentially 0), while $k_m$ varies between essentially 0 and 0.008 (which is likely much too small).
 There is also a very strong positive correlation between the estimates of $\kappa$ and $k_m$ that I haven't noticed before in the simulation-recovery fits.
 
 The fact that the data seem to want $f_h=0$, implying food-independent feeding, is interesting/strange.
-My assumption is that this is only possible because the food is just ``piling up'' so the density never gets low enough to be even remotely limiting to \emph{Daphnia} feeding.
+My assumption is that this is only possible because the food is just piling up across feedings, such that the density never gets low enough to be even remotely limiting to \emph{Daphnia} feeding.
 
-<<echo=FALSE>>=
+<<echo=FALSE, fig.width=5, fig.height=5, fig.cap="Pairwise plot of parameter estimates from fitting Cat's growth and reproduction dataset.", label="Cat-fits-1">>=
 x <- readRDS("Growth_reproduction_trajectory_fitting_Cat.RDS")
 library(plyr)
 library(dplyr)
@@ -1816,7 +1816,72 @@ ggpairs(y, 1:6)
 
 I think the best thing to do is to try fixing $f_h$ at different values, and see how that affects the other parameter estimates.
 Although I doubt if there is a parameter set with a higher likelihood that was overlooked by the algorithm, my sense is that it may be that the likelihood surface is quite flat, so $f_h$ can run off towards 0, dragging all of the other parameter estimates with it.
+The profile likelihood will be very informative in this regard.
 
+Suprisingly, the profile likelihood suggests that, indeed, the likelihood does increase in the direction of smaller $f_h$ values (Fig. \ref{fig:Cat-profile-lik-fh}).
+You can see some interesting patterns in Fig. \ref{fig:Cat-profile-lik-fh}.
+This figure shows all of the parameter estimates within two log-likelihood units of the maximum for each value of $f_h$.
+You can see that there are ``lines'' showing particular relationships between, e.g., $\rho$ and $f_h$ and the log-likelihood and $f_h$ suggesting multiple fitness peaks with different scaling relationships between the variables.
+<<echo=FALSE, fig.width=6, fig.height=3.5, fig.cap="Profile likelihood for $f_h$ showing the best-fitting parameter estimates for Cat's uninfected \emph{Daphnia} as $f_h$ is varied.", label="Cat-profile-lik-fh">>=
+## fh from 100 to 2000 by 100
+x1 <- readRDS(file="Growth_reproduction_trajectory_fitting_Cat_fixed_fh.RDS")
+## fh from 2000 to 20000 by 500
+x2 <- readRDS(file="Growth_reproduction_trajectory_fitting_Cat_fixed_fh_large.RDS")
+## verifying that they reached the same conclusion on fh=2000
+#head(x1[[20]])
+#head(x2[[1]])
+
+## Combining into a single dataset
+x <- vector(mode='list', length=length(x1)+length(x2)-1)
+x[1:length(x1)] <- x1
+x[(length(x1)+1):length(x)] <- x2[2:length(x2)]
+fh_vals <- c(seq(100,2000,100), seq(2500,20000,500))
+
+lapply(1:length(x), function(i) x[[i]] %>% mutate(., fh=fh_vals[i], lik=-lik, best=ifelse(lik==max(lik), 1, 0)) %>% subset(., lik > max(lik)-2 & conv==0)) -> y
+dat <- c()
+for (i in 1:length(y)) dat <- rbind(dat, y[[i]])
+dat <- gather(dat, 'var', 'val', 1:5)
+dat <- arrange(dat, best)
+
+ggplot(dat, aes(x=fh, y=val, colour=factor(best))) +
+    facet_wrap(~var, scales="free") +
+        geom_point() +
+            theme_bw() +
+                theme(legend.position="none") +
+                    scale_colour_manual(values=c("gray","black"))
+
+@
+
+These multiple likelihood peaks can be seen in pairwise scatterplot of the parameter estimates for $f_h=9000$ (Fig. \ref{fig:fh9000}).
+Note, in particular, in the density plot that there are multiple likelihood peaks and multiple density peaks for each parameter.
+
+<<echo=FALSE, fig.height=4, fig.width=4, out.width="0.5\\textwidth", fig.cap="Scatterplot of parameter estimates for $f_h=9000$.", label="fh9000">>=
+library(GGally)
+ggpairs(subset(x[[which(fh_vals==9000)]], lik < min(lik) + 5), 1:5)
+
+@
+
+The larger problem, however, is that these parameter values still seem highly biologically unrealistic and there is a very strong correlation between the estimates of $\kappa$ and $k_m$, suggesting that these might be difficult to independently estimate.
+I have a hypothesis as to why.
+Recall the model that I am actually fitting to these data:
+\begin{align}
+\frac{dF}{dt} &= -I_{max} \frac{F}{f_h+F} L_{obs}^g \\
+\frac{dE}{dt} &= \rho \epsilon V I_{max} \frac{F}{f_h+F} L_{obs}^g - p_C,
+\frac{dW}{dt} &= \kappa~p_C - k_M~W, \\
+\frac{dR}{dt} &= \frac{(1-\kappa)~p_C}{E_R}, \\
+p_C &= E \left(\frac{\frac{v}{L} + k_m}{1+\frac{\kappa E}{W}}\right).
+\end{align}
+
+This model is missing a term for the cost of growth.
+That is, $x$ mgC of reserves allocated towards growth becomes $x$ mgC of new structural biomass.
+In the standard DEB model, there is a conversion cost, such that growth in weight is
+\begin{equation}
+\frac{dW}{dt} = \frac{\kappa~p_C - k_M~E_G~W}{E_G},
+\end{equation}
+and the mobilization rate is
+\begin{equation}
+p_C = E \left(\frac{\frac{v}{L} + k_m}{1+\frac{\kappa E}{E_G W}}\right).
+\end{equation}
 
 
 \clearpage
