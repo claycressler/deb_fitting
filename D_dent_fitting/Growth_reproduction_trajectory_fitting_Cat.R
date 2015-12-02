@@ -262,12 +262,12 @@ box <- cbind(lower=c(rho=0, K=0, km=0.001, Lobs=0.0001),
              upper=c(rho=1, K=1, km=2, Lobs=2))
 sobolDesign(lower=box[,'lower'],
             upper=box[,'upper'],
-            nseq=100000) %>%
+            nseq=50000) %>%
     apply(., 1, as.list) %>%
         lapply(., unlist) -> guesses
 
 ## Vary the value of the mobilization constant
-v_vals <- seq(10,100,10)
+v_vals <- seq(1000,10000,1000)
 ests <- vector(mode='list', length=length(v_vals))
 for (i in 1:length(v_vals)) {
     print(v_vals[i])
@@ -291,7 +291,7 @@ for (i in 1:length(v_vals)) {
                      unlist -> guess_lik
     t2 <- Sys.time()
     print(t2-t1)
-    guesses[order(guess_lik)[1:1000]] -> refine
+    guesses[order(guess_lik)[1:500]] -> refine
     print(v_vals[i])
     t1 <- Sys.time()
     mclapply(refine,
@@ -313,7 +313,7 @@ for (i in 1:length(v_vals)) {
                     as.data.frame -> refine_pars
     refine_pars <- arrange(refine_pars, lik)
     ests[[i]] <- refine_pars
-    saveRDS(ests, file="~/Dropbox/Growth_reproduction_trajectory_fitting_Cat_fixed_v.RDS")
+    saveRDS(ests, file="~/Dropbox/Growth_reproduction_trajectory_fitting_Cat_large_v.RDS")
 }
 
 

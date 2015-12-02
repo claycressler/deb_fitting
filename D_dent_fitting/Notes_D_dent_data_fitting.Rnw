@@ -647,16 +647,15 @@ This result is not unexpected, as evidenced by the success of net production mod
 Of course, the high support for a very large value of $v$ might be because I have assumed constant food, rather than a dynamically variable food source.
 
 \clearpage
-
 \section*{Fitting the feeding model}
-Let's revisit the actual experimental conditions, which did not hold food constant.
-The experimental conditions were as follows:
+In Cat's experiment, food was not held constant, so it is problematic to assume a constant feeding rate when attempting to estimate DEB parameters.
+The actual experimental conditions were as follows:
 \begin{itemize}
 \item Within the first 24 hours of life, all individuals were placed in 2ml of lake water with 20,000 cells of algae and exposed to parasites.
 \item After 24 hours of parasite exposure, animals were moved to beakers with 30ml of water and fed 1,000,000 cells of algae every day.
 \item Animals were transferred to clean water every 5 days.
 \end{itemize}
-The hope was that this is so much food that \emph{D. dentifera} cannot eat it all in a day, so that if the true feeding model is a size-dependent Type II functional response (which it probably is), i.e,
+The hope was that this is so much food that \emph{D. dentifera} cannot eat it all in a day, so that if the true feeding model is a size-dependent Type II functional response (which it might not be - recent evidence suggests that a Type III functional response actually fits better), i.e,
 \begin{equation}
 I_{max} \frac{F}{f_h+F} L^g,
 \end{equation}
@@ -672,11 +671,11 @@ This suggests that it might be problematic to assume that food is always high, a
 However, the container was only changed every 5 days, so every time more food was entered, any uneaten food that had settled out would have been resuspended, making it available to the \emph{Daphnia}.
 This might make assuming $F/(f_h+F)\approx 1$ a more reasonable assumption.
 
-However, I think it is worth refitting the feeding model, for three reasons.
+However, I think it is worth actually fitting the feeding model to the data from the feeding experiment, for three reasons.
 First, the feeding model parameters were estimated using the converted clearance rate data, rather than the raw algae counts.
 I think it makes more sense to fit the raw data.
 Second, the true functional response for \emph{Daphnia} is Type II, but the clearance rate calculation is using a Type I functional response.
-The assumption of a Type I functional response becomes problematic when dealing with the resuspension of uningested algae, which will lead to very high algal abundances on the day before a transfer.
+The assumption of a Type I functional response becomes problematic when dealing with the resuspension of uningested algae, which will lead to very high algal abundances on the day before a transfer; without any saturation in the feeding rate, \emph{Daphnia} will be ingesting tons of food.
 Third, there is error in both the estimates of both the initial and final algal abundances that I don't think is being accounted for.
 So, using the raw algal count data, I want to estimate the parameters of the following system:
 \begin{align*}
@@ -686,7 +685,7 @@ F(0) &= F_0.
 The parameters that need to be estimated are $I_{max}$, $f_h$, $g$, $F_0$, and the error in the observation of algal abundances $\sigma_F$.
 However, I realize that we probably cannot estimate $f_h$ without variation in the initial concentration of algae.
 So I will fix the value of $f_h$ and estimate all of other parameters.
-I then vary the value of $f_h$ and repeat the fitting.
+I then vary the value of $f_h$ and repeat the fitting, constructing a profile likelihood for $f_h$.
 This separates the problem of estimating $f_h$ from the problems of estimating the other parameters.
 However, since the number of parameters of the model do not change, I can use the value of $f_h$ that leads to the maximum likelihood as the estimate of $f_h$.
 Fig. \ref{fig:feeding} shows the all the parameter estimates for each value of $f_h$ and the likelihood.
@@ -696,6 +695,7 @@ The range of $g$ esimates includes the value that Spencer estimated (his estimat
 However, the estimate of the the initial algae abundance $F_0$ and the error in estimating algal abundance $\sigma_F$ are both relatively constant across parameters.
 Note that right now, I am working with algal concentrations in units of cells/ml.
 Thus $f_h$ has units of cells/ml; $I_{max}$ has units of cells per ml per mm$^g$.
+
 Of course, just because many different parameter sets can fit the feeding data equally well does not automatically imply that they will fit the growth and reproduction data equally well.
 This is the next step, I think.
 I will use a more accurate model of the actual food treatments, with feeding rate parameters fixed at different values (varying $f_h$ and setting $I_{max}$ and $g$ to be the values the maximized the likelihood for the given $f_h$ value).
@@ -725,7 +725,7 @@ ggplot(res2, aes(x=fh, y=val, colour=factor(best))) +
                                 labs(title=expression(I[max]~frac(F, f[h]+F)~L^g))
 @
 
-But, before I go on, I want to see whether this fitting procedure supports a lower feeding rate for infected \emph{Daphnia}.
+Before tackling the problem of estimating the feeding parameters jointly with the growth and reproduction parameters, I want to see whether this fitting procedure supports a lower feeding rate for infected \emph{Daphnia}.
 As a first pass, I will let all parameters be re-estimated for the uninfected animals, rather than assuming that any of the parameters estimated for the uninfected animals will carry over.
 In reality, of course, the initial food abundance and observation error should be the same, at the very least.
 Whether $f_h$ and $g$ should also be the same is less clear to me.
@@ -787,8 +787,6 @@ where $Z$ is the spore load, $h$ scales body length, and $a$ is the reduction in
 There is one problem that I don't know how Spencer dealt with, which is how to treat individuals that were exposed but were sacrificed too young to know whether they were infected or not (and were not even checked for spores).
 There are two ways to deal with them: either ignore them and only include individuals that were counted, or to treat them all as zeros.
 I will try both ways.
-(\textbf{Note to self: if I treat these NAs as zeros, I might actually be able to use a structured model.
-There are, of course, problems here unless infection success can be assumed to be 100\%.})
 
 For the first attempt, I drop all individuals with NA spore counts.
 I estimated $I_{max}$, $a$, and $h$ for a range of $f_h$ values.
@@ -992,6 +990,7 @@ R2Spencer <- 1-SSresSpencer/SStot
 
 
 @
+
 
 \clearpage
 \section*{DEB fitting with dynamic algae}
@@ -1772,116 +1771,12 @@ for (i in c(8, 9, 1, 6)) {
 }
 
 @
-
-
 \clearpage
 
 Overall, I think the message from these simulation-recovery experiments is highly encouraging.
 I think, at a maximum, that it may be necessary to carry out profile likelihood calculations for $f_h$ and possibly also $v$ (just to ensure that changing the value of $v$ has no effect).
 But these simulations do lend credence to our ability to estimate $\rho$, $\kappa$, and $k_m$, so long as the other parameters related to feeding, length-biomass conversion, and the cost of reproduction are known.
 
-\section*{Fitting the growth and reproduction trajectories of uninfected animals}
-For this section, I need to use parameter values that make more sense for \emph{Daphnia dentifera}.
-Hall et al. 2009 report that the mass of the host is $W=\alpha L^3$, where $\alpha=1.8\times 10^{-3}$ mgC mm$^{-3}$, and they assume (Appendix A) that half of the measured dry mass is carbon.
-$L$ is the observed length, rather than the ``structural'' length of DEB theory; Spencer's formulation of the standard DEB model didn't involve the structural length, so this parameter wasn't needed.
-In other words, $\alpha$ was estimated using observed dry weights $W$, observed lengths $L$, and an assumption that $W/2$ is the carbon mass of the host.
-
-This is slightly different than what I am doing, but is not incompatible with it.
-I had assumed that observed mass $W_{obs} = W + E$, where $W$ is the ``structural'' mass and $E$ is the reserves, and that observed length was $L_{obs} = \xi W_{obs}^q$, where $\xi$ and $q$ are based on a regression of observed weight on observed length.
-I then assumed that ``structural length'' $L$ was equal to $W^{1/3}$.
-Basically, all I need to do is assume that $\xi=\alpha$ and $q=3$ and I will have recovered more or less the same parameterization.
-
-I am still waiting for better values from Spencer et al. for some of the parameters, so for my first attempt at fitting Cat's data for uninfected animals, I fixed $E_R = 1.51 \times 10^{-3}$, the initial biomass as $W+E = 0.00225$, and the biomass at maturity as 0.005.
-These values may change when I get better information from them.
-I also fixed $v=10$ for the fitting.
-
-The results are not particularly encouraging, frankly (Fig. \ref{fig:Cat-fits-1}).
-The parameters are fairly tightly estimated at the highest likelihood parameter sets; in particular, $\rho=0.15$, $\kappa=0.077$, and $L_{obs}$ = 0.088.
-However, that $\kappa$ value is much too low to make biological sense.
-Neither $f_h$ nor $k_m$ are well-identified in the very highest likelihood parameter sets: for parameters sets within 1 log-likelihood unit of the maximum, $f_h$ varies between practically 0 and 10000 (although all but one estimate is less than 40, and two are essentially 0), while $k_m$ varies between essentially 0 and 0.008 (which is likely much too small).
-There is also a very strong positive correlation between the estimates of $\kappa$ and $k_m$ that I haven't noticed before in the simulation-recovery fits.
-
-The fact that the data seem to want $f_h=0$, implying food-independent feeding, is interesting/strange.
-My assumption is that this is only possible because the food is just piling up across feedings, such that the density never gets low enough to be even remotely limiting to \emph{Daphnia} feeding.
-
-<<echo=FALSE, fig.width=5, fig.height=5, fig.cap="Pairwise plot of parameter estimates from fitting Cat's growth and reproduction dataset.", label="Cat-fits-1">>=
-x <- readRDS("Growth_reproduction_trajectory_fitting_Cat.RDS")
-library(plyr)
-library(dplyr)
-library(GGally)
-x %>% subset(., lik < min(lik) + 2 & conv==0) %>% mutate(., lik=-lik) -> y
-ggpairs(y, 1:6)
-
-@
-
-I think the best thing to do is to try fixing $f_h$ at different values, and see how that affects the other parameter estimates.
-Although I doubt if there is a parameter set with a higher likelihood that was overlooked by the algorithm, my sense is that it may be that the likelihood surface is quite flat, so $f_h$ can run off towards 0, dragging all of the other parameter estimates with it.
-The profile likelihood will be very informative in this regard.
-
-Suprisingly, the profile likelihood suggests that, indeed, the likelihood does increase in the direction of smaller $f_h$ values (Fig. \ref{fig:Cat-profile-lik-fh}).
-You can see some interesting patterns in Fig. \ref{fig:Cat-profile-lik-fh}.
-This figure shows all of the parameter estimates within two log-likelihood units of the maximum for each value of $f_h$.
-You can see that there are ``lines'' showing particular relationships between, e.g., $\rho$ and $f_h$ and the log-likelihood and $f_h$ suggesting multiple fitness peaks with different scaling relationships between the variables.
-<<echo=FALSE, fig.width=6, fig.height=3.5, fig.cap="Profile likelihood for $f_h$ showing the best-fitting parameter estimates for Cat's uninfected \emph{Daphnia} as $f_h$ is varied.", label="Cat-profile-lik-fh">>=
-## fh from 100 to 2000 by 100
-x1 <- readRDS(file="Growth_reproduction_trajectory_fitting_Cat_fixed_fh.RDS")
-## fh from 2000 to 20000 by 500
-x2 <- readRDS(file="Growth_reproduction_trajectory_fitting_Cat_fixed_fh_large.RDS")
-## verifying that they reached the same conclusion on fh=2000
-#head(x1[[20]])
-#head(x2[[1]])
-
-## Combining into a single dataset
-x <- vector(mode='list', length=length(x1)+length(x2)-1)
-x[1:length(x1)] <- x1
-x[(length(x1)+1):length(x)] <- x2[2:length(x2)]
-fh_vals <- c(seq(100,2000,100), seq(2500,20000,500))
-
-lapply(1:length(x), function(i) x[[i]] %>% mutate(., fh=fh_vals[i], lik=-lik, best=ifelse(lik==max(lik), 1, 0)) %>% subset(., lik > max(lik)-2 & conv==0)) -> y
-dat <- c()
-for (i in 1:length(y)) dat <- rbind(dat, y[[i]])
-dat <- gather(dat, 'var', 'val', 1:5)
-dat <- arrange(dat, best)
-
-ggplot(dat, aes(x=fh, y=val, colour=factor(best))) +
-    facet_wrap(~var, scales="free") +
-        geom_point() +
-            theme_bw() +
-                theme(legend.position="none") +
-                    scale_colour_manual(values=c("gray","black"))
-
-@
-
-These multiple likelihood peaks can be seen in pairwise scatterplot of the parameter estimates for $f_h=9000$ (Fig. \ref{fig:fh9000}).
-Note, in particular, in the density plot that there are multiple likelihood peaks and multiple density peaks for each parameter.
-
-<<echo=FALSE, fig.height=4, fig.width=4, out.width="0.5\\textwidth", fig.cap="Scatterplot of parameter estimates for $f_h=9000$.", label="fh9000">>=
-library(GGally)
-ggpairs(subset(x[[which(fh_vals==9000)]], lik < min(lik) + 5), 1:5)
-
-@
-
-The larger problem, however, is that these parameter values still seem highly biologically unrealistic and there is a very strong correlation between the estimates of $\kappa$ and $k_m$, suggesting that these might be difficult to independently estimate.
-I have a hypothesis as to why.
-Recall the model that I am actually fitting to these data:
-\begin{align}
-\frac{dF}{dt} &= -I_{max} \frac{F}{f_h+F} L_{obs}^g \\
-\frac{dE}{dt} &= \rho \epsilon V I_{max} \frac{F}{f_h+F} L_{obs}^g - p_C,
-\frac{dW}{dt} &= \kappa~p_C - k_M~W, \\
-\frac{dR}{dt} &= \frac{(1-\kappa)~p_C}{E_R}, \\
-p_C &= E \left(\frac{\frac{v}{L} + k_m}{1+\frac{\kappa E}{W}}\right).
-\end{align}
-
-This model is missing a term for the cost of growth.
-That is, $x$ mgC of reserves allocated towards growth becomes $x$ mgC of new structural biomass.
-In the standard DEB model, there is a conversion cost, such that growth in weight is
-\begin{equation}
-\frac{dW}{dt} = \frac{\kappa~p_C - k_M~E_G~W}{E_G},
-\end{equation}
-and the mobilization rate is
-\begin{equation}
-p_C = E \left(\frac{\frac{v}{L} + k_m}{1+\frac{\kappa E}{E_G W}}\right).
-\end{equation}
 
 
 \clearpage

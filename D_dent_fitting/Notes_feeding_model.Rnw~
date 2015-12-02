@@ -1,0 +1,114 @@
+\documentclass[12pt,reqno,final,pdftex]{amsart}
+%% DO NOT DELETE OR CHANGE THE FOLLOWING TWO LINES!
+%% $Revision$
+%% $Date$
+\usepackage[round,sort,elide]{natbib}
+\usepackage{graphicx}
+\usepackage{times}
+\usepackage{rotating}
+\usepackage{subfig}
+\usepackage{color}
+\newcommand{\aak}[1]{\textcolor{cyan}{#1}}
+\newcommand{\mab}[1]{\textcolor{red}{#1}}
+\newcommand{\cec}[1]{\textcolor{blue}{#1}}
+
+\setlength{\textwidth}{6.25in}
+\setlength{\textheight}{8.75in}
+\setlength{\evensidemargin}{0in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\topmargin}{-.35in}
+\setlength{\parskip}{.1in}
+\setlength{\parindent}{0.3in}
+
+%% cleveref must be last loaded package
+\usepackage[sort&compress]{cleveref}
+\newcommand{\crefrangeconjunction}{--}
+\crefname{figure}{Fig.}{Figs.}
+\Crefname{figure}{Fig.}{Figs.}
+\crefname{table}{Table}{Tables}
+\Crefname{table}{Tab.}{Tables}
+\crefname{equation}{Eq.}{Eqs.}
+\Crefname{equation}{Eq.}{Eqs.}
+\crefname{appendix}{Appendix}{Appendices}
+\Crefname{appendix}{Appendix}{Appendices}
+\creflabelformat{equation}{#2#1#3}
+
+\theoremstyle{plain}
+\newtheorem{thm}{Theorem}
+\newtheorem{corol}[thm]{Corollary}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem{lemma}[thm]{Lemma}
+\newtheorem{defn}[thm]{Definition}
+\newtheorem{hyp}[thm]{Hypothesis}
+\newtheorem{example}[thm]{Example}
+\newtheorem{conj}[thm]{Conjecture}
+\newtheorem{algorithm}[thm]{Algorithm}
+\newtheorem{remark}{Remark}
+\renewcommand\thethm{\arabic{thm}}
+\renewcommand{\theremark}{}
+
+\numberwithin{equation}{part}
+\renewcommand\theequation{\arabic{equation}}
+\renewcommand\thesection{\arabic{section}}
+\renewcommand\thesubsection{\thesection.\arabic{subsection}}
+\renewcommand\thefigure{\arabic{figure}}
+\renewcommand\thetable{\arabic{table}}
+\renewcommand\thefootnote{\arabic{footnote}}
+
+\newcommand\scinot[2]{$#1 \times 10^{#2}$}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\pkg}[1]{\textsf{#1}}
+\newcommand{\dlta}[1]{{\Delta}{#1}}
+\newcommand{\Prob}[1]{\mathbb{P}\left[#1\right]}
+\newcommand{\Expect}[1]{\mathbb{E}\left[#1\right]}
+\newcommand{\Var}[1]{\mathrm{Var}\left[#1\right]}
+\newcommand{\dd}[1]{\mathrm{d}{#1}}
+\newcommand{\citetpos}[1]{\citeauthor{#1}'s \citeyearpar{#1}}
+
+\begin{document}
+
+<<setup,include=FALSE,cache=F>>=
+require(knitr)
+opts_chunk$set(
+               progress=T,prompt=F,tidy=F,highlight=T,
+               warning=F,message=F,error=F,
+               results='hide',echo=F,cache=T,
+               size='scriptsize',
+               fig.path='figure/',fig.lp="fig:",
+               fig.align='left',
+               fig.show='asis',
+               fig.height=4,fig.width=6.83,
+               out.width="\\linewidth",
+               dpi=150,
+               dev=c('png','tiff'),
+               dev.args=list(
+                 png=list(bg='transparent'),
+                 tiff=list(compression='lzw')
+                 )
+               )
+
+scinot <- function (x, digits = 2, type = c("expression","latex")) {
+  type <- match.arg(type)
+  x <- signif(x,digits=digits)
+  ch <- floor(log10(abs(x)))
+  mn <- x/10^ch
+  switch(type,
+         expression={
+           bquote(.(mn)%*%10^.(ch))
+         },
+         latex={
+           paste0("\\scinot{",mn,"}{",ch,"}")
+         }
+         )
+}
+
+require(xtable)
+
+options(scipen=-1)
+
+options(
+        xtable.caption.placement="top",
+        xtable.include.rownames=FALSE
+        )
+
+@
