@@ -1,17 +1,18 @@
 #include <R.h>
 #include <stdio.h>
 
-static double parms[6];
+static double parms[7];
 #define g parms[0]
 #define q parms[1]
-#define sigma parms[2]
-#define phi parms[3]
-#define alpha parms[4]
+#define alpha parms[2]
+#define rho parms[3]
+#define phi parms[4]
 #define beta parms[5]
+#define w_scalar parms[6]
 
 /* initializer */
 void initmod(void (* odeparms)(int *, double *)) {
-  int N=6;
+  int N=7;
   odeparms(&N, parms);
 }
 
@@ -24,8 +25,8 @@ void derivs (int *neq, double *t, double *y, double *ydot) {
 
   // balance the equations
   ydot[0] = -f/(1+f)*pow(l,g);
-  ydot[1] = sigma*phi*f/(1+g)*pow(l,g-q);
-  ydot[2] = alpha*l/q*((w/l-q)/(1+w));
+  ydot[1] = rho/w_scalar*phi*f/(1+f)*pow(l,g-q) - alpha*w/l;
+  ydot[2] = alpha*l/q*((w/l-1)/(1+w));
   ydot[3] = beta*alpha*pow(l,q)*((w/l+w)/(1+w));
 
 }

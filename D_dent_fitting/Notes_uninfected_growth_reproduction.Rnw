@@ -279,9 +279,30 @@ x %>% subset(lik < min(lik)+2 & conv==0) %>% ggpairs(1:4)
 @
 
 These results reinforce the question, raised earlier, about the correlation between parameter estimates.
-This is almost certainly because the model is overparameterized.
-The most efficient way of dealing with that problem is likely to nondimensionalize the model.
-That will reveal parameter combinations that are important to the dynamics.
+This problem can be understood really simply.
+If we take the results seriously that the value of $v$ has no effect on the dynamics, then we can assume that there is no reserve.
+This leads to a model where assimilated resources are immediately allocated towards either growth and maintenance or reproduction.
+This model makes the parameter estimation problem particularly evident.
+In such a model, the dynamics of growth in structure $V$ and length $L$ are given as (note that I have simplified the expressions slightly):
+\begin{align}
+\frac{dV}{dt} &= \frac{\kappa}{E_G} \rho I_{max} \frac{F}{f_h+F} L^g - k_m V \text{ and} \\
+\frac{dR}{dt} &= \frac{1-\kappa}{E_R} \rho I_{max} \frac{F}{f_h+F} L^g.
+\end{align}
+Clearly, I can play $\kappa$, $E_G$, and $E_R$ off against one another: for instance, the model can make $\kappa$ very small (so most resource going into reproduction), as long as $E_G$ is also small (so growth is cheap) and $E_R$ is large (so reproduction is expensive).
+If I fix the estimate of $E_R$, as I have done before, the fitting algorithm is still free to play $\kappa$, $E_G$, and $\rho$ off against one another.
+
+I think this is likely to be a \emph{very} general problem with these models, and almost certainly explains why the profile likelihood surfaces are so flat, as I have shown for $v$ and $f_h$: for any set value of a parameter ($E_G$, for example), the algorithm can play with the other parameters so as to achieve a similarly good fit to the data.
+Fig. \ref{fig:profile-EG} shows a profile liklihood for $E_G$, where I have fixed $E_G$ and estimated $\rho$, $\kappa$, and $k_m$.
+For any value of $E_G$, I am able to estimate the other parameters reasonably well.
+Note, however, that I have already fixed $E_R$ (and $v$).
+Fixing $E_G$ and $E_R$ limits the ability of the fitting algorithm to play the other parameters off against one another enough that most of the initial guesses converge on the same final estimate (recall, however, Fig. \ref{fig:estimates-v-10}, which implicitly fixed $E_G=1$ - although there were clear most-commonly supported estimates for $\rho$, $\kappa$, and $k_m$, nearby parameter sets definitely slide these around to achieve \emph{almost} as good a fit.
+<<echo=F, fig.width=6, fig.height=3.5, fig.cap="Profile likelihood over $E_G$.", label="profile-EG'>>=
+
+
+@
+
+The question is to what extent this problem can be addressed.
+One possibility is to nondimensionalize the model, hopefully revealing important (and independent) parameter combinations that are critical to the model dynamics.
 
 To that end, let's take a look at the standard DEB model again.
 Here, I have replaced $W$ with $V$ to be totally consistent with the standard DEB model.
@@ -379,9 +400,12 @@ The dynamics of dimensionless reserve density are
 \end{equation}
 Simplifying this equation, we have
 \begin{equation}
-\frac{dw}{d\tau} = \frac{\rho \kappa}{E_G}\frac{f_h \epsilon \mathcal{V}}{\xi \hat{\ell}^q}\frac{f}{1+f}\ell^{g-q}-k_m\hat{\tau} \frac{w}{\ell}
+\frac{dw}{d\tau} = \frac{\rho}{\hat{w}}\frac{f_h \epsilon \mathcal{V}}{\xi \hat{\ell}^q}\frac{f}{1+f}\ell^{g-q}-k_m\hat{\tau} \frac{w}{\ell}
 \end{equation}
-Note that the quantities $\phi=\frac{f_h \epsilon \mathcal{V}}{\xi \hat{\ell}^q}$ and $\sigma = \frac{\rho \kappa}{E_G}$ are both dimensionless.
+Note that the quantity $\phi=\frac{f_h \epsilon \mathcal{V}}{\xi \hat{\ell}^q}$ is dimensionless.
+I could define a dimensionless quantity $\sigma = \frac{\rho}{\hat{w}}$ - however, that could be problematic when it comes time to do the fitting.
+This is because I would be estimating both the value of $\sigma$ and the value of $\hat{w}$; both of these parameters could take on any positive value, but their product $\rho = \sigma \hat{w}$ is constrained to take only values between 0 and 1.
+Because of that, it makes more sense to keep $\rho$ in the model as a dimensionless parameter to be estimated.
 The dimensionless quantity $\alpha=k_m\hat{\tau}$ also appears in this equation.
 
 Finally, we have the equation for egg production.
@@ -403,33 +427,50 @@ which is dimensionless (because $E_G$ is dimensionless, $E_R$ has units of mgC, 
 Putting all of these equations together, I have the dimensionless system:
 \begin{align}
 \frac{df}{d\tau} &= -\frac{f}{1+f}\ell^g, \\
-\frac{dw}{d\tau} &= \sigma\phi\frac{f}{1+f}\ell^{g-q}-\alpha\frac{w}{\ell}, \\
+\frac{dw}{d\tau} &= \frac{\rho\phi}{\hat{w}}\frac{f}{1+f}\ell^{g-q}-\alpha\frac{w}{\ell}, \\
 \frac{d\ell}{d\tau} &= \alpha \frac{\ell}{q}\left(\frac{\frac{w}{\ell}-1}{1+w}\right), \\
 \frac{dR}{d\tau} &= \beta \alpha \ell^q \left(\frac{\frac{w}{\ell}+w}{1+w}\right),
 \end{align}
 where the state variables are nondimensionalized using
 \begin{align}
-\hat{\tau} &= \frac{f_h}{I_{max} \hat{\ell}^g}, \\
-\hat{w} &= \frac{E_G}{\kappa}, \text{ and}\\
+\hat{f} &= f_h, \\
 \hat{\ell} &= \frac{v}{k_m}, \\
+\hat{w} &= \frac{E_G}{\kappa}, \text{ and}\\
+\hat{\tau} &= \frac{f_h}{I_{max} \hat{\ell}^g}, \\
 \end{align}
-and the dimensionless parameters are defined as:
+with dimensionless parameters $\rho$ and
 \begin{align}
 \alpha &= k_m \hat{\tau}, \\
-\sigma &= \frac{\rho \kappa}{E_G}, \\
 \phi &= \frac{f_h \epsilon \mathcal{V}}{\xi \hat{\ell}^q}, \\
 \beta &= \frac{E_G}{E_R}\frac{1-\kappa}{\kappa}\xi\hat{\ell}^q.
 \end{align}
 
-If I were to fit this model to data, I would need to estimate $\hat{w}$, $\hat{\ell}$, $\alpha$, $\sigma$, and $\beta$.
+If I were to fit this model to data, I would need to estimate $\hat{w}$, $\hat{\ell}$, $\alpha$, $\rho$, and $\beta$.
 $\hat{\tau}$ and $\phi$ are fixed by the estimate of $\hat{\ell}$ and the feeding model and the length-dry weight regression equation, since the parameters $f_h$, $\epsilon$, $\mathcal{V}$, $\xi$, $q$, and $g$ are all known.
-Moreover, if I assume that $v$ is fixed, then the estimate of $\hat{\ell}$ specifies $\alpha$ so that it no longer needs to be estimated.
+Moreover, if I assume that $v$ is fixed, then the estimate of $\hat{\ell}$ specifies $\alpha$ so that parameter no longer needs to be estimated.
 
-Whether this model would prove any more amenable to fitting is unclear, though I point out that many of the estimated parameters now involve combinations of parameters that are likely to trade off against one another, such as in $\hat{w}$, $\sigma$, and $\beta$.
+Whether this model would prove any more amenable to fitting is unclear, though I point out that many of the estimated parameters now involve combinations of parameters that are likely to trade off against one another, such as in $\hat{w}$.
 
-<<echo=FALSE>>=
+To explore this question, I fit the dimensionless model to Cat's growth and reproduction dataset for uninfected animals.
+I estimated the dimensionless parameters $\hat{w}$, $\hat{\ell}$, $\rho$, and $\beta$.
+I also estimated the initial reserve density $W=E/V$ and the observation error for length, though I am not going to report those estimates.
+The results of this fitting were discouraging, frankly (Fig. \ref{fig:nondim-fig}).
+Note only did this fitting fail to converge to anything consistent, the nondimensionalization did not solve the problem of parameter correlations.
+The correlations between $\hat{\ell}$ and $\beta$ is expected (and between $\hat{w}$ and $\beta$), in hindsight, given how $\beta$ was defined.
+Unfortunately, I am not sure of a nondimensionalization that would have been able to get around that problem because of the form of the ODE for reproduction.
+
+<<echo=F>>=
+x <- readRDS("Growth_reproduction_trajectory_fitting_nondimensional_model.RDS")
+library(GGally)
+subset(x, lik < min(lik)+20 & conv==0) %>% ggpairs(1:4)
+
+@
+
+<<echo=FALSE, eval=FALSE>>=
+library(magrittr)
+library(plyr)
+library(deSolve)
 ## confirming the identicalness of the dimensional and dimensionless DEB models
-source("Growth_reproduction_trajectory_fitting_functions_Cat_2.R")
 fh <- 1e-4/44.5e-9 ## about 2250 cells/ml
 pars <- c(Imax=calc_Imax(fh), # fixed based on feeding data fitting and fh value
           fh=fh, # estimated from fitting growth/reproduction data
@@ -448,56 +489,104 @@ pars <- c(Imax=calc_Imax(fh), # fixed based on feeding data fitting and fh value
           Lobs=0.1,
           Winit=0.000225, ## fixed mass at birth
           Wmat=0.002) ## fixed mass at maturity
-y0 <- c(F=unname(pars["F0"]),
-        E=unname(pars["Winit"]/2),
-        V=unname(pars["Winit"]/2),
-        R=0)
 eventdat <- data.frame(var="F",
                        time=1:35,
                        value=unname(pars["F0"]),
                        method=rep(c(rep("add",4),"rep"),35/5))
+
+## The standard DEB model, defined in terms of E and V
+if (is.loaded("standard_deb.so")) dyn.unload("standard_deb.so")
+system("rm standard_deb.so")
+system("R CMD SHLIB standard_deb.c")
+dyn.load("standard_deb.so")
+y0 <- c(F=unname(pars["F0"]),
+        E=unname(pars["Winit"]/2),
+        V=unname(pars["Winit"]/2),
+        R=0)
 try(ode(y0,
-        times=seq(0,35,0.01),
+        times=seq(0,35,0.1),
         func="derivs",
         parms=pars,
-        dllname="deb_Cat_2",
+        dllname="standard_deb",
         initfunc="initmod",
         events=list(data=eventdat)
         )) -> out
-## turn into length
+
+## confirming that I correctly derived the ODEs for L and W from the equations for E and V
+if (is.loaded("standard_deb_2.so")) dyn.unload("standard_deb_2.so")
+system("rm standard_deb_2.so")
+system("R CMD SHLIB standard_deb_2.c")
+dyn.load("standard_deb_2.so")
+y02 <- c(F=unname(pars["F0"]),
+         W=unname(y0["E"]/y0["V"]),
+         L=unname((y0["V"]/pars["xi"])^(1/pars["q"])),
+         R=0)
+try(ode(y02,
+        times=seq(0,35,0.1),
+        func="derivs",
+        parms=pars,
+        dllname="standard_deb_2",
+        initfunc="initmod",
+        events=list(data=eventdat)
+        )) %>% as.data.frame -> out2
 out %>%
     as.data.frame %>%
-        mutate(L=(V/unname(pars["xi"]))^(1/unname(pars["q"])),
-               R=R-R[(which(V < 0.002) %>% max)]) -> out
-out$R[out$R < 0] <- 0
+        mutate(L2=(V/unname(pars["xi"]))^(1/unname(pars["q"])),
+               W2=E/V) -> out
 
-with(out, plot(time, L, type='l'))
+## Comparison of the two shows that, at least, I have correctly derived the dimensional version of the DEB model with W and L instead of E and V.
+range(out$W2-out2$W)
+range(out$L2-out2$L)
 
-## Now I want to confirm that I can recover those dynamics using the dimensionless model
+## Now I want to confirm that I can recover those dynamics using the dimensionless model.
 matrix(pars, nrow=1, byrow=TRUE, dimnames=list(NULL, names(pars))) %>% as.data.frame -> p
-scalars <- with(p, c(t_scalar=fh/(Imax*(v/km)^g), w_scalar=EG/K, l_scalar=v/km))
-nondimpars <- with(p, c(alpha=km*fh/(Imax*(v/km)^g),
-                        sigma=rho*K/EG,
+scalars <- with(p,
+                c(t_scalar=fh/(Imax*(v/km)^g),
+                  f_scalar=fh,
+                  w_scalar=EG/K,
+                  l_scalar=v/km))
+nondim_pars <- with(p, c(g=g,
+                        q=q,
+                        alpha=km*fh/(Imax*(v/km)^g),
+                        rho=rho,
                         phi=fh*eps*V/(xi*(v/km)^q),
-                        beta=EG/ER*(1-K)/K*xi*(v/km)^q))
+                         beta=EG/ER*(1-K)/K*xi*(v/km)^q))
+nondim_pars <- c(nondim_pars, scalars["w_scalar"])
+if (is.loaded("nondim_deb_Cat.so")) dyn.unload("nondim_deb_Cat.so")
+system("rm nondim_deb_Cat.so")
 system("R CMD SHLIB nondim_deb_Cat.c")
 dyn.load("nondim_deb_Cat.so")
 ## I need a nondimensionalized version of the events and initial conditions
-nondim_y0 <- c(y0["F"]/scalars["f_scalar"])
+nondim_y0 <- c(y0["F"]/scalars["f_scalar"],
+               W=unname(y0["E"]/y0["V"]/scalars["w_scalar"]),
+               L=unname(((y0["V"]/pars["xi"])^(1/pars["q"]))/scalars["l_scalar"]),
+               R=0)
 nondim_eventdat <- eventdat
-nondim_eventdat$time <- nondim_eventdat$time/unname(scalars["t_scalar"])
+nondim_eventdat$time <- round(nondim_eventdat$time/unname(scalars["t_scalar"]))
 nondim_eventdat$value <- nondim_eventdat$value/unname(scalars["f_scalar"])
-
-try(ode(y0,
-        times=seq(0,35/unname(scalars["t_scalar"])),
+try(ode(nondim_y0,
+        times=seq(0,35,0.1)/unname(scalars["t_scalar"]),
         func="derivs",
-        parms=pars,
-        dllname="deb_Cat_2",
+        parms=nondim_pars,
+        dllname="nondim_deb_Cat",
         initfunc="initmod",
-        events=list(data=eventdat)
+        events=list(data=nondim_eventdat)
         )) -> nondim_out
+nondim_out %>% as.data.frame %>%
+    mutate(.,
+           time=time*scalars["t_scalar"],
+           F=F*scalars["f_scalar"],
+           W=W*scalars["w_scalar"],
+           L=L*scalars["l_scalar"]) -> nondim_out_2
 
+with(out2, plot(time, F, type='l'))
+with(nondim_out_2, lines(time, F, col=2))
 
+with(out2, plot(time, L, type='l', ylim=c(0.3,4)))
+with(nondim_out_2, lines(time, L, col=2))
+
+with(out2, plot(time, W, type='l'))
+with(nondim_out_2, lines(time, W, col=2))
 
 @
 
