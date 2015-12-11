@@ -284,7 +284,6 @@ Fig. \ref{fig:profile-EG} shows a profile liklihood for $E_G$, where I have fixe
 For any value of $E_G$, I am able to estimate the other parameters reasonably well.
 Note, however, that I have already fixed $E_R$ (and $v$).
 Fixing $E_G$ and $E_R$ limits the ability of the fitting algorithm to play the other parameters off against one another enough that most of the initial guesses converge on the same final estimate (recall, however, Fig. \ref{fig:estimates-v-10}, which implicitly fixed $E_G=1$ - although there were clear most-commonly supported estimates for $\rho$, $\kappa$, and $k_m$, nearby parameter sets definitely slide these around to achieve \emph{almost} as good a fit.
-<<<<<<< HEAD
 \begin{knitrout}\scriptsize
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
@@ -295,9 +294,6 @@ Fixing $E_G$ and $E_R$ limits the ability of the fitting algorithm to play the o
 
 
 \end{knitrout}
-=======
-
->>>>>>> fd5ae9a2edf443e934f31dee51081b29dd43cf70
 
 The question is to what extent this problem can be addressed.
 One possibility is to nondimensionalize the model, hopefully revealing important (and independent) parameter combinations that are critical to the model dynamics.
@@ -456,31 +452,20 @@ The results of this fitting were discouraging, frankly (Fig. \ref{fig:nondim-fig
 Note only did this fitting fail to converge to anything consistent, the nondimensionalization did not solve the problem of parameter correlations.
 The correlations between $\hat{\ell}$ and $\beta$ is expected (and between $\hat{w}$ and $\beta$), in hindsight, given how $\beta$ was defined.
 Unfortunately, I am not sure of a nondimensionalization that would have been able to get around that problem because of the form of the ODE for reproduction.
-<<<<<<< HEAD
 However, the strong correlation between $\hat{\ell}$ and $\hat{w}$ is more surprising and annoying.
 The range of estimated value of $\beta$ is a consequence of its parameterization, which includes the term $v^q$ - since $v$ was fixed at 100 and $q$ was fixed at 3, the value of $\beta$ begins at $100^3$.
-=======
->>>>>>> fd5ae9a2edf443e934f31dee51081b29dd43cf70
 
 \begin{knitrout}\scriptsize
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
 
-<<<<<<< HEAD
 \includegraphics[width=0.7\textwidth]{figure/nondim-fig-1} \hfill{}
 
 \caption[Distribution and correlation of nondimensional parameter estimates]{Distribution and correlation of nondimensional parameter estimates. Shown are the parameter estimates within 20 log-likelihood units of the maximum.}\label{fig:nondim-fig}
-=======
-\includegraphics[width=\linewidth]{figure/nondim-fig-1} \hfill{}
-
-\caption[Pairwise plot of all parameter estimates within 20 log-likelihood units of the maximum]{Pairwise plot of all parameter estimates within 20 log-likelihood units of the maximum.}\label{fig:nondim-fig}
->>>>>>> fd5ae9a2edf443e934f31dee51081b29dd43cf70
 \end{figure}
 
 
 \end{knitrout}
 
-<<<<<<< HEAD
-=======
 However, another possibility occurs to me, which is that standard DEB theory often works with compound parameters.
 In particular, Martin et al., in their 2013 paper that also fit DEB models to growth and reproduction trajectories, defined the DEB model as
 \begin{align}
@@ -490,7 +475,6 @@ p_c &= L^2 \frac{g e}{g + e}\left(1 + \frac{L k_m}{v}\right).
 \end{align}
 
 
->>>>>>> fd5ae9a2edf443e934f31dee51081b29dd43cf70
 
 
 

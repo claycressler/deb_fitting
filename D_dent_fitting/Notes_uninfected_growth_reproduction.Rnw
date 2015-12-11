@@ -484,12 +484,16 @@ subset(x, lik < min(lik)+20 & conv==0) %>% ggpairs(1:4)
 @
 
 However, another possibility occurs to me, which is that standard DEB theory often works with compound parameters.
-In particular, Martin et al., in their 2013 paper that also fit DEB models to growth and reproduction trajectories, defined the DEB model as
-\begin{align}
-  \frac{dE}{dt} &= \rho \epsilon \mathcal{V} I_{max} \frac{F}{f_h+F} L^g - p_c, \\
-  \frac{dL}{dt} &= \frac{1}{3}\left(\frac{v}{gL^2} p_c - k_m L\right), \\
-p_c &= L^2 \frac{g e}{g + e}\left(1 + \frac{L k_m}{v}\right).
-\end{align}
+In particular, Kooijman 2010 defines the mobilization flux as
+\begin{equation}
+p_c = V E_m \left(\frac{v}{L} + k_m\right)\frac{eg}{e+g}
+\end{equation}
+where $E_m$ is a compound parameter defining the maximum reserve density as the ratio of assimilation flux to mobilization flux, $E_m = \rho \epsilon \mathcal{V} I_{max}/v$.
+In the standard DEB model, this parameter would have units of energy per mm$^3$, as $I_{max}$ is assumed to have units of mm$^{-2}$.
+$e$ is defined as the scaled reserve density, $e = E/V/E_m$, so is a ratio between 0 and 1 that quantifies the current energetic state compared to the maximum.
+$g$ is a compound parameter defined as the energy investment ratio, $g = E_G/\kappa/E_m$.
+Martin et al., in their 2013 paper that fit DEB models to growth and reproduction trajectories, used this function for mobilization and found that $g$ and $v$ could not be estimated - the profile likelihoods for these two parameters indicated that the liklihood increased with increasing parameter values.
+In the end, Martin et al. fixed the value of $g$ and found that all of the other parameters could be estimated with fairly tight confidence intervals after.
 
 
 <<echo=FALSE, eval=FALSE>>=
