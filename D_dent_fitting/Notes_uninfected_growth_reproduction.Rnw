@@ -296,7 +296,7 @@ Fig. \ref{fig:profile-EG} shows a profile liklihood for $E_G$, where I have fixe
 For any value of $E_G$, I am able to estimate the other parameters reasonably well.
 Note, however, that I have already fixed $E_R$ (and $v$).
 Fixing $E_G$ and $E_R$ limits the ability of the fitting algorithm to play the other parameters off against one another enough that most of the initial guesses converge on the same final estimate (recall, however, Fig. \ref{fig:estimates-v-10}, which implicitly fixed $E_G=1$ - although there were clear most-commonly supported estimates for $\rho$, $\kappa$, and $k_m$, nearby parameter sets definitely slide these around to achieve \emph{almost} as good a fit.
-<<echo=F, fig.width=6, fig.height=3.5, fig.cap="Profile likelihood over $E_G$.", label="profile-EG'>>=
+<<echo=F, fig.width=6, fig.height=3.5, fig.cap="Profile likelihood over $E_G$.", label="profile-EG">>=
 
 
 @
@@ -459,12 +459,21 @@ Note only did this fitting fail to converge to anything consistent, the nondimen
 The correlations between $\hat{\ell}$ and $\beta$ is expected (and between $\hat{w}$ and $\beta$), in hindsight, given how $\beta$ was defined.
 Unfortunately, I am not sure of a nondimensionalization that would have been able to get around that problem because of the form of the ODE for reproduction.
 
-<<echo=F>>=
+<<echo=F, fig.height=5, fig.width=5, fig.cap="Pairwise plot of all parameter estimates within 20 log-likelihood units of the maximum.", label="nondim-fig">>=
 x <- readRDS("Growth_reproduction_trajectory_fitting_nondimensional_model.RDS")
 library(GGally)
 subset(x, lik < min(lik)+20 & conv==0) %>% ggpairs(1:4)
 
 @
+
+However, another possibility occurs to me, which is that standard DEB theory often works with compound parameters.
+In particular, Martin et al., in their 2013 paper that also fit DEB models to growth and reproduction trajectories, defined the DEB model as
+\begin{align}
+  \frac{dE}{dt} &= \rho \epsilon \mathcal{V} I_{max} \frac{F}{f_h+F} L^g - p_c, \\
+  \frac{dL}{dt} &= \frac{1}{3}\left(\frac{v}{gL^2} p_c - k_m L\right), \\
+p_c &= L^2 \frac{g e}{g + e}\left(1 + \frac{L k_m}{v}\right).
+\end{align}
+
 
 <<echo=FALSE, eval=FALSE>>=
 library(magrittr)

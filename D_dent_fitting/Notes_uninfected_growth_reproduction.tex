@@ -267,9 +267,27 @@ There are also clear and strong trade-offs between $\rho$ and $E_G$, as expected
 \end{knitrout}
 
 These results reinforce the question, raised earlier, about the correlation between parameter estimates.
-This is almost certainly because the model is overparameterized.
-The most efficient way of dealing with that problem is likely to nondimensionalize the model.
-That will reveal parameter combinations that are important to the dynamics.
+This problem can be understood really simply.
+If we take the results seriously that the value of $v$ has no effect on the dynamics, then we can assume that there is no reserve.
+This leads to a model where assimilated resources are immediately allocated towards either growth and maintenance or reproduction.
+This model makes the parameter estimation problem particularly evident.
+In such a model, the dynamics of growth in structure $V$ and length $L$ are given as (note that I have simplified the expressions slightly):
+\begin{align}
+\frac{dV}{dt} &= \frac{\kappa}{E_G} \rho I_{max} \frac{F}{f_h+F} L^g - k_m V \text{ and} \\
+\frac{dR}{dt} &= \frac{1-\kappa}{E_R} \rho I_{max} \frac{F}{f_h+F} L^g.
+\end{align}
+Clearly, I can play $\kappa$, $E_G$, and $E_R$ off against one another: for instance, the model can make $\kappa$ very small (so most resource going into reproduction), as long as $E_G$ is also small (so growth is cheap) and $E_R$ is large (so reproduction is expensive).
+If I fix the estimate of $E_R$, as I have done before, the fitting algorithm is still free to play $\kappa$, $E_G$, and $\rho$ off against one another.
+
+I think this is likely to be a \emph{very} general problem with these models, and almost certainly explains why the profile likelihood surfaces are so flat, as I have shown for $v$ and $f_h$: for any set value of a parameter ($E_G$, for example), the algorithm can play with the other parameters so as to achieve a similarly good fit to the data.
+Fig. \ref{fig:profile-EG} shows a profile liklihood for $E_G$, where I have fixed $E_G$ and estimated $\rho$, $\kappa$, and $k_m$.
+For any value of $E_G$, I am able to estimate the other parameters reasonably well.
+Note, however, that I have already fixed $E_R$ (and $v$).
+Fixing $E_G$ and $E_R$ limits the ability of the fitting algorithm to play the other parameters off against one another enough that most of the initial guesses converge on the same final estimate (recall, however, Fig. \ref{fig:estimates-v-10}, which implicitly fixed $E_G=1$ - although there were clear most-commonly supported estimates for $\rho$, $\kappa$, and $k_m$, nearby parameter sets definitely slide these around to achieve \emph{almost} as good a fit.
+
+
+The question is to what extent this problem can be addressed.
+One possibility is to nondimensionalize the model, hopefully revealing important (and independent) parameter combinations that are critical to the model dynamics.
 
 To that end, let's take a look at the standard DEB model again.
 Here, I have replaced $W$ with $V$ to be totally consistent with the standard DEB model.
@@ -367,9 +385,12 @@ The dynamics of dimensionless reserve density are
 \end{equation}
 Simplifying this equation, we have
 \begin{equation}
-\frac{dw}{d\tau} = \frac{\rho \kappa}{E_G}\frac{f_h \epsilon \mathcal{V}}{\xi \hat{\ell}^q}\frac{f}{1+f}\ell^{g-q}-k_m\hat{\tau} \frac{w}{\ell}
+\frac{dw}{d\tau} = \frac{\rho}{\hat{w}}\frac{f_h \epsilon \mathcal{V}}{\xi \hat{\ell}^q}\frac{f}{1+f}\ell^{g-q}-k_m\hat{\tau} \frac{w}{\ell}
 \end{equation}
-Note that the quantities $\phi=\frac{f_h \epsilon \mathcal{V}}{\xi \hat{\ell}^q}$ and $\sigma = \frac{\rho \kappa}{E_G}$ are both dimensionless.
+Note that the quantity $\phi=\frac{f_h \epsilon \mathcal{V}}{\xi \hat{\ell}^q}$ is dimensionless.
+I could define a dimensionless quantity $\sigma = \frac{\rho}{\hat{w}}$ - however, that could be problematic when it comes time to do the fitting.
+This is because I would be estimating both the value of $\sigma$ and the value of $\hat{w}$; both of these parameters could take on any positive value, but their product $\rho = \sigma \hat{w}$ is constrained to take only values between 0 and 1.
+Because of that, it makes more sense to keep $\rho$ in the model as a dimensionless parameter to be estimated.
 The dimensionless quantity $\alpha=k_m\hat{\tau}$ also appears in this equation.
 
 Finally, we have the equation for egg production.
@@ -391,29 +412,60 @@ which is dimensionless (because $E_G$ is dimensionless, $E_R$ has units of mgC, 
 Putting all of these equations together, I have the dimensionless system:
 \begin{align}
 \frac{df}{d\tau} &= -\frac{f}{1+f}\ell^g, \\
-\frac{dw}{d\tau} &= \sigma\phi\frac{f}{1+f}\ell^{g-q}-\alpha\frac{w}{\ell}, \\
+\frac{dw}{d\tau} &= \frac{\rho\phi}{\hat{w}}\frac{f}{1+f}\ell^{g-q}-\alpha\frac{w}{\ell}, \\
 \frac{d\ell}{d\tau} &= \alpha \frac{\ell}{q}\left(\frac{\frac{w}{\ell}-1}{1+w}\right), \\
 \frac{dR}{d\tau} &= \beta \alpha \ell^q \left(\frac{\frac{w}{\ell}+w}{1+w}\right),
 \end{align}
 where the state variables are nondimensionalized using
 \begin{align}
-\hat{\tau} &= \frac{f_h}{I_{max} \hat{\ell}^g}, \\
-\hat{w} &= \frac{E_G}{\kappa}, \text{ and}\\
+\hat{f} &= f_h, \\
 \hat{\ell} &= \frac{v}{k_m}, \\
+\hat{w} &= \frac{E_G}{\kappa}, \text{ and}\\
+\hat{\tau} &= \frac{f_h}{I_{max} \hat{\ell}^g}, \\
 \end{align}
-and the dimensionless parameters are defined as:
+with dimensionless parameters $\rho$ and
 \begin{align}
 \alpha &= k_m \hat{\tau}, \\
-\sigma &= \frac{\rho \kappa}{E_G}, \\
 \phi &= \frac{f_h \epsilon \mathcal{V}}{\xi \hat{\ell}^q}, \\
 \beta &= \frac{E_G}{E_R}\frac{1-\kappa}{\kappa}\xi\hat{\ell}^q.
 \end{align}
 
-If I were to fit this model to data, I would need to estimate $\hat{w}$, $\hat{\ell}$, $\alpha$, $\sigma$, and $\beta$.
+If I were to fit this model to data, I would need to estimate $\hat{w}$, $\hat{\ell}$, $\alpha$, $\rho$, and $\beta$.
 $\hat{\tau}$ and $\phi$ are fixed by the estimate of $\hat{\ell}$ and the feeding model and the length-dry weight regression equation, since the parameters $f_h$, $\epsilon$, $\mathcal{V}$, $\xi$, $q$, and $g$ are all known.
-Moreover, if I assume that $v$ is fixed, then the estimate of $\hat{\ell}$ specifies $\alpha$ so that it no longer needs to be estimated.
+Moreover, if I assume that $v$ is fixed, then the estimate of $\hat{\ell}$ specifies $\alpha$ so that parameter no longer needs to be estimated.
 
-Whether this model would prove any more amenable to fitting is unclear, though I point out that many of the estimated parameters now involve combinations of parameters that are likely to trade off against one another, such as in $\hat{w}$, $\sigma$, and $\beta$.
+Whether this model would prove any more amenable to fitting is unclear, though I point out that many of the estimated parameters now involve combinations of parameters that are likely to trade off against one another, such as in $\hat{w}$.
+
+To explore this question, I fit the dimensionless model to Cat's growth and reproduction dataset for uninfected animals.
+I estimated the dimensionless parameters $\hat{w}$, $\hat{\ell}$, $\rho$, and $\beta$.
+I also estimated the initial reserve density $W=E/V$ and the observation error for length, though I am not going to report those estimates.
+The results of this fitting were discouraging, frankly (Fig. \ref{fig:nondim-fig}).
+Note only did this fitting fail to converge to anything consistent, the nondimensionalization did not solve the problem of parameter correlations.
+The correlations between $\hat{\ell}$ and $\beta$ is expected (and between $\hat{w}$ and $\beta$), in hindsight, given how $\beta$ was defined.
+Unfortunately, I am not sure of a nondimensionalization that would have been able to get around that problem because of the form of the ODE for reproduction.
+
+\begin{knitrout}\scriptsize
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{figure}
+
+\includegraphics[width=\linewidth]{figure/nondim-fig-1} \hfill{}
+
+\caption[Pairwise plot of all parameter estimates within 20 log-likelihood units of the maximum]{Pairwise plot of all parameter estimates within 20 log-likelihood units of the maximum.}\label{fig:nondim-fig}
+\end{figure}
+
+
+\end{knitrout}
+
+However, another possibility occurs to me, which is that standard DEB theory often works with compound parameters.
+In particular, Martin et al., in their 2013 paper that also fit DEB models to growth and reproduction trajectories, defined the DEB model as
+\begin{align}
+  \frac{dE}{dt} &= \rho \epsilon \mathcal{V} I_{max} \frac{F}{f_h+F} L^g - p_c, \\
+  \frac{dL}{dt} &= \frac{1}{3}\left(\frac{v}{gL^2} p_c - k_m L\right), \\
+p_c &= L^2 \frac{g e}{g + e}\left(1 + \frac{L k_m}{v}\right).
+\end{align}
+
+
+
+
 
 Another option to address this challenge is to embrace what the data-fitting is saying.
 In particular, the data-fitting says that $v$ has no influence on dynamics - I can set it to any value I want without affecting the other parameter estimates, almost at all.
