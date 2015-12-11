@@ -1,0 +1,434 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 10.3' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[     13403,        424]
+NotebookOptionsPosition[     12701,        394]
+NotebookOutlinePosition[     13055,        410]
+CellTagsIndexPosition[     13012,        407]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"D", "[", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"e", "[", "t", "]"}], "/", 
+     RowBox[{"v", "[", "t", "]"}]}], ",", "t"}], "]"}], "//", 
+  "Simplify"}]], "Input",
+ CellChangeTimes->{{3.657421444023787*^9, 3.6574214769301243`*^9}, {
+  3.6574220434872503`*^9, 3.657422043574252*^9}}],
+
+Cell[BoxData[
+ FractionBox[
+  RowBox[{
+   RowBox[{
+    RowBox[{"v", "[", "t", "]"}], " ", 
+    RowBox[{
+     SuperscriptBox["e", "\[Prime]",
+      MultilineFunction->None], "[", "t", "]"}]}], "-", 
+   RowBox[{
+    RowBox[{"e", "[", "t", "]"}], " ", 
+    RowBox[{
+     SuperscriptBox["v", "\[Prime]",
+      MultilineFunction->None], "[", "t", "]"}]}]}], 
+  SuperscriptBox[
+   RowBox[{"v", "[", "t", "]"}], "2"]]], "Output",
+ CellChangeTimes->{{3.6574214550100117`*^9, 3.657421477345543*^9}, 
+   3.657422057377698*^9}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"dE", "/", "dT"}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{
+     RowBox[{"V", " ", "\[Rho]", " ", "\[Epsilon]", " ", "Imax", " ", 
+      FractionBox["F", 
+       RowBox[{"fh", "+", "F"}]], " ", 
+      SuperscriptBox["Lobs", "g"]}], "-", 
+     RowBox[{"\[CapitalEpsilon]", " ", 
+      FractionBox[
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{"v", "/", "L"}], "+", "km"}], ")"}], 
+       RowBox[{"1", "+", 
+        FractionBox[
+         RowBox[{"\[Kappa]", " ", "\[CapitalEpsilon]"}], 
+         RowBox[{"EG", " ", "V"}]]}]]}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{"dV", "/", "dT"}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{"\[Kappa]", " ", "\[CapitalEpsilon]", " ", 
+        FractionBox[
+         RowBox[{"(", 
+          RowBox[{
+           RowBox[{"v", "/", "L"}], "+", "km"}], ")"}], 
+         RowBox[{"1", "+", 
+          FractionBox[
+           RowBox[{"\[Kappa]", " ", "\[CapitalEpsilon]"}], 
+           RowBox[{"EG", " ", "V"}]]}]]}], "-", 
+       RowBox[{"km", " ", "EG", " ", "V"}]}], ")"}], "/", "EG"}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{"Define", " ", "W"}], "=", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"E", "/", "V"}], " ", "and", " ", "V"}], "=", 
+      RowBox[{
+       RowBox[{
+        SuperscriptBox["L", "3"], ".", " ", "Then"}], " ", 
+       RowBox[{"dW", "/", "dt"}], " ", "is"}]}]}], " ", "*)"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"dWdt", "=", 
+     RowBox[{
+      RowBox[{
+       FractionBox["1", 
+        SuperscriptBox["L", "3"]], "Vol", " ", "\[Rho]", " ", "\[Epsilon]", 
+       " ", "Imax", " ", 
+       FractionBox["F", 
+        RowBox[{"fh", "+", "F"}]], " ", 
+       SuperscriptBox[
+        RowBox[{"(", 
+         RowBox[{"\[Alpha]", " ", "L"}], ")"}], "g"]}], "-", 
+      RowBox[{
+       FractionBox["\[CapitalEpsilon]", "V"], " ", 
+       FractionBox[
+        RowBox[{"(", 
+         RowBox[{
+          RowBox[{"v", "/", "L"}], "+", "km"}], ")"}], 
+        RowBox[{"1", "+", 
+         FractionBox[
+          RowBox[{"\[Kappa]", " ", "\[CapitalEpsilon]"}], 
+          RowBox[{"EG", " ", "V"}]]}]]}], "-", 
+      RowBox[{
+       FractionBox["\[CapitalEpsilon]", 
+        RowBox[{"EG", " ", 
+         SuperscriptBox["V", "2"]}]], " ", 
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{"\[Kappa]", " ", "\[CapitalEpsilon]", " ", 
+          FractionBox[
+           RowBox[{"(", 
+            RowBox[{
+             RowBox[{"v", "/", "L"}], "+", "km"}], ")"}], 
+           RowBox[{"1", "+", 
+            FractionBox[
+             RowBox[{"\[Kappa]", " ", "\[CapitalEpsilon]"}], 
+             RowBox[{"EG", " ", "V"}]]}]]}], "-", 
+         RowBox[{"km", " ", "EG", " ", "V"}]}], ")"}]}]}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", "Simplifying", " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"dWdt", "=", 
+     RowBox[{
+      RowBox[{
+       FractionBox["1", 
+        SuperscriptBox["L", "3"]], "Vol", " ", "\[Rho]", " ", "\[Epsilon]", 
+       " ", "Imax", " ", 
+       FractionBox["F", 
+        RowBox[{"fh", "+", "F"}]], " ", 
+       SuperscriptBox[
+        RowBox[{"(", 
+         RowBox[{"\[Alpha]", " ", "L"}], ")"}], "g"]}], "-", 
+      RowBox[{
+       FractionBox["\[CapitalEpsilon]", "V"], " ", 
+       FractionBox[
+        RowBox[{"(", 
+         RowBox[{
+          RowBox[{"v", "/", "L"}], "+", "km"}], ")"}], 
+        RowBox[{"1", "+", 
+         FractionBox[
+          RowBox[{"\[Kappa]", " ", "\[CapitalEpsilon]"}], 
+          RowBox[{"EG", " ", "V"}]]}]]}], "-", 
+      RowBox[{
+       FractionBox["\[CapitalEpsilon]", "V"], " ", 
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{
+          FractionBox[
+           RowBox[{"\[Kappa]", " ", "\[CapitalEpsilon]"}], 
+           RowBox[{"EG", " ", "V"}]], " ", 
+          FractionBox[
+           RowBox[{"(", 
+            RowBox[{
+             RowBox[{"v", "/", "L"}], "+", "km"}], ")"}], 
+           RowBox[{"1", "+", 
+            FractionBox[
+             RowBox[{"\[Kappa]", " ", "\[CapitalEpsilon]"}], 
+             RowBox[{"EG", " ", "V"}]]}]]}], "-", 
+         RowBox[{
+          FractionBox["1", 
+           RowBox[{"EG", " ", "V"}]], " ", "km", " ", "EG", " ", "V"}]}], 
+        ")"}]}]}]}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"dWdt", "=", 
+     RowBox[{
+      RowBox[{
+       FractionBox["1", 
+        SuperscriptBox["L", "3"]], "Vol", " ", "\[Rho]", " ", "\[Epsilon]", 
+       " ", "Imax", " ", 
+       FractionBox["F", 
+        RowBox[{"fh", "+", "F"}]], " ", 
+       SuperscriptBox[
+        RowBox[{"(", 
+         RowBox[{"\[Alpha]", " ", "L"}], ")"}], "g"]}], "-", 
+      RowBox[{"W", " ", 
+       FractionBox[
+        RowBox[{"(", 
+         RowBox[{
+          RowBox[{"v", "/", "L"}], "+", "km"}], ")"}], 
+        RowBox[{"1", "+", 
+         FractionBox[
+          RowBox[{"\[Kappa]", " ", "W"}], "EG"]}]]}], "-", 
+      RowBox[{"W", 
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{
+          FractionBox[
+           RowBox[{"\[Kappa]", " ", "W"}], "EG"], " ", 
+          FractionBox[
+           RowBox[{"(", 
+            RowBox[{
+             RowBox[{"v", "/", "L"}], "+", "km"}], ")"}], 
+           RowBox[{"1", "+", 
+            FractionBox[
+             RowBox[{"\[Kappa]", " ", "W"}], "EG"]}]]}], "-", "km"}], 
+        ")"}]}]}]}], ";"}], "\[IndentingNewLine]"}]}]], "Input",
+ CellChangeTimes->{{3.657421789955887*^9, 3.657422011453691*^9}, {
+   3.6574220508072968`*^9, 3.657422120047318*^9}, {3.65742215045229*^9, 
+   3.657422170754038*^9}, {3.657422250680875*^9, 3.657422255261648*^9}, {
+   3.657422298701686*^9, 3.657422381990377*^9}, {3.657422414498871*^9, 
+   3.657422418578623*^9}, {3.657422494115508*^9, 3.6574225365545073`*^9}, {
+   3.65742263200778*^9, 3.657422903925889*^9}, {3.657422969292426*^9, 
+   3.6574230020086718`*^9}, 3.6574230422934103`*^9}],
+
+Cell[BoxData[
+ RowBox[{"-", 
+  FractionBox[
+   RowBox[{
+    RowBox[{"EG", " ", 
+     SuperscriptBox["v", "2"], " ", "w", " ", "\[Nu]"}], "+", 
+    RowBox[{"EG", " ", "f", " ", 
+     SuperscriptBox["v", "2"], " ", "w", " ", "\[Nu]"}], "-", 
+    RowBox[{
+    "f", " ", "Imax", " ", "l", " ", "Vol", " ", "\[Epsilon]", " ", 
+     "\[Lambda]", " ", 
+     SuperscriptBox[
+      RowBox[{"(", 
+       RowBox[{"l", " ", "\[Alpha]", " ", "\[Lambda]"}], ")"}], "g"], " ", 
+     "\[Rho]"}]}], 
+   RowBox[{
+    RowBox[{
+    "EG", " ", "km", " ", "l", " ", "v", " ", "\[Lambda]", " ", "\[Nu]"}], 
+    "+", 
+    RowBox[{
+    "EG", " ", "f", " ", "km", " ", "l", " ", "v", " ", "\[Lambda]", " ", 
+     "\[Nu]"}]}]]}]], "Output",
+ CellChangeTimes->{{3.65742284126793*^9, 3.6574229043505287`*^9}}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"Nondimensionalization", ":", " ", "F"}], "=", "\[Phi]f"}], ",", 
+    " ", 
+    RowBox[{"L", "=", "\[Lambda]l"}], ",", " ", 
+    RowBox[{"W", "=", "\[Omega]w"}], ",", " ", 
+    RowBox[{"E", "=", "\[Epsilon]e"}], ",", " ", 
+    RowBox[{"R", "=", "\[Eta]r"}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "Let", " ", "the", " ", "relationship", " ", "between", " ", "observed", 
+     " ", "length", " ", "and", " ", "structural", " ", "length", " ", "be", 
+     " ", "equal", " ", "to", " ", "Lobs"}], "=", "\[Alpha]L"}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    FractionBox["\[Tau]", "\[Phi]"], " ", 
+    RowBox[{"(", 
+     RowBox[{
+      RowBox[{"-", "Imax"}], " ", 
+      FractionBox[
+       RowBox[{"\[Phi]", " ", "f"}], 
+       RowBox[{"fh", "+", 
+        RowBox[{"\[Phi]", " ", "f"}]}]], " ", 
+      SuperscriptBox["\[Alpha]", "g"], " ", 
+      SuperscriptBox["\[Lambda]", "g"]}], ")"}]}], " ", 
+   RowBox[{"(*", " ", 
+    RowBox[{"df", "/", "dt"}], " ", "*)"}], 
+   "\[IndentingNewLine]"}]}]], "Input",
+ CellChangeTimes->{{3.657421487745904*^9, 3.657421564839458*^9}, {
+  3.6574216187833548`*^9, 3.657421757706008*^9}, {3.657422131576086*^9, 
+  3.657422140146996*^9}}],
+
+Cell[BoxData[
+ RowBox[{"-", 
+  FractionBox[
+   RowBox[{"f", " ", "Imax", " ", 
+    SuperscriptBox["\[Alpha]", "g"], " ", 
+    SuperscriptBox["\[Lambda]", "g"], " ", "\[Tau]"}], 
+   RowBox[{"fh", "+", 
+    RowBox[{"f", " ", "\[Phi]"}]}]]}]], "Output",
+ CellChangeTimes->{3.657422134211452*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"-", 
+   FractionBox[
+    RowBox[{
+     RowBox[{"(", 
+      RowBox[{"km", "+", 
+       FractionBox["v", "L"]}], ")"}], " ", "\[CapitalEpsilon]"}], 
+    RowBox[{"V", " ", 
+     RowBox[{"(", 
+      RowBox[{"1", "+", 
+       FractionBox[
+        RowBox[{"\[CapitalEpsilon]", " ", "\[Kappa]"}], 
+        RowBox[{"EG", " ", "V"}]]}], ")"}]}]]}], "-", 
+  FractionBox[
+   RowBox[{"\[CapitalEpsilon]", " ", 
+    RowBox[{"(", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"-", "EG"}], " ", "km", " ", "V"}], "+", 
+      FractionBox[
+       RowBox[{
+        RowBox[{"(", 
+         RowBox[{"km", "+", 
+          FractionBox["v", "L"]}], ")"}], " ", "\[CapitalEpsilon]", " ", 
+        "\[Kappa]"}], 
+       RowBox[{"1", "+", 
+        FractionBox[
+         RowBox[{"\[CapitalEpsilon]", " ", "\[Kappa]"}], 
+         RowBox[{"EG", " ", "V"}]]}]]}], ")"}]}], 
+   RowBox[{"EG", " ", 
+    SuperscriptBox["V", "2"]}]], "+", 
+  FractionBox[
+   RowBox[{"F", " ", "Imax", " ", 
+    SuperscriptBox["Lobs", "g"], " ", "\[Epsilon]", " ", "\[Rho]"}], 
+   RowBox[{"F", "+", "fh"}]]}]], "Output",
+ CellChangeTimes->{3.657422134214039*^9}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"dWdt", "/.", 
+  RowBox[{"{", 
+   RowBox[{
+    RowBox[{"V", "\[Rule]", 
+     RowBox[{"\[Nu]", " ", "v"}]}], ",", " ", 
+    RowBox[{"L", "\[Rule]", 
+     RowBox[{"\[Lambda]", " ", "l"}]}], ",", " ", 
+    RowBox[{"\[CapitalEpsilon]", "->"}]}]}]}]], "Input",
+ CellChangeTimes->{{3.657422180767117*^9, 3.657422217499425*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"-", 
+   FractionBox[
+    RowBox[{
+     RowBox[{"(", 
+      RowBox[{"km", "+", 
+       FractionBox["v", "L"]}], ")"}], " ", "\[CapitalEpsilon]"}], 
+    RowBox[{"V", " ", 
+     RowBox[{"(", 
+      RowBox[{"1", "+", 
+       FractionBox[
+        RowBox[{"\[CapitalEpsilon]", " ", "\[Kappa]"}], 
+        RowBox[{"EG", " ", "V"}]]}], ")"}]}]]}], "-", 
+  FractionBox[
+   RowBox[{"\[CapitalEpsilon]", " ", 
+    RowBox[{"(", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"-", "EG"}], " ", "km", " ", "V"}], "+", 
+      FractionBox[
+       RowBox[{
+        RowBox[{"(", 
+         RowBox[{"km", "+", 
+          FractionBox["v", "L"]}], ")"}], " ", "\[CapitalEpsilon]", " ", 
+        "\[Kappa]"}], 
+       RowBox[{"1", "+", 
+        FractionBox[
+         RowBox[{"\[CapitalEpsilon]", " ", "\[Kappa]"}], 
+         RowBox[{"EG", " ", "V"}]]}]]}], ")"}]}], 
+   RowBox[{"EG", " ", 
+    SuperscriptBox["V", "2"]}]], "+", 
+  FractionBox[
+   RowBox[{"F", " ", "Imax", " ", 
+    SuperscriptBox["Lobs", "g"], " ", "Vol", " ", "\[Epsilon]", " ", 
+    "\[Rho]"}], 
+   RowBox[{
+    RowBox[{"(", 
+     RowBox[{"F", "+", "fh"}], ")"}], " ", "V"}]]}]], "Output",
+ CellChangeTimes->{3.657422142096136*^9, 3.657422176540083*^9}]
+}, Open  ]]
+},
+WindowSize->{808, 619},
+WindowMargins->{{4, Automatic}, {Automatic, 4}},
+FrontEndVersion->"10.3 for Mac OS X x86 (32-bit, 64-bit Kernel) (October 9, \
+2015)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[580, 22, 318, 9, 28, "Input"],
+Cell[901, 33, 516, 16, 51, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[1454, 54, 6025, 170, 390, "Input"],
+Cell[7482, 226, 780, 22, 50, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[8299, 253, 1328, 35, 120, "Input"],
+Cell[9630, 290, 292, 8, 50, "Output"],
+Cell[9925, 300, 1143, 36, 79, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[11105, 341, 344, 9, 28, "Input"],
+Cell[11452, 352, 1233, 39, 79, "Output"]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)
+

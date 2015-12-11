@@ -460,7 +460,7 @@ for (i in 1:length(EG_vals)) {
                            value=unname(fixpars["F0"]),
                            method=rep(c(rep("add",4),"rep"),35/5))
     t1 <- Sys.time()
-    mclapply(guesses,
+    mclapply(guesses[1:500],
              traj_match,
              fixpars=fixpars,
              parorder=parorder,
@@ -468,7 +468,7 @@ for (i in 1:length(EG_vals)) {
              obsdata=data,
              events=eventdat,
              eval.only=TRUE,
-             mc.cores=12) %>%
+             mc.cores=2) %>%
         lapply(., function(x) x$lik) %>%
             unlist -> guess_lik
     t2 <- Sys.time()
