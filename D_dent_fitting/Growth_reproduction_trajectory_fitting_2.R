@@ -259,7 +259,7 @@ mclapply(guesses,
          obsdata=data,
          events=eventdat,
          eval.only=TRUE,
-         mc.cores=10) %>%
+         mc.cores=15) %>%
     lapply(., function(x) x$lik) %>%
         unlist -> guess_lik
 guesses[order(guess_lik)[1:1000]] -> refine
@@ -649,3 +649,27 @@ for (i in c(3,8,9,10,12,17,18,20)) {
     ests[[i]] <- refine_pars
     saveRDS(ests, file="~/Dropbox/Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets_2.RDS")
 }
+
+
+
+
+###############
+## I want to try something different. In particular, I want to add environmental stochasticity to the model.
+box <- cbind(lower=c(fh=2000, rho=0, K=0, km=0.001, Lobs=0.001),
+             upper=c(fh=20000, rho=1, K=1, km=1, Lobs=2))
+sobolDesign(lower=box[,'lower'],
+            upper=box[,'upper'],
+            nseq=250000) %>%
+    apply(., 1, as.list) %>%
+        lapply(., unlist) -> guesses
+
+fixpars <- c(Imax=22500, g=1.45, eps=44.5e-9, V=30, F0=1000000/30, xi=2.62e-3, q=2.4, ER=1.51e-3, v=100)
+estpars <- guesses[[1]]
+transform <- c("log", rep("logit",2), rep("log",2))
+parorder <- c("Imax","fh","g","rho","eps","V","F0","xi","q","K","km","ER","v","Lobs")
+data <- readRDS("simulated_dataset.RDS")
+
+fixpars["Imax"] <- calc_Imax(unname(estpars["fh"]))
+fixpars["g"] <- calc_g(unname(estpars["fh"]))
+pars <- c(estpars, fixpars)
+pars[match(parorder, names(pars))] -> pars
