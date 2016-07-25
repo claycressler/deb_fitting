@@ -8,10 +8,10 @@ library(tidyr)
 library(ggplot2)
 
 ## rebuild source for this computer
-if (is.loaded("deb2.so")) dyn.unload("deb2.so")
-system("rm deb2.so")
-system("R CMD SHLIB deb2.c")
-dyn.load("deb2.so")
+if (is.loaded("debStochEnv.so")) dyn.unload("debStochEnv.so")
+system("rm debStochEnv.so")
+system("R CMD SHLIB debStochEnv.c")
+dyn.load("debStochEnv.so")
 
 calc_Imax <- function(fh) 10616.500976 + 1.129421*fh
 calc_g <- function(fh) 1.38413 + 9.839020e-6*fh - 2.738144e-10*fh^2 + 2.648817e-15*fh^3

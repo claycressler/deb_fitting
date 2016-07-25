@@ -654,7 +654,42 @@ for (i in c(3,8,9,10,12,17,18,20)) {
 
 
 ###############
-## I want to try something different. In particular, I want to add environmental stochasticity to the model.
+## I want to try something different. In particular, I want to add environmental stochasticity to the model. The reason is simple to understand - there is a large amount of variation among individuals, but I really don't think that is due to systematic measurement error. For example, I assume that measurement error on reproduction is Poisson distribution, which means that the mean and variance are equal. This means that, as the individual ages, there is more error in the estimation if reproduction. That doesn't make sense, empirically - the error is probably fairly constant through time and not nearly as variable as is assumed by the Poisson distribution. However, I am very confident that the amount of food added each transfer is not identical, which will introduce a lot of stochastic variation in growth and reproduction trajectories. So I need to write code that includes such variation.
+
+## Simulate data like the data I will be fitting, which contains 12 datapoints at each of 8 ages. However, in the real data, these come from 96 individuals because each individual was sacrificed on the day. So, generate 96 trajectories, each with slightly different sequence of food.
+
+pars <- c(Imax=22500, fh=10000, g=1.45, rho=0.1, eps=44.5e-9, V=30, F0=1000000/30, xi=2.62e-3, q=2.4, K=0.3, km=0.15, ER=1.51e-3, v=10, Lobs=0.1, Ferr=5000)
+y0 <- c(F=1000000/30, E=0.00025, W=0.00025, R=0)
+times <- seq(0, 35, 0.001)
+
+out <- vector(mode='list', length=96)
+for (i in 1:96) {
+    ## feeding schedule - amount of food added each time is stochastic
+    eventdat <- data.frame(var="F",
+                           time=1:35,
+                           value=rnorm(35,
+                               mean=unname(pars["F0"]),
+                               sd=unname(pars["Ferr"])),
+                           method=rep(c(rep("add",4),"rep"),max(times)/5))
+    ode(y0, times=0:35, func="derivs", parms=pars, dllname="debStochEnv", initfunc="initmod", events=list(data=eventdat)) %>% as.data.frame -> out[[i]]
+}
+days <- c(5,10,12,15,18,25,30,35)
+set.seed(1239478)
+data.frame(times=rep(days, each=12),
+           length=sapply(with(out2, ((E[days+1]+W[days+1])/pars["xi"])^(1/pars["q"])),
+               function(x)
+                   rnorm(12, mean=x, sd=pars["Lobs"])
+                         ) %>% as.numeric,
+           eggs=sapply(with(out2, R-R[which((E+W) < 0.005) %>% max])[days+1],
+               function(x)
+                   rpois(12, lambda=x)
+                       ) %>% as.numeric
+           ) -> data
+data$eggs[is.na(data$eggs)] <- 0
+saveRDS(data, file="simulated_dataset.RDS")
+
+
+
 box <- cbind(lower=c(fh=2000, rho=0, K=0, km=0.001, Lobs=0.001),
              upper=c(fh=20000, rho=1, K=1, km=1, Lobs=2))
 sobolDesign(lower=box[,'lower'],
