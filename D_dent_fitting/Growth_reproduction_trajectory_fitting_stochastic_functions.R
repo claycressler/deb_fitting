@@ -84,9 +84,13 @@ traj_match <- function(estpars, fixpars, parorder, transform, obsdata, events, e
 }
 ## Objective function to minimize for the structured model
 
-## To incorporate stochasticity, assume that the amount of food added each transfer is variable (normally distributed with a variance that must be estimated). What I'm implementing will simulate 1000 different realizations, computing the likelihood of each simulation to compute an overall likelihood. The process noise parameter is also estimated.
+## To incorporate stochasticity, assume that the amount of food added each transfer is variable (normally distributed with a variance that must be estimated).
 
-obj <- function(estpars, data, fixpars, parorder, transform, events) {
+## What I'm implementing is a particle filter. Starting at the initial conditions, the particle filter generates Np trajectories up to the first datapoint. It then evaluates the likelihood of each trajectory, given the data. The trajectories are resampled according to this likelihood (so some low-likelihood trajectories will be lost). Those trajectories are then iterated forward until the next datapoint. The likelihood of the trajectories are then evaluated against both the first and second trajectory.
+
+
+
+obj <- function(estpars, data, fixpars, parorder, transform, events, Np) {
     ## We will give the model the true initial conditions
     y0 <- c(F=1e6/30, E=0.00025, W=0.00025, R=0)
     ## Put the estimated parameters back on the natural scale

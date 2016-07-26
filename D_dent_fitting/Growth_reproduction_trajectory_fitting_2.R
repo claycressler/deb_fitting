@@ -658,12 +658,20 @@ for (i in c(3,8,9,10,12,17,18,20)) {
 
 ## Simulate data like the data I will be fitting, which contains 12 datapoints at each of 8 ages. However, in the real data, these come from 96 individuals because each individual was sacrificed on the day. So, generate 96 trajectories, each with slightly different sequence of food.
 
-pars <- c(Imax=22500, fh=10000, g=1.45, rho=0.1, eps=44.5e-9, V=30, F0=1000000/30, xi=2.62e-3, q=2.4, K=0.3, km=0.15, ER=1.51e-3, v=10, Lobs=0.1, Ferr=5000)
+source("Growth_reproduction_trajectory_fitting_stochastic_functions.R")
+
+pars <- c(Imax=22500, fh=10000, g=1.45, rho=0.1, eps=44.5e-9, V=30, F0=1000000/30, xi=2.62e-3, q=2.4, K=0.3, km=0.15, ER=1.51e-3, v=10, Lobs=0.1, Robs=1, Ferr=5000)
 y0 <- c(F=1000000/30, E=0.00025, W=0.00025, R=0)
 times <- seq(0, 35, 0.001)
 
-out <- vector(mode='list', length=96)
-for (i in 1:96) {
+## days when observations will take place
+days <- c(5,10,12,15,18,25,30,35)
+## number of reps per observation day
+inds <- 1:12
+
+set.seed(101)
+out <- vector(mode='list', length=length(days)*length(inds))
+for (i in 1:(length(days)*length(inds))) {
     ## feeding schedule - amount of food added each time is stochastic
     eventdat <- data.frame(var="F",
                            time=1:35,
@@ -673,36 +681,33 @@ for (i in 1:96) {
                            method=rep(c(rep("add",4),"rep"),max(times)/5))
     ode(y0, times=0:35, func="derivs", parms=pars, dllname="debStochEnv", initfunc="initmod", events=list(data=eventdat)) %>% as.data.frame -> out[[i]]
 }
-days <- c(5,10,12,15,18,25,30,35)
-set.seed(1239478)
-data.frame(times=rep(days, each=12),
-           length=sapply(with(out2, ((E[days+1]+W[days+1])/pars["xi"])^(1/pars["q"])),
-               function(x)
-                   rnorm(12, mean=x, sd=pars["Lobs"])
-                         ) %>% as.numeric,
-           eggs=sapply(with(out2, R-R[which((E+W) < 0.005) %>% max])[days+1],
-               function(x)
-                   rpois(12, lambda=x)
-                       ) %>% as.numeric
-           ) -> data
-data$eggs[is.na(data$eggs)] <- 0
-saveRDS(data, file="simulated_dataset.RDS")
 
+## Simulate observations
+set.seed(101)
+data = expand.grid(ind=inds, times=days)
+data$length <- rnorm(nrow(data),
+                     mean=(sapply(1:nrow(data), function(i) out[[i]][data[i,'times']+1,4])/pars['xi'])^(1/pars['q']),
+                     sd=pars['Lobs'])
+data$eggs <- rnorm(nrow(data),
+                   mean=sapply(1:nrow(data), function(i) out[[i]][data[i,'times']+1,5]),
+                   sd=pars['Robs'])
 
-
-box <- cbind(lower=c(fh=2000, rho=0, K=0, km=0.001, Lobs=0.001),
-             upper=c(fh=20000, rho=1, K=1, km=1, Lobs=2))
+box <- cbind(lower=c(fh=2000, rho=0, K=0, km=0.001, Lobs=0.001, Robs=0.01, Ferr=100),
+             upper=c(fh=20000, rho=1, K=1, km=1, Lobs=2, Robs=10, Ferr=10000))
 sobolDesign(lower=box[,'lower'],
             upper=box[,'upper'],
-            nseq=250000) %>%
+            nseq=100000) %>%
     apply(., 1, as.list) %>%
         lapply(., unlist) -> guesses
 
 fixpars <- c(Imax=22500, g=1.45, eps=44.5e-9, V=30, F0=1000000/30, xi=2.62e-3, q=2.4, ER=1.51e-3, v=100)
 estpars <- guesses[[1]]
-transform <- c("log", rep("logit",2), rep("log",2))
-parorder <- c("Imax","fh","g","rho","eps","V","F0","xi","q","K","km","ER","v","Lobs")
-data <- readRDS("simulated_dataset.RDS")
+transform <- c("log", rep("logit",2), rep("log",4))
+parorder <- c("Imax","fh","g","rho","eps","V","F0","xi","q","K","km","ER","v","Lobs","Robs","Ferr")
+
+## Implement a particle filter to compute the likelihood of a particular parameter set
+## For illustration, implement the particle filter
+
 
 fixpars["Imax"] <- calc_Imax(unname(estpars["fh"]))
 fixpars["g"] <- calc_g(unname(estpars["fh"]))

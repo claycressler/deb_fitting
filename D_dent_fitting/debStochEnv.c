@@ -1,7 +1,7 @@
 #include <R.h>
 #include <stdio.h>
 
-static double parms[15];
+static double parms[16];
 
 #define Imax parms[0]
 #define fh parms[1]
@@ -19,7 +19,7 @@ static double parms[15];
 
 /* initializer */
 void initmod(void (* odeparms)(int *, double *)) {
-  int N=15;
+  int N=16;
   odeparms(&N, parms);
 }
 
