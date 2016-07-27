@@ -10,7 +10,7 @@ inds <- 1:12
 
 set.seed(101)
 out <- vector(mode='list', length=length(times)*length(inds))
-for (i in 1:(length(days)*length(inds))) {
+for (i in 1:(length(times)*length(inds))) {
     ## feeding schedule - amount of food added each time is stochastic
     eventdat <- data.frame(var="F",
                            time=1:35,
@@ -38,21 +38,18 @@ eventdat <- data.frame(var="F",
                        method=rep(c(rep("add",4),"rep"),max(times)/5))
 
 times <- c(0,5,10,12,15,18,25,30,35)
-## Generate Np sets of initial conditions for the state variables
-x <- vector(mode='list', length=Np)
-for (i in 1:length(x)) {
-    ## There is variance in size at birth that is distinct from the error in the observation of length, which I will ignore for now
-    x[[i]] <- array(NA, dim=c(length(times), 5))
-    x[[i]][1,] <- c(0,
-                    rnorm(1, mean=1e6/30, sd=pars['Ferr']),
-                    0.00025,
-                    0.00025,
-                    0)
-    colnames(x[[i]]) <- c('T','F','E','W','R')
-}
-tstep <- 1
+## Generate Np sets of initial conditions from the filtering distribution
+Np <- 100
+data.frame(T=0,
+           F=rnorm(Np, mean=1e6/30, sd=pars['Ferr']),
+           E=0.00025,
+           W=0.00025,
+           R=0) -> x.F
+## Set the prediction distribution equal to the filtering distribution
+x.P <- x.F
 
-## Simulate to the next timestep
+tstep <- 1
+lik <- vector(mode='numeric', length=length(times)-1)
 while (tstep < length(times)) {
     ## For each of the Np particles
     for (i in 1:Np) {
@@ -61,19 +58,44 @@ while (tstep < length(times)) {
         events$value <- rnorm(nrow(events),
                               mean=events$value,
                               sd=pars['Ferr'])
-        ## iterate the state variables from the current time to the next timestep and save the result
-        ode(x[[i]][tstep,2:5],
-            times=seq(times[tstep], times[tstep+1], 0.001),
+        ## obtain a sample of points from the prediction distribution by simulating the model forward
+        ode(x.F[i,2:5] %>% unlist,
+            times=seq(times[tstep], times[tstep+1]),
             func="derivs",
             parms=pars,
             dllname="debStochEnv",
             initfunc="initmod",
             events=list(data=events)) %>%
-                tail(1) -> x[[i]][tstep+1,]
+            tail(1) -> x.P[i,]
     }
-    ## determine the weights by computing the likelihood of observing the data up to and including the current time
+    ## determine the weights by computing the probability of observing the data, given the points in the prediction distribution
+    sapply((x.P$W/pars['xi'])^(1/pars['q']),
+           function(l)
+               dnorm(x=data$length[data$age==times[tstep+1]],
+                     mean=l,
+                     sd=pars['Lobs'],
+                     log=TRUE) %>% sum
+           ) +
+        sapply(x.P$R,
+               function(r)
+                   dnorm(x=data$eggs[data$age==times[tstep+1]],
+                         mean=r,
+                         sd=pars['Robs'],
+                         log=TRUE) %>% sum
+               ) -> weights
+
+    ## conditional likelihood for this timestep is the mean probability across the points in the prediction distribution
+    lik[tstep] <- mean(weights)
+
+    ## use the weights to update the filtering distribution
+    sample(order(weights),
+           length(weights),
+           prob=
 
 
+    (x[[i]][which(x[[i]][,'T']==t),'W']/pars['xi'])^(1/pars['q'])
+
+sapply(times[2:(tstep+1)], function(t) (x[[i]][t,'W']/pars['xi'])^(1/pars['q']))
 
 
 
