@@ -42,57 +42,77 @@ par_untransform <- function(pars, transform) {
     return(pars)
 }
 
-traj_match <- function(estpars, fixpars, parorder, transform, obsdata, events, eval.only=FALSE, method="subplex") {
+optimizer <- function(estpars, fixpars, parorder, transform, obsdata, Np, eval.only=FALSE, type="trajectory_matching", method="subplex") {
     estpars <- par_transform(pars=estpars, transform=transform)
     if (any(is.na(estpars)))
         opt <- list(params=estpars,
                     lik=NA)
     else if (eval.only==TRUE) {
-        x <- obj(estpars=estpars,
-                 data=obsdata,
-                 fixpars=fixpars,
-                 parorder=parorder,
-                 transform=transform,
-                 events=events)
+        if (type=="trajectory_matching")
+            x <- tm_obj(estpars=estpars,
+                        data=obsdata,
+                        fixpars=fixpars,
+                        parorder=parorder,
+                        transform=transform)
+        else if (type=="particle_filter")
+            x <- pf_obj(estpars=estpars,
+                        data=obsdata,
+                        fixpars=fixpars,
+                        parorder=parorder,
+                        transform=transform,
+                        Np=Np)
         opt <- list(params=estpars,
                     lik=x)
     }
     else {
-        if (method=="subplex")
-            x <- subplex(par=estpars,
-                         fn=obj,
-                         data=obsdata,
-                         fixpars=fixpars,
-                         parorder=parorder,
-                         transform=transform,
-                         events=events)
-        else
-            x <- optim(par=estpars,
-                       fn=obj,
-                       method=method,
-                       data=obsdata,
-                       fixpars=fixpars,
-                       parorder=parorder,
-                       transform=transform,
-                       events=events,
-                       control=list(maxit=5000))
+        if (type=="trajectory_matching") {
+            if (method=="subplex")
+                x <- subplex(par=estpars,
+                             fn=tm_obj,
+                             data=obsdata,
+                             fixpars=fixpars,
+                             parorder=parorder,
+                             transform=transform)
+            else
+                x <- optim(par=estpars,
+                           fn=tm_obj,
+                           method=method,
+                           data=obsdata,
+                           fixpars=fixpars,
+                           parorder=parorder,
+                           transform=transform,
+                           control=list(maxit=5000))
+        }
+        else if (type=="particle_filter") {
+            if (method=="subplex")
+                x <- subplex(par=estpars,
+                             fn=pf_obj,
+                             data=obsdata,
+                             fixpars=fixpars,
+                             parorder=parorder,
+                             transform=transform,
+                             Np=Np)
+            else
+                x <- optim(par=estpars,
+                           fn=pf_obj,
+                           method=method,
+                           data=obsdata,
+                           fixpars=fixpars,
+                           parorder=parorder,
+                           transform=transform,
+                           Np=Np,
+                           control=list(maxit=5000))
+        }
+
         opt <- list(params=par_untransform(x$par,transform),
                     lik=x$value,
                     conv=x$convergence)
     }
     return(opt)
 }
-## Objective function to minimize for the structured model
 
-## To incorporate stochasticity, assume that the amount of food added each transfer is variable (normally distributed with a variance that must be estimated).
-
-## What I'm implementing is a particle filter. Starting at the initial conditions, the particle filter generates Np trajectories up to the first datapoint. It then evaluates the likelihood of each trajectory, given the data. The trajectories are resampled according to this likelihood (so some low-likelihood trajectories will be lost). Those trajectories are then iterated forward until the next datapoint. The likelihood of the trajectories are then evaluated against both the first and second trajectory.
-
-
-
-obj <- function(estpars, data, fixpars, parorder, transform, events, Np) {
-    ## We will give the model the true initial conditions
-    y0 <- c(F=1e6/30, E=0.00025, W=0.00025, R=0)
+## Trajectory matching
+tm_obj <- function(estpars, data, fixpars, parorder, transform) {
     ## Put the estimated parameters back on the natural scale
     estpars <- par_untransform(estpars, transform)
     ## compute Imax and g based on the estimate of fh
@@ -103,18 +123,27 @@ obj <- function(estpars, data, fixpars, parorder, transform, events, Np) {
     pars <- c(estpars, fixpars)
     pars[match(parorder, names(pars))] -> pars
     if(any(names(pars)!=parorder)) stop("parameter are in the wrong order")
-    ## simulate the model at these parameters
-    try(ode(y0,
-            times=seq(0, max(data$time)),
-            func="derivs",
-            parms=pars,
-            dllname="deb2",
-            initfunc="initmod",
-            events=list(data=events)
-            )) -> out
-    ## if this parameter set produces a simulation error, if it fails
-    ## to completely run, or if any of the variables take negative
-    ## values, return -Inf for the likelihood.
+
+    ## Generic set of food addition events
+    eventdat <- data.frame(var="F",
+                           time=1:35,
+                           value=unname(pars["F0"]),
+                           method=rep(c(rep("add",4),"rep"),max(times)/5))
+
+    ## Initial condition
+    y0 <- c(F=unname(pars["F0"]),
+           E=0.00025,
+           W=0.00025,
+           R=0)
+
+    ## Simulate the system
+    ode(y0,
+        times=0:35,
+        func="derivs",
+        parms=pars,
+        dllname="debStochEnv",
+        initfunc="initmod",
+        events=list(data=eventdat)) -> out
     if (inherits(out, "try-error"))
         lik <- -Inf
     else if (max(out[,"time"]) < max(data$time))
@@ -123,25 +152,112 @@ obj <- function(estpars, data, fixpars, parorder, transform, events, Np) {
         lik <- -Inf
     else if (any(out < 0))
         lik <- -Inf
+    ## If no errors, compute the likelihood
     else {
-        out <- as.data.frame(out)
-        mutate(out,
-               L=((W+E)/pars["xi"])^(1/pars["q"]),
-               R=R-R[which((E+W) < 0.005) %>% max]) -> out
-        out$R[out$R < 0] <- 0
-        ## calculate the log-likelihood of observing these data
-        ## assuming only observation error
-        (dnorm(data$length,
-              sapply(data$times,
-                     function(t) out$L[out$time==t]),
-              unname(pars["Lobs"]),
-              log=TRUE) +
-             dpois(data$eggs,
-                   sapply(data$times,
-                          function(t) out$R[out$time==t]),
-                   log=TRUE)) %>%
-            sum(., na.rm=TRUE) -> lik
+        as.data.frame(out[unique(data$age)+1,]) -> pred
+
+        ## compute the probability of observing the data, given the prediction
+        sapply(unique(data$age),
+               function(d)
+                   c(dnorm(x=data$length[data$age==d],
+                           mean=(pred$W[pred$time==d]/pars['xi'])^(1/pars['q']),
+                           sd=pars["Lobs"],
+                           log=TRUE) %>% sum,
+                     dnorm(x=data$eggs[data$age==d],
+                           mean=pred$R[pred$time==d],
+                           sd=pars["Robs"],
+                           log=TRUE) %>% sum
+                     ) %>% sum
+               ) %>% sum -> lik
     }
-    ## return the negative log-likelihood (because optimization methods minimize)
+    return(-lik)
+}
+
+
+## Implement a particle filter to compute the likelihood of a particular parameter set.
+pf_obj <- function(estpars, data, fixpars, parorder, transform, Np) {
+    ## Put the estimated parameters back on the natural scale
+    estpars <- par_untransform(estpars, transform)
+    ## compute Imax and g based on the estimate of fh
+    fixpars["Imax"] <- calc_Imax(unname(estpars["fh"]))
+    fixpars["g"] <- calc_g(unname(estpars["fh"]))
+    ## combine the parameters to be estimated and the fixed parameters
+    ## into a single vector, with an order specified by parorder
+    pars <- c(estpars, fixpars)
+    pars[match(parorder, names(pars))] -> pars
+    if(any(names(pars)!=parorder)) stop("parameter are in the wrong order")
+
+    ## Generic set of food addition events
+    eventdat <- data.frame(var="F",
+                           time=1:35,
+                           value=unname(pars['F0']),
+                           method=rep(c(rep("add",4),"rep"),max(times)/5))
+
+    ## Generate Np sets of initial conditions to initilize both the filtering distribution and the prediction distribution
+    Np <- 100
+    data.frame(T=0,
+               F=rnorm(Np, mean=1e6/30, sd=pars['Ferr']),
+               E=0.00025,
+               W=0.00025,
+               R=0) -> x.F -> x.P
+
+    ## timepoints when the likelihood should be evaluated
+    times <- c(0, data$age %>% unique)
+    tstep <- 1
+    lik <- 0
+    while (tstep < length(times)) {
+        ## For each of the Np particles
+        for (i in 1:Np) {
+            ## generate the food addition events
+            events <- subset(eventdat, time >= times[tstep] & time < times[tstep+1])
+            events$value <- rnorm(nrow(events),
+                                  mean=events$value,
+                                  sd=pars['Ferr'])
+            ## obtain a sample of points from the prediction distribution by simulating the model forward
+            ode(x.F[i,2:5] %>% unlist,
+                times=seq(times[tstep], times[tstep+1]),
+                func="derivs",
+                parms=pars,
+                dllname="debStochEnv",
+                initfunc="initmod",
+                events=list(data=events)) %>%
+                    tail(1) -> x.P[i,]
+        }
+        ## determine the weights by computing the probability of observing the data, given the points in the prediction distribution
+        sapply((x.P$W/pars['xi'])^(1/pars['q']),
+               function(l)
+                   dnorm(x=data$length[data$age==times[tstep+1]],
+                         mean=l,
+                         sd=pars['Lobs'],
+                         log=FALSE) %>% sum
+               ) +
+                   sapply(x.P$R,
+                          function(r)
+                              dnorm(x=data$eggs[data$age==times[tstep+1]],
+                                    mean=r,
+                                    sd=pars['Robs'],
+                                    log=FALSE) %>% sum
+                          ) -> weights
+
+        ## conditional likelihood for this timestep is the mean probability across the points in the prediction distribution
+        lik <- lik + log(mean(weights))
+
+        ## use the weights to update the filtering distribution by resampling from the prediction distribution
+        w <- cumsum(weights)
+        du <- max(w)/length(w)
+        u <- runif(1,-du,0)
+        p <- vector(mode='numeric', length=length(w))
+        for (j in 1:length(w)) {
+            i <- 1
+            u <- u+du
+            while (u > w[i])
+                i <- i+1
+            p[j] <- i
+        }
+
+        x.F <- x.P[p,]
+        rownames(x.F) <- as.character(1:Np)
+        tstep <- tstep+1
+    }
     return(-lik)
 }
