@@ -151,6 +151,38 @@ for (d in 2:25) {
     saveRDS(tm_ests, file="Trajectory_matching_7-27.RDS")
 }
 
+saveRDS(datasets, file="env_stoch_datasets.RDS")
+
+## For this first set of attempts, do not attempt to estimate ER, but allow it to be fixed at the correct value.
+pf_ests <- vector(mode='list', length=25)
+tm_ests <- readRDS("Trajectory_matching_7-27.RDS")
+
+for (d in 2:25) {
+    print(d)
+    data <- datasets[[d]]$data
+
+
+
+    mclapply(refine,
+             optimizer,
+             fixpars=fixpars,
+             parorder=parorder,
+             transform=transform,
+             obsdata=data,
+             eval.only=FALSE,
+             type='trajectory_matching',
+             method='Nelder-Mead',
+             mc.cores=15) -> refine_lik
+    refine_lik %>%
+        lapply(., unlist) %>%
+            unlist %>%
+                matrix(., ncol=(nrow(box)+2), byrow=TRUE, dimnames=list(1:length(refine_lik), c(rownames(box),"lik","conv"))) %>%
+                    as.data.frame -> refine_pars
+    refine_pars[order(refine_pars$lik),] -> refine_pars
+    tm_ests[[d]] <- refine_pars
+    saveRDS(tm_ests, file="Trajectory_matching_7-27.RDS")
+}
+
 
 
 ## for this set, allow it to be estimated along with everything else
