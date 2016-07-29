@@ -376,62 +376,7 @@ library(ggplot2)
 library(tidyr)
 source("Growth_reproduction_trajectory_fitting_functions_3.R")
 pars <- c(Imax=22500, fh=10000, g=1.45, rho=0.5, eps=44.5e-9, V=30, F0=1000000/30, xi=2.62e-3, q=2.4, K=0.5, km=0.3, ER=1.51e-3, v=10, Lobs=0.1)
-parorder <- c("Imax","fh","g","rho","eps","V","F0","xi","q","K","km","ER","v","Lobs")
-fixpars <- pars[c("Imax","g","eps","V","F0","xi","q")]
-varpars <- pars[c("fh","rho","K","km","ER","v","Lobs")]
-y0 <- c(F=1000000/30, E=0.00025, W=0.00025, R=0)
-times <- seq(0, 35, 0.001)
-## feeding schedule
-eventdat <- data.frame(var="F",
-                       time=1:35,
-                       value=unname(pars["F0"]),
-                       method=rep(c(rep("add",4),"rep"),max(times)/5))
-days <- c(5,10,12,15,18,25,30,35)
-datasets <- vector(mode='list', length=20)
-set.seed(1231239478)
-for (i in 1:20) {
-    data.frame(times=rep(days, each=12),
-               length=rep(0,96),
-               eggs=rep(0,96)) -> data
-    ## ensure that the data give you something that looks reasonably like a Daphnia
-    while ( (min(data$length) < 0.5) | (max(data$length) > 5) |
-               any(subset(data, times==5)$length > 2) |
-                   coef(lm(length~times,data))[2] < 0.01 |
-                       summary(lm(length~times, data))$coefficients[2,4] > 0.05  |
-                           (max(data[,"eggs"]) < 5) | (max(data[,"eggs"]) > 200) |
-                               any(subset(data, times==5)$eggs > 0) |
-                                   any(is.na(data))
-           ) {
-        ## GENERATE NOVEL PARAMETERS
-        rnorm(length(varpars), mean=varpars, sd=varpars/2) -> p
-        names(p) <- names(varpars)
-        while (p["K"] > 0.9 | p["K"] < 0.1 | any(p < 0) | p["rho"] > 0.9 | p["rho"] < 0.1) {
-            rnorm(length(varpars), mean=varpars, sd=varpars/2) -> p
-            names(p) <- names(varpars)
-        }
-        ## combine fixpars with p
-        pars <- c(p, fixpars)
-        pars <- pars[match(parorder, names(pars))]
-        ## calculate the value of Imax and g, given the value of fh
-        pars["Imax"] <- calc_Imax(unname(pars["fh"]))
-        pars["g"] <- calc_g(unname(pars["fh"]))
-        ## simulate
-        ode(y0, times=0:35, func="derivs", parms=pars, dllname="deb2", initfunc="initmod", events=list(data=eventdat)) %>% as.data.frame -> out
-        mutate(out, R=R-R[which((E+W) < 5e-3) %>% max]) -> out
-        out$R[out$R < 0] <- 0
-        data.frame(times=rep(days, each=12),
-                   length=sapply(with(out, ((E[days+1]+W[days+1])/fixpars["xi"])^(1/fixpars["q"])),
-                       function(x)
-                           rnorm(12, mean=x, sd=varpars["Lobs"])
-                                 ) %>% as.numeric,
-                   eggs=sapply(out$R[days+1],
-                       function(x)
-                           rpois(12, lambda=x)
-                               ) %>% as.numeric
-                   ) -> data
-    }
-    datasets[[i]] <- list(params=pars, data=data)
-}
+datasets <- readRDS("Trajectory_fitting_20_datasets")
 d <- vector()
 for (i in 1:20)
     d <- rbind(d, lapply(1:length(datasets), function(i) mutate(datasets[[i]]$data, set=i))[[i]])
@@ -941,26 +886,55 @@ I also implemented environmental stochasticity in the food addition to generate 
 For this set of results, I generated 25 random parameter sets and then fit the model using trajectory matching to get a pretty solid set of parameter estimates.
 I will then use a newly implemented particle filter to improve on these fits - the particle filter also allows for the fitting to take account of the environmental stochasticity.
 
-<<>>=
+ <<'best-ests-20', fig.height=4, fig.width=4, out.width='0.6\\textwidth', fig.cap='The highest likelihood parameter estimate from fitting each of 20 parameter sets using the model with Poisson measurement errors and no environmental stochasticity. The true parameter value is given by the x-axis value and the estimate is given by the y-axis value. The line is the one-to-one line for reference.'>>=
+
+xlabels <- c(expression("Half-saturation"~f[h]),
+             expression("Assimilation efficiency"~rho),
+             expression("Growth allocation"~kappa),
+             expression("Maintenance rate"~k[m]),
+             expression("Length measurement"~L[obs]),
+             expression("Egg measurement"~E[obs]))
+
+ ## Compare against the previous attempts to fit 20 parameter sets to see how much we have improved at fitting
+datasets2 <- readRDS("Trajectory_fitting_20_datasets.RDS")
+ests2 <- readRDS("Growth_reproduction_trajectory_fitting_dyn_food_multiple_datasets_take_2.RDS")
+par(mfrow=c(2,3), mar=c(4.5, 2.5, 0.25, 0), oma=rep(0.25,4))
+for (i in 1:5) {
+    p <- colnames(ests2[[1]])[i]
+    y <- lapply(ests2, function(x) x[1,p]) %>% unlist
+    x <- lapply(datasets2, function(x) x$params[p]) %>% unlist %>% unname
+    plot(x, y, xlab=xlabels[i], ylab='', cex.axis=1.25, cex.lab=1.25)
+    abline(0, 1)
+}
+
+@
+
+ <<'best-ests-25', fig.height=4, fig.width=4, out.width='0.6\\textwidth', fig.cap='The highest likelihood parameter estimate from fitting each of 25 parameter sets using the model with normal measurement errors and including environmental stochasticity. The true parameter value is given by the x-axis value and the estimate is given by the y-axis value. The line is the one-to-one line for reference.'>>=
 
 datasets <- readRDS("env_stoch_datasets.RDS")
 ests <- readRDS("Trajectory_matching_7-27.RDS")
 
-for (d in 1:25) {
-    par(mfrow=c(1,6), oma=rep(0.25,4), mar=c(4.5,2,0.25,0.25))
-    for (i in 1:6) {
-        inds <- which(ests[[d]]$lik < (min(ests[[d]]$lik) + 2))
-        parameter <- colnames(ests[[d]][i])
-        hist(ests[[d]][inds,i], xlab=parameter, main="", freq=TRUE, breaks=length(inds), ylab="")
-        abline(v=datasets[[d]]$params[parameter], col=2)
-    }
-    dev.copy2pdf(file=paste("Trajectory_matching_7-27_dataset_",d,".pdf"))
+par(mfrow=c(2,3), mar=c(4.5, 2.5, 0.25, 0), oma=rep(0.25,4))
+for (i in 1:6) {
+    p <- colnames(ests[[1]])[i]
+    y <- lapply(ests, function(x) x[1,p]) %>% unlist
+    x <- lapply(datasets, function(x) x$params[p]) %>% unlist %>% unname
+    plot(x, y, xlab=xlabels[i], ylab='', cex.axis=1.25, cex.lab=1.25)
+    abline(0, 1)
 }
 
 
 @
 
 
+First, I want to compare the results from the original attempt to fit 20 different parameter sets with this more recent attempt, to see if things are much improved.
+Fig. \ref{best-ests-20} shows the comparison between the true and best fitting parameter estimates for the model with Poisson measurement error.
+Fig. \ref{best-ests-25} shows the comparison between the true and best fitting parameter estimates for the model with normal measurement error and environmental stochasticity.
+Comparison if these two figures shows that both models do a pretty good job of estimating parameters like the assimilation efficiency and growth allocation, though the normal error model is definitely better.
+The normal error model is much better at estimating both measurement error parameters.
+The Poisson error model is much better at estimating the maintenance rate and the half-saturaction constant.
+The difficulty that normal error model has with estimating the half-saturation constant actually makes a lot of sense, because the data the model is trying to fit included environmental stochasticity in the food availability - that parameter estimate might tighten up pretty considerably when I use the particle filter fitting algorithm.
+The errors in the maintenance rate estimates may also be due to the same challenge - hard to say.
 
 
 \end{document}
