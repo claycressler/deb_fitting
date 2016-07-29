@@ -97,6 +97,8 @@ for (d in 1:25) {
     datasets[[d]] <- list(params=pars, data=data)
 }
 
+saveRDS(datasets, file="env_stoch_datasets.RDS")
+
 ## For this first set of attempts, do not attempt to estimate ER, but allow it to be fixed at the correct value.
 tm_ests <- vector(mode='list', length=25)
 for (d in 2:25) {

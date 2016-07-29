@@ -928,4 +928,39 @@ Overall, I think the message from these simulation-recovery experiments is highl
 I think, at a maximum, that it may be necessary to carry out profile likelihood calculations for $f_h$ and possibly also $v$ (just to ensure that changing the value of $v$ has no effect).
 But these simulations do lend credence to our ability to estimate $\rho$, $\kappa$, and $k_m$, so long as the other parameters related to feeding, length-biomass conversion, and the cost of reproduction are known.
 
+
+\clearpage
+
+I redid the measurement model, because I was concerned that the assumption of Poisson errors was likely making fitting more difficult than it needed to be and was biologically unrealistic.
+It is biologically unrealistic because counting the number of neonates is actually pretty close to error-free, whereas the Poisson distribution has mean and variance equal.
+Moreover, my measurement model was implemented incorrectly, because I assumed that what was being measured for reproduction was the \emph{cumulative} number of eggs - this made the Poisson distribution assumption even more problematic - rather than the number of eggs per clutch.
+For this new version, I have implemented normally distributed observation error on the eggs per clutch.
+This implies that there is an extra parameter to estimate.
+
+I also implemented environmental stochasticity in the food addition to generate variability in the growth and reproduction trajectories.
+For this set of results, I generated 25 random parameter sets and then fit the model using trajectory matching to get a pretty solid set of parameter estimates.
+I will then use a newly implemented particle filter to improve on these fits - the particle filter also allows for the fitting to take account of the environmental stochasticity.
+
+<<>>=
+
+datasets <- readRDS("env_stoch_datasets.RDS")
+ests <- readRDS("Trajectory_matching_7-27.RDS")
+
+for (d in 1:25) {
+    par(mfrow=c(1,6), oma=rep(0.25,4), mar=c(4.5,2,0.25,0.25))
+    for (i in 1:6) {
+        inds <- which(ests[[d]]$lik < (min(ests[[d]]$lik) + 2))
+        parameter <- colnames(ests[[d]][i])
+        hist(ests[[d]][inds,i], xlab=parameter, main="", freq=TRUE, breaks=length(inds), ylab="")
+        abline(v=datasets[[d]]$params[parameter], col=2)
+    }
+    dev.copy2pdf(file=paste("Trajectory_matching_7-27_dataset_",d,".pdf"))
+}
+
+
+@
+
+
+
+
 \end{document}
