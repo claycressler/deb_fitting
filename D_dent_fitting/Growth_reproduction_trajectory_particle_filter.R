@@ -99,6 +99,13 @@ for (d in 1:25) {
 
 saveRDS(datasets, file="env_stoch_datasets.RDS")
 
+pars <- c(Imax=22500, fh=10000, g=1.45, rho=0.1, eps=44.5e-9, V=30, F0=1000000/30, xi=2.62e-3, q=2.4, K=0.3, km=0.15, ER=1.51e-3, v=10, Lobs=0.1, Robs=1, Ferr=10000)
+fixpars <- pars[c("Imax","g","eps","V","F0","xi","q","ER","v")]
+estpars <- pars[c("fh","rho","K","km","Lobs","Robs","Ferr")]
+transform <- c("log", rep("logit",2), rep("log",4))
+parorder <- c("Imax","fh","g","rho","eps","V","F0","xi","q","K","km","ER","v","Lobs","Robs","Ferr")
+
+
 ## For this first set of attempts, do not attempt to estimate ER, but allow it to be fixed at the correct value.
 tm_ests <- vector(mode='list', length=25)
 for (d in 2:25) {
@@ -157,11 +164,20 @@ saveRDS(datasets, file="env_stoch_datasets.RDS")
 pf_ests <- vector(mode='list', length=25)
 tm_ests <- readRDS("Trajectory_matching_7-27.RDS")
 
-for (d in 2:25) {
+for (d in 1:25) {
     print(d)
     data <- datasets[[d]]$data
 
-
+    estpars <- tm_ests[[d]]
+    estpars$Ferr <- 1e5
+    ## pull out the distinct parameter sets and use those in the particle filter (because many of the parameter sets are very similar to one another)
+    inds <- 1
+    for (i in 2:nrow(estpars)) {
+        ## check to see if this fh value is distinct from all others currently in the set
+        if(!any(signif(estpars$fh[i],2)==signif(estpars$fh[inds],2)))
+            inds <- c(inds, i)
+    }
+    lapply(apply(estpars[inds,1:7], 1, as.list), unlist) -> refine
 
     mclapply(refine,
              optimizer,
@@ -170,7 +186,7 @@ for (d in 2:25) {
              transform=transform,
              obsdata=data,
              eval.only=FALSE,
-             type='trajectory_matching',
+             type='particle_filter',
              method='Nelder-Mead',
              mc.cores=15) -> refine_lik
     refine_lik %>%
@@ -179,8 +195,8 @@ for (d in 2:25) {
                 matrix(., ncol=(nrow(box)+2), byrow=TRUE, dimnames=list(1:length(refine_lik), c(rownames(box),"lik","conv"))) %>%
                     as.data.frame -> refine_pars
     refine_pars[order(refine_pars$lik),] -> refine_pars
-    tm_ests[[d]] <- refine_pars
-    saveRDS(tm_ests, file="Trajectory_matching_7-27.RDS")
+    pf_ests[[d]] <- refine_pars
+    saveRDS(pf_ests, file="Particle_filter_7-30.RDS")
 }
 
 

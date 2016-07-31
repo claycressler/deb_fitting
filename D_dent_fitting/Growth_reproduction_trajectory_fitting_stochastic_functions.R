@@ -43,6 +43,7 @@ par_untransform <- function(pars, transform) {
 }
 
 optimizer <- function(estpars, fixpars, parorder, transform, obsdata, Np, eval.only=FALSE, type="trajectory_matching", method="subplex") {
+    print(estpars)
     estpars <- par_transform(pars=estpars, transform=transform)
     if (any(is.na(estpars)))
         opt <- list(params=estpars,
@@ -128,7 +129,7 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform) {
     eventdat <- data.frame(var="F",
                            time=1:35,
                            value=unname(pars["F0"]),
-                           method=rep(c(rep("add",4),"rep"),max(times)/5))
+                           method=rep(c(rep("add",4),"rep"),max(data$age)/5))
 
     ## Initial condition
     y0 <- c(F=unname(pars["F0"]),
@@ -175,9 +176,10 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform) {
 
 
 ## Implement a particle filter to compute the likelihood of a particular parameter set.
-pf_obj <- function(estpars, data, fixpars, parorder, transform, Np) {
+pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
     ## Put the estimated parameters back on the natural scale
     estpars <- par_untransform(estpars, transform)
+    print(signif(estpars,3))
     ## compute Imax and g based on the estimate of fh
     fixpars["Imax"] <- calc_Imax(unname(estpars["fh"]))
     fixpars["g"] <- calc_g(unname(estpars["fh"]))
@@ -191,10 +193,9 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np) {
     eventdat <- data.frame(var="F",
                            time=1:35,
                            value=unname(pars['F0']),
-                           method=rep(c(rep("add",4),"rep"),max(times)/5))
+                           method=rep(c(rep("add",4),"rep"),max(data$age)/5))
 
     ## Generate Np sets of initial conditions to initilize both the filtering distribution and the prediction distribution
-    Np <- 100
     data.frame(T=0,
                F=rnorm(Np, mean=1e6/30, sd=pars['Ferr']),
                E=0.00025,
@@ -221,8 +222,12 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np) {
                 dllname="debStochEnv",
                 initfunc="initmod",
                 events=list(data=events)) %>%
-                    tail(1) -> x.P[i,]
+                tail(1) -> x.P[i,]
         }
+
+        ## Throw out any particles that were NA
+        x.P <- x.P[apply(x.P, 1, function(x) !any(is.na(x))),]
+
         ## determine the weights by computing the probability of observing the data, given the points in the prediction distribution
         sapply((x.P$W/pars['xi'])^(1/pars['q']),
                function(l)
@@ -256,8 +261,10 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np) {
         }
 
         x.F <- x.P[p,]
-        rownames(x.F) <- as.character(1:Np)
+        rownames(x.F) <- as.character(1:length(weights))
         tstep <- tstep+1
+
     }
+    print(-lik)
     return(-lik)
 }

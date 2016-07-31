@@ -886,7 +886,7 @@ I also implemented environmental stochasticity in the food addition to generate 
 For this set of results, I generated 25 random parameter sets and then fit the model using trajectory matching to get a pretty solid set of parameter estimates.
 I will then use a newly implemented particle filter to improve on these fits - the particle filter also allows for the fitting to take account of the environmental stochasticity.
 
- <<'best-ests-20', fig.height=4, fig.width=4, out.width='0.6\\textwidth', fig.cap='The highest likelihood parameter estimate from fitting each of 20 parameter sets using the model with Poisson measurement errors and no environmental stochasticity. The true parameter value is given by the x-axis value and the estimate is given by the y-axis value. The line is the one-to-one line for reference.'>>=
+ <<'best-ests-20', fig.height=4, fig.width=6, out.width='0.6\\textwidth', fig.cap='The highest likelihood parameter estimate from fitting each of 20 parameter sets using the model with Poisson measurement errors and no environmental stochasticity. The true parameter value is given by the x-axis value and the estimate is given by the y-axis value. The line is the one-to-one line for reference.'>>=
 
 xlabels <- c(expression("Half-saturation"~f[h]),
              expression("Assimilation efficiency"~rho),
@@ -909,7 +909,7 @@ for (i in 1:5) {
 
 @
 
- <<'best-ests-25', fig.height=4, fig.width=4, out.width='0.6\\textwidth', fig.cap='The highest likelihood parameter estimate from fitting each of 25 parameter sets using the model with normal measurement errors and including environmental stochasticity. The true parameter value is given by the x-axis value and the estimate is given by the y-axis value. The line is the one-to-one line for reference.'>>=
+ <<'best-ests-25', fig.height=4, fig.width=6, out.width='0.6\\textwidth', fig.cap='The highest likelihood parameter estimate from fitting each of 25 parameter sets using the model with normal measurement errors and including environmental stochasticity. The true parameter value is given by the x-axis value and the estimate is given by the y-axis value. The line is the one-to-one line for reference.'>>=
 
 datasets <- readRDS("env_stoch_datasets.RDS")
 ests <- readRDS("Trajectory_matching_7-27.RDS")
