@@ -43,7 +43,6 @@ par_untransform <- function(pars, transform) {
 }
 
 optimizer <- function(estpars, fixpars, parorder, transform, obsdata, Np, eval.only=FALSE, type="trajectory_matching", method="subplex") {
-    print(estpars)
     estpars <- par_transform(pars=estpars, transform=transform)
     if (any(is.na(estpars)))
         opt <- list(params=estpars,
@@ -179,6 +178,7 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform) {
 pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
     ## Put the estimated parameters back on the natural scale
     estpars <- par_untransform(estpars, transform)
+    print(estpars)
     ## compute Imax and g based on the estimate of fh
     fixpars["Imax"] <- calc_Imax(unname(estpars["fh"]))
     fixpars["g"] <- calc_g(unname(estpars["fh"]))
@@ -222,13 +222,10 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
                     initfunc="initmod",
                     events=list(data=events))) -> out
             if (inherits(out, "try-error") ||
-                max(out[,"time"]) < times[tstep+1] ||
-                any(is.nan(out)) ||
-                any(out < -1e-4)) {
-                print(i)
-                print(out)
+	    max(out[,"time"]) < times[tstep+1] ||
+	    any(is.nan(out)) ||
+	    any(out < -1e-4)) 
                 x.P[i,] <- rep(NA,5)
-            }
             else tail(out,1) -> x.P[i,]
         }
 
@@ -248,11 +245,15 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
                              log=FALSE) %>% sum
                    ) -> weights
         ## set weight to 0 for any particles that had integration errors
-        if (any(is.na(weights)))
+        if (any(is.na(weights))) {
+	    if (length(which(is.na(weights))) > Np/2) {
+	       stop("Too few particles had non-zero weight")
+	       }
             weights[is.na(weights)] <- 0
+	    }
 
-        ## conditional likelihood for this timestep is the mean probability across the points in the prediction distribution
-        lik <- lik + log(mean(weights))
+        ## conditional likelihood for this timestep is the mean probability across the points in the prediction distribution (discarding all zeros)
+        lik <- lik + log(mean(weights[weights > 0]))
 
         ## use the weights to update the filtering distribution by resampling from the prediction distribution
         w <- cumsum(weights)
@@ -266,11 +267,14 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
                 i <- i+1
             p[j] <- i
         }
+	if (length(unique(p)) < Np/10) 
+	   stop("Too few unique particles after resampling")
 
         x.F <- x.P[p,]
         rownames(x.F) <- as.character(1:length(weights))
         tstep <- tstep+1
 
     }
+    print(-lik)
     return(-lik)
 }
