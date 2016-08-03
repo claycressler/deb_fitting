@@ -177,15 +177,15 @@ for (d in 1:25) {
     tic <- Sys.time()
     print(tic)
     data <- datasets[[d]]$data
-
     estpars <- tm_ests[[d]]
-    estpars$Ferr <- 1e5
-    ## pull out the distinct parameter sets and use those in the particle filter (because many of the parameter sets are very similar to one another)
-    inds <- 1
-    for (i in 2:nrow(estpars)) {
+    estpars$Ferr <- 1e4
+    ## pull out the first 15 distinct parameter sets and use those in the particle filter (because many of the parameter sets are very similar to one another)
+    inds <- 1; i <- 1
+    while (length(inds) < 15) {
         ## check to see if this fh value is distinct from all others currently in the set
-        if(!any(signif(estpars$fh[i],2)==signif(estpars$fh[inds],2)))
+        if(!any(signif(estpars$rho[i],2)==signif(estpars$rho[inds],2)))
             inds <- c(inds, i)
+        i <- i+1
     }
     lapply(apply(estpars[inds,1:7], 1, as.list), unlist) -> refine
 
@@ -197,7 +197,7 @@ for (d in 1:25) {
              obsdata=data,
              eval.only=FALSE,
              type='particle_filter',
-             method='Nelder-Mead',
+             method='subplex',
              Np=100,
              mc.cores=15) -> refine_lik
     refine_lik %>%
@@ -211,6 +211,14 @@ for (d in 1:25) {
     print(tic); print(toc-tic)
     saveRDS(pf_ests, file="Particle_filter_7-30.RDS")
 }
+
+
+
+
+
+
+
+
 
 
 

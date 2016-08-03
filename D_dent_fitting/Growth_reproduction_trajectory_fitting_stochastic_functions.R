@@ -138,13 +138,13 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform) {
            R=0)
 
     ## Simulate the system
-    ode(y0,
+    try(ode(y0,
         times=0:35,
         func="derivs",
         parms=pars,
         dllname="debStochEnv",
         initfunc="initmod",
-        events=list(data=eventdat)) -> out
+        events=list(data=eventdat))) -> out
     if (inherits(out, "try-error"))
         lik <- -Inf
     else if (max(out[,"time"]) < max(data$time))
@@ -179,7 +179,6 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform) {
 pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
     ## Put the estimated parameters back on the natural scale
     estpars <- par_untransform(estpars, transform)
-    print(signif(estpars,3))
     ## compute Imax and g based on the estimate of fh
     fixpars["Imax"] <- calc_Imax(unname(estpars["fh"]))
     fixpars["g"] <- calc_g(unname(estpars["fh"]))
@@ -215,18 +214,23 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
                                   mean=events$value,
                                   sd=pars['Ferr'])
             ## obtain a sample of points from the prediction distribution by simulating the model forward
-            ode(x.F[i,2:5] %>% unlist,
-                times=seq(times[tstep], times[tstep+1]),
-                func="derivs",
-                parms=pars,
-                dllname="debStochEnv",
-                initfunc="initmod",
-                events=list(data=events)) %>%
-                tail(1) -> x.P[i,]
+            try(ode(x.F[i,2:5] %>% unlist,
+                    times=seq(times[tstep], times[tstep+1]),
+                    func="derivs",
+                    parms=pars,
+                    dllname="debStochEnv",
+                    initfunc="initmod",
+                    events=list(data=events))) -> out
+            if (inherits(out, "try-error") ||
+                max(out[,"time"]) < times[tstep+1] ||
+                any(is.nan(out)) ||
+                any(out < -1e-4)) {
+                print(i)
+                print(out)
+                x.P[i,] <- rep(NA,5)
+            }
+            else tail(out,1) -> x.P[i,]
         }
-
-        ## Throw out any particles that were NA
-        x.P <- x.P[apply(x.P, 1, function(x) !any(is.na(x))),]
 
         ## determine the weights by computing the probability of observing the data, given the points in the prediction distribution
         sapply((x.P$W/pars['xi'])^(1/pars['q']),
@@ -236,13 +240,16 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
                          sd=pars['Lobs'],
                          log=FALSE) %>% sum
                ) +
-                   sapply(x.P$R,
-                          function(r)
-                              dnorm(x=data$eggs[data$age==times[tstep+1]],
-                                    mean=r,
-                                    sd=pars['Robs'],
-                                    log=FALSE) %>% sum
-                          ) -> weights
+            sapply(x.P$R,
+                   function(r)
+                       dnorm(x=data$eggs[data$age==times[tstep+1]],
+                             mean=r,
+                             sd=pars['Robs'],
+                             log=FALSE) %>% sum
+                   ) -> weights
+        ## set weight to 0 for any particles that had integration errors
+        if (any(is.na(weights)))
+            weights[is.na(weights)] <- 0
 
         ## conditional likelihood for this timestep is the mean probability across the points in the prediction distribution
         lik <- lik + log(mean(weights))
@@ -265,6 +272,5 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
         tstep <- tstep+1
 
     }
-    print(-lik)
     return(-lik)
 }
