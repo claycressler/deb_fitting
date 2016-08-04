@@ -966,4 +966,26 @@ Whereas with the original way I wrote the particle filter the likelihood for the
 Of course, I am treating the observations of growth and reproduction as independent, when in reality they are not.
 I'm not sure how to deal with that, though.
 
+<<>>=
+
+dummy <- function(w) {
+    lik <- 0; broken <- FALSE
+    for (i in 1:nrow(w)) {
+        if (any(w[i,]>0))
+            lik <- lik + log(mean(w[i,w[i,]>0]))
+        else {
+            broken <- TRUE
+            break
+        }
+    }
+    if (broken) lik <- -Inf
+    lik
+}
+
+
+
+@
+
+
+
 \end{document}

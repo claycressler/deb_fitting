@@ -208,6 +208,7 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
     times <- c(0, data$age %>% unique)
     tstep <- 1
     lik <- 0
+    broken <- FALSE
     while (tstep < length(times)) {
         ## For each of the Np particles
         for (i in 1:Np) {
@@ -251,26 +252,31 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
         if (any(is.na(weights)))
             weights[is.na(weights)] <- 0
 
-        ## conditional likelihood for this timestep is the mean probability across the points in the prediction distribution (discarding all zeros)
-        lik <- lik + log(mean(weights[weights > 0]))
+        if (any(weights > 0)) {
+            ## conditional likelihood for this timestep is the mean probability across the points in the prediction distribution (discarding all zeros)
+            lik <- lik + log(mean(weights[weights > 0]))
 
-        ## use the weights to update the filtering distribution by resampling from the prediction distribution
-        w <- cumsum(weights)
-        du <- max(w)/length(w)
-        u <- runif(1,-du,0)
-        p <- vector(mode='numeric', length=length(w))
-        for (j in 1:length(w)) {
-            i <- 1
-            u <- u+du
-            while (u > w[i])
-                i <- i+1
-            p[j] <- i
+            ## use the weights to update the filtering distribution by resampling from the prediction distribution
+            w <- cumsum(weights)
+            du <- max(w)/length(w)
+            u <- runif(1,-du,0)
+            p <- vector(mode='numeric', length=length(w))
+            for (j in 1:length(w)) {
+                i <- 1
+                u <- u+du
+                while (u > w[i])
+                    i <- i+1
+                p[j] <- i
+            }
+
+            x.F <- x.P[p,]
+            rownames(x.F) <- as.character(1:length(weights))
+            tstep <- tstep+1
         }
-
-        x.F <- x.P[p,]
-        rownames(x.F) <- as.character(1:length(weights))
-        tstep <- tstep+1
-
+        else {
+            broken <- TRUE
+            lik <- -Inf
+        }
     }
     print(-lik)
     return(-lik)
