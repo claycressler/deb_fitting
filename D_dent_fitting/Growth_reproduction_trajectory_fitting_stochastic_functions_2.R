@@ -1,3 +1,4 @@
+
 library(deSolve)
 library(magrittr)
 library(subplex)
@@ -91,7 +92,8 @@ optimizer <- function(estpars, fixpars, parorder, transform, obsdata, Np, eval.o
                              fixpars=fixpars,
                              parorder=parorder,
                              transform=transform,
-                             Np=Np))
+                             Np=Np,
+			     control=list(maxit=1000)))
             else
                 x <- try(optim(par=estpars,
                            fn=pf_obj,
@@ -208,7 +210,6 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
     times <- c(0, data$age %>% unique)
     tstep <- 1
     lik <- 0
-    broken <- FALSE
     while (tstep < length(times)) {
         ## For each of the Np particles
         for (i in 1:Np) {
@@ -232,7 +233,6 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
                 x.P[i,] <- rep(NA,5)
             else tail(out,1) -> x.P[i,]
         }
-
         ## determine the weights by computing the probability of observing the data, given the points in the prediction distribution
         sapply((x.P$W/pars['xi'])^(1/pars['q']),
                function(l)
@@ -264,20 +264,19 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
             for (j in 1:length(w)) {
                 i <- 1
                 u <- u+du
-                while (u > w[i])
-                    i <- i+1
-                p[j] <- i
+                while (u > w[i]) 
+		    i <- i+1
+		p[j] <- i
             }
-
+	    
             x.F <- x.P[p,]
             rownames(x.F) <- as.character(1:length(weights))
             tstep <- tstep+1
         }
         else {
-            broken <- TRUE
-            lik <- -Inf
+	    lik <- -Inf
+	    break	    
         }
     }
-    print(-lik)
     return(-lik)
 }

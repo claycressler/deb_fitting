@@ -1,3 +1,4 @@
+
 library(deSolve)
 library(magrittr)
 library(subplex)
@@ -106,13 +107,11 @@ optimizer <- function(estpars, fixpars, parorder, transform, obsdata, Np, eval.o
         if (inherits(x, 'try-error'))
             opt <- list(params=par_untransform(estpars,transform),
                         lik=NA,
-                        conv=NA,
-                        error=x[1])
+                        conv=NA)
         else
             opt <- list(params=par_untransform(x$par,transform),
                         lik=x$value,
-                        conv=x$convergence,
-                        error=0)
+                        conv=x$convergence)
     }
     return(opt)
 }
@@ -233,51 +232,50 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
                 x.P[i,] <- rep(NA,5)
             else tail(out,1) -> x.P[i,]
         }
-
         ## determine the weights by computing the probability of observing the data, given the points in the prediction distribution
         sapply((x.P$W/pars['xi'])^(1/pars['q']),
                function(l)
                    dnorm(x=data$length[data$age==times[tstep+1]],
                          mean=l,
                          sd=pars['Lobs'],
-                         log=FALSE) %>% sum
-               ) +
+                         log=FALSE) %>% prod
+               ) *
             sapply(x.P$R,
                    function(r)
                        dnorm(x=data$eggs[data$age==times[tstep+1]],
                              mean=r,
                              sd=pars['Robs'],
-                             log=FALSE) %>% sum
+                             log=FALSE) %>% prod
                    ) -> weights
         ## set weight to 0 for any particles that had integration errors
-        if (any(is.na(weights))) {
-	    if (length(which(is.na(weights))) > Np/10)
-                stop("Too few particles had non-zero weight")
+        if (any(is.na(weights)))
             weights[is.na(weights)] <- 0
+
+        if (any(weights > 0)) {
+            ## conditional likelihood for this timestep is the mean probability across the points in the prediction distribution (discarding all zeros)
+            lik <- lik + log(mean(weights[weights > 0]))
+
+            ## use the weights to update the filtering distribution by resampling from the prediction distribution
+            w <- cumsum(weights)
+            du <- max(w)/length(w)
+            u <- runif(1,-du,0)
+            p <- vector(mode='numeric', length=length(w))
+            for (j in 1:length(w)) {
+                i <- 1
+                u <- u+du
+                while (u > w[i]) 
+		    i <- i+1
+		p[j] <- i
+            }
+	    
+            x.F <- x.P[p,]
+            rownames(x.F) <- as.character(1:length(weights))
+            tstep <- tstep+1
         }
-
-        ## conditional likelihood for this timestep is the mean probability across the points in the prediction distribution (discarding all zeros)
-        lik <- lik + log(mean(weights[weights > 0]))
-
-        ## use the weights to update the filtering distribution by resampling from the prediction distribution
-        w <- cumsum(weights)
-        du <- max(w)/length(w)
-        u <- runif(1,-du,0)
-        p <- vector(mode='numeric', length=length(w))
-        for (j in 1:length(w)) {
-            i <- 1
-            u <- u+du
-            while (u > w[i])
-                i <- i+1
-            p[j] <- i
+        else {
+	    lik <- -Inf
+	    break	    
         }
-	if (length(unique(p)) < Np/10)
-            stop("Too few unique particles after resampling")
-
-        x.F <- x.P[p,]
-        rownames(x.F) <- as.character(1:length(weights))
-        tstep <- tstep+1
-
     }
     return(-lik)
 }
