@@ -106,13 +106,13 @@ optimizer <- function(estpars, fixpars, parorder, transform, obsdata, Np, eval.o
         if (inherits(x, 'try-error'))
             opt <- list(params=par_untransform(estpars,transform),
                         lik=NA,
-                        error=2,
-                        conv=NA)
+                        conv=NA,
+                        error=x[1])
         else
             opt <- list(params=par_untransform(x$par,transform),
                         lik=x$value,
-                        error=0,
-                        conv=x$convergence)
+                        conv=x$convergence,
+                        error=0)
     }
     return(opt)
 }
@@ -184,7 +184,6 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform) {
 pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
     ## Put the estimated parameters back on the natural scale
     estpars <- par_untransform(estpars, transform)
-    print(estpars)
     ## compute Imax and g based on the estimate of fh
     fixpars["Imax"] <- calc_Imax(unname(estpars["fh"]))
     fixpars["g"] <- calc_g(unname(estpars["fh"]))
@@ -252,7 +251,7 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
                    ) -> weights
         ## set weight to 0 for any particles that had integration errors
         if (any(is.na(weights))) {
-	    if (length(which(is.na(weights))) > Np/2)
+	    if (length(which(is.na(weights))) > Np/10)
                 stop("Too few particles had non-zero weight")
             weights[is.na(weights)] <- 0
         }
@@ -280,6 +279,5 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
         tstep <- tstep+1
 
     }
-    print(-lik)
     return(-lik)
 }

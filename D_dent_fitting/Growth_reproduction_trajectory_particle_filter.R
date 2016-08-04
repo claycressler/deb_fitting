@@ -172,7 +172,7 @@ estpars <- pars[c("fh","rho","K","km","Lobs","Robs","Ferr")]
 transform <- c("log", rep("logit",2), rep("log",4))
 parorder <- c("Imax","fh","g","rho","eps","V","F0","xi","q","K","km","ER","v","Lobs","Robs","Ferr")
 
-for (d in 1:25) {
+for (d in 5:25) {
     print(d)
     tic <- Sys.time()
     print(tic)
@@ -188,7 +188,6 @@ for (d in 1:25) {
         i <- i+1
     }
     lapply(apply(estpars[inds,1:7], 1, as.list), unlist) -> refine
-
     mclapply(refine,
              optimizer,
              fixpars=fixpars,
@@ -203,7 +202,7 @@ for (d in 1:25) {
     refine_lik %>%
         lapply(., unlist) %>%
             unlist %>%
-                matrix(., ncol=ncol(estpars), byrow=TRUE, dimnames=list(1:length(refine_lik), colnames(estpars))) %>%
+                matrix(., ncol=ncol(estpars)+1, byrow=TRUE, dimnames=list(1:length(refine_lik), c(colnames(estpars),'error'))) %>%
                     as.data.frame -> refine_pars
     refine_pars[order(refine_pars$lik),] -> refine_pars
     pf_ests[[d]] <- refine_pars
