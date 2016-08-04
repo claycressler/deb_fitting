@@ -67,33 +67,33 @@ optimizer <- function(estpars, fixpars, parorder, transform, obsdata, Np, eval.o
     else {
         if (type=="trajectory_matching") {
             if (method=="subplex")
-                x <- subplex(par=estpars,
+                x <- try(subplex(par=estpars,
                              fn=tm_obj,
                              data=obsdata,
                              fixpars=fixpars,
                              parorder=parorder,
-                             transform=transform)
+                             transform=transform))
             else
-                x <- optim(par=estpars,
+                x <- try(optim(par=estpars,
                            fn=tm_obj,
                            method=method,
                            data=obsdata,
                            fixpars=fixpars,
                            parorder=parorder,
                            transform=transform,
-                           control=list(maxit=5000))
+                           control=list(maxit=5000)))
         }
         else if (type=="particle_filter") {
             if (method=="subplex")
-                x <- subplex(par=estpars,
+                x <- try(subplex(par=estpars,
                              fn=pf_obj,
                              data=obsdata,
                              fixpars=fixpars,
                              parorder=parorder,
                              transform=transform,
-                             Np=Np)
+                             Np=Np))
             else
-                x <- optim(par=estpars,
+                x <- try(optim(par=estpars,
                            fn=pf_obj,
                            method=method,
                            data=obsdata,
@@ -101,12 +101,18 @@ optimizer <- function(estpars, fixpars, parorder, transform, obsdata, Np, eval.o
                            parorder=parorder,
                            transform=transform,
                            Np=Np,
-                           control=list(maxit=5000))
+                           control=list(maxit=5000)))
         }
-
-        opt <- list(params=par_untransform(x$par,transform),
-                    lik=x$value,
-                    conv=x$convergence)
+        if (inherits(x, 'try-error'))
+            opt <- list(params=par_untransform(estpars,transform),
+                        lik=NA,
+                        error=2,
+                        conv=NA)
+        else
+            opt <- list(params=par_untransform(x$par,transform),
+                        lik=x$value,
+                        error=0,
+                        conv=x$convergence)
     }
     return(opt)
 }
@@ -222,9 +228,9 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
                     initfunc="initmod",
                     events=list(data=events))) -> out
             if (inherits(out, "try-error") ||
-	    max(out[,"time"]) < times[tstep+1] ||
-	    any(is.nan(out)) ||
-	    any(out < -1e-4)) 
+                max(out[,"time"]) < times[tstep+1] ||
+                any(is.nan(out)) ||
+                any(out < -1e-4))
                 x.P[i,] <- rep(NA,5)
             else tail(out,1) -> x.P[i,]
         }
@@ -246,11 +252,10 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
                    ) -> weights
         ## set weight to 0 for any particles that had integration errors
         if (any(is.na(weights))) {
-	    if (length(which(is.na(weights))) > Np/2) {
-	       stop("Too few particles had non-zero weight")
-	       }
+	    if (length(which(is.na(weights))) > Np/2)
+                stop("Too few particles had non-zero weight")
             weights[is.na(weights)] <- 0
-	    }
+        }
 
         ## conditional likelihood for this timestep is the mean probability across the points in the prediction distribution (discarding all zeros)
         lik <- lik + log(mean(weights[weights > 0]))
@@ -267,8 +272,8 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
                 i <- i+1
             p[j] <- i
         }
-	if (length(unique(p)) < Np/10) 
-	   stop("Too few unique particles after resampling")
+	if (length(unique(p)) < Np/10)
+            stop("Too few unique particles after resampling")
 
         x.F <- x.P[p,]
         rownames(x.F) <- as.character(1:length(weights))
