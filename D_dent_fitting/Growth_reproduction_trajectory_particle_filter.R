@@ -161,7 +161,7 @@ for (d in 2:25) {
 saveRDS(datasets, file="env_stoch_datasets.RDS")
 
 ## For this first set of attempts, do not attempt to estimate ER, but allow it to be fixed at the correct value.
-source("Growth_reproduction_trajectory_fitting_stochastic_functions.R")
+source("Growth_reproduction_trajectory_fitting_stochastic_functions_2.R")
 pf_ests <- vector(mode='list', length=25)
 tm_ests <- readRDS("Trajectory_matching_7-27.RDS")
 datasets <- readRDS("env_stoch_datasets.RDS")
@@ -172,7 +172,7 @@ estpars <- pars[c("fh","rho","K","km","Lobs","Robs","Ferr")]
 transform <- c("log", rep("logit",2), rep("log",4))
 parorder <- c("Imax","fh","g","rho","eps","V","F0","xi","q","K","km","ER","v","Lobs","Robs","Ferr")
 
-for (d in 5:25) {
+for (d in 1:25) {
     print(d)
     tic <- Sys.time()
     print(tic)
@@ -202,13 +202,13 @@ for (d in 5:25) {
     refine_lik %>%
         lapply(., unlist) %>%
             unlist %>%
-                matrix(., ncol=ncol(estpars)+1, byrow=TRUE, dimnames=list(1:length(refine_lik), c(colnames(estpars),'error'))) %>%
+                matrix(., ncol=ncol(estpars), byrow=TRUE, dimnames=list(1:length(refine_lik), colnames(estpars))) %>%
                     as.data.frame -> refine_pars
     refine_pars[order(refine_pars$lik),] -> refine_pars
     pf_ests[[d]] <- refine_pars
     toc <- Sys.time()
     print(tic); print(toc-tic)
-    saveRDS(pf_ests, file="Particle_filter_7-30.RDS")
+    saveRDS(pf_ests, file="Particle_filter_8-4.RDS")
 }
 
 

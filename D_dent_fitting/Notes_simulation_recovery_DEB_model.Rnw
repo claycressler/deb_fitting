@@ -936,5 +936,34 @@ The Poisson error model is much better at estimating the maintenance rate and th
 The difficulty that normal error model has with estimating the half-saturation constant actually makes a lot of sense, because the data the model is trying to fit included environmental stochasticity in the food availability - that parameter estimate might tighten up pretty considerably when I use the particle filter fitting algorithm.
 The errors in the maintenance rate estimates may also be due to the same challenge - hard to say.
 
+I have written up the simple particle filter.
+I have run into a problem with this almost immediately, however.
+I am often finding that the estimates of both process and measurement noise often go to near 0.
+
+The reason seems to be due to the fact that the particle filter uses the likelihood (rather than the log-likelihood) of each particle.
+ Thus, if even a single particle reproduces one of observations exactly, the likelihood is so huge that it compensates for the fact that all of the other particles have a likelihood of 0.
+ For example, in one of my fitting attempts,  the particle filter estimated the measurement noise (the standard deviation of a normally distributed random variable) to be 1.57e-10.
+ It also estimated the process noise to be 1e-5, so essentially all of the stochasticity was removed.
+For almost every observation and every particle, the likelihood of observing the data was 0.
+But there was a single particle where the difference between the observation and the prediction was 4.9e-10, and the likelihood was 19969000.
+This huge value more than made up for the fact that all of the other likelihoods were 0.
+Essentially, the algorithm seems to be getting stuck overfitting the model to a single (or small set of) datapoint(s).
+
+Moreover, different computers compute different likelihoods for the same parameter set, because of small differences in the numerical estimates.
+For example, using ‘ode’ to numerically simulate the same parameter set and initial condition set can produce numerical simulation differences on the order of 1e-8 - much to small to matter in most cases, but when the measurement noise is 1e-10, these differences can matter hugely for calculating likelihoods.
+For the parameter set mentioned above, on one computer the negative log-likelihood of the parameters is -26, and on a different computer it is -43.
+
+If I used the log-likelihood, then parameter sets producing a likelihood of zero would be avoided, but the particle filter only gives an unbiased estimate of the likelihood.
+
+I think, however, is that the problem is that I am calculating the likelihood incorrectly.
+For each particle, I computed the likelihood across the independent datasets as the sum of the likelihoods for each observation.
+However, that's incorrect - I would sum if I was calculating the \emph{log-likelihood}, but for calculating the likelihood, I need to take the \emph{product}.
+This should really fix the problem, because the algorithm cannot overfit to a single observation, since the value of all of the other observations matters very much to the overall likelihood.
+
+A simple comparison of the likelihoods for the particle filter and the trajectory matching likelihood suggests that this definitely fixed the problem.
+Whereas with the original way I wrote the particle filter the likelihood for the trajectory matching estimates was very, very different, now they are much more similar.
+
+Of course, I am treating the observations of growth and reproduction as independent, when in reality they are not.
+I'm not sure how to deal with that, though.
 
 \end{document}
