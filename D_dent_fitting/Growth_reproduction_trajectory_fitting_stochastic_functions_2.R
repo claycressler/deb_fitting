@@ -251,8 +251,6 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
         if (any(is.na(weights)))
             weights[is.na(weights)] <- 0
 
-        print(max(weights))
-
         ## conditional likelihood for this timestep is the mean probability across the points in the prediction distribution (discarding all zeros)
         lik <- lik + log(mean(weights[weights > 0]))
 
