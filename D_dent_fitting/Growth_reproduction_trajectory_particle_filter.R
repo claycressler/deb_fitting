@@ -187,6 +187,7 @@ for (d in 1:25) {
             inds <- c(inds, i)
         i <- i+1
     }
+    print(paste("Initial log-likelihood", min(estpars$lik)))
     lapply(apply(estpars[inds,1:7], 1, as.list), unlist) -> refine
     mclapply(refine,
              optimizer,
@@ -196,16 +197,17 @@ for (d in 1:25) {
              obsdata=data,
              eval.only=FALSE,
              type='particle_filter',
-             method='subplex',
-             Np=100,
+             method='Nelder-Mead',
+             Np=500,
              mc.cores=15) -> refine_lik
-    refine_lik %>%
+1    refine_lik %>%
         lapply(., unlist) %>%
             unlist %>%
                 matrix(., ncol=ncol(estpars), byrow=TRUE, dimnames=list(1:length(refine_lik), colnames(estpars))) %>%
                     as.data.frame -> refine_pars
     refine_pars[order(refine_pars$lik),] -> refine_pars
     pf_ests[[d]] <- refine_pars
+    print(paste("Final log-likelihood", min(refine_pars$lik)))
     toc <- Sys.time()
     print(tic); print(toc-tic)
     saveRDS(pf_ests, file="Particle_filter_8-4.RDS")
