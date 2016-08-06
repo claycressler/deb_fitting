@@ -966,26 +966,86 @@ Whereas with the original way I wrote the particle filter the likelihood for the
 Of course, I am treating the observations of growth and reproduction as independent, when in reality they are not.
 I'm not sure how to deal with that, though.
 
-<<>>=
+Okay, I have successfully implemented the particle filter.
+Sadly, it doesn't do a better job fitting.
+In fact, the likelihood of the (supposed) MLE parameters is actually lower than the likelihood of the parameters obtained through trajectory matching.
+Moreover, the trajectory matching parameters are actually much closer to the true parameter values - the particle filter appears to simply wander around a large likelihood plateau/ridge.
+In fact, the particle filter is never able to achieve convergence, either by using optim or subplex as the optimization algorithm.
 
-dummy <- function(w) {
-    lik <- 0; broken <- FALSE
-    for (i in 1:nrow(w)) {
-        if (any(w[i,]>0))
-            lik <- lik + log(mean(w[i,w[i,]>0]))
-        else {
-            broken <- TRUE
-            break
-        }
-    }
-    if (broken) lik <- -Inf
-    lik
+Instead, I am going to take seriously the suggestion that trajectory matching can do just as good a job of fitting as anything more complicated (while simultaneously pursuing an implementation of an iterated filtering algorithm).
+The one outstanding issue is that I have not been able to estimate the cost of reproduction.
+This is because the fitting algorithms can simply play $\rho$, $\kappa$, and the cost of reproduction off against one another and achieve equally good fits regardless.
+However, I believe I might have a work-around for that problem.
+I am not currently estimating the size at birth.
+However, the size at birth and the cost of reproduction should be very closely related, if you assume that everything is done is the currency of carbon.
+That is, the size at birth is $W(0)$, and the cost of reproduction is $W(0)+E(0)$.
+This added constraint will hopefully make the parameters much easier to estimate.
+
+<<>>=
+source("Growth_reproduction_trajectory_matching.R")
+
+pars <- c(Imax=22500, Fh=10000, g=1.45, rho=0.1, K=0.3, km=0.15, v=10, F0=1e6/30, E0=0.0005, W0=0.0005, Lobs=0.1, Robs=2)
+
+## days when observations will take place
+times <- c(5,10,12,15,18,25,30,35)
+## number of reps per observation day
+inds <- 1:12
+
+set.seed(101)
+out <- vector(mode='list', length=length(times)*length(inds))
+for (i in 1:(length(times)*length(inds))) {
+    ## feeding schedule - amount of food added each time is stochastic
+    eventdat <- data.frame(var="F",
+                           time=1:35,
+                           value=rnorm(35,
+                               mean=unname(pars["F0"]),
+                               sd=15000),
+                           method=rep(c(rep("add",4),"rep"),7))
+    y0 <- c(pars[c("F0","E0","W0")],R=0)
+    names(y0)[1:3] <- c("F","E","W")
+    ode(y0,
+        times=0:35,
+        func="derivs",
+        parms=pars,
+        dllname="tm_deb",
+        initfunc="initmod",
+        events=list(data=eventdat)) -> out[[i]]
 }
+
+## Simulate observations
+set.seed(101)
+data = expand.grid(ind=inds, age=times)
+data$length <- rnorm(nrow(data),
+                     mean=sapply(1:nrow(data),
+                         function(i)
+                             (sum(out[[i]][data[i,'age']+1,c('E','W')])/2.62e-3)^(1/2.4)),
+                     sd=pars['Lobs'])
+data$eggs <- rnorm(nrow(data),
+                   mean=sapply(1:nrow(data),
+                       function(i) out[[i]][data[i,'age']+1,'R']),
+                   sd=pars['Robs'])
+
+## With this fake data in hand, let's write some functions for fitting it!
+fixpars <- pars[c("Imax","g","v","F0")]
+estpars <- pars[c("Fh","rho","K","km","E0","W0","Lobs","Robs")]
+transform <- c("log", rep("logit",2), rep("log",5))
+parorder <- c("Imax","Fh","g","rho","K","km","v","F0","E0","W0","Lobs","Robs")
+
+tm_obj(par_transform(estpars, transform),
+       data,
+       fixpars,
+       parorder,
+       transform)
+optimizer(estpars,fixpars,parorder,transform,data,eval.only=TRUE,type="trajectory_matching")
+
+## This works pretty f*ing well! And it's super f*ing fast!
+optimizer(estpars,fixpars,parorder,transform,data,type="trajectory_matching",method="Nelder-Mead")
+
+
+
 
 
 
 @
-
-
 
 \end{document}

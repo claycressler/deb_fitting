@@ -83,6 +83,8 @@ traj_match <- function(estpars, fixpars, parorder, transform, obsdata, events, e
     return(opt)
 }
 ## Objective function to minimize for the structured model
+
+
 obj <- function(estpars, data, fixpars, parorder, transform, events) {
     ## We will give the model the true initial conditions
     y0 <- c(F=1e6/30, E=0.00025, W=0.00025, R=0)

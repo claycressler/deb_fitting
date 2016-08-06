@@ -9,7 +9,6 @@ static double parms[16];
 #define rho parms[3]
 #define eps parms[4]
 #define V parms[5]
-#define F0 parms[6]
 #define K parms[9]
 #define km parms[10]
 #define v parms[12]
