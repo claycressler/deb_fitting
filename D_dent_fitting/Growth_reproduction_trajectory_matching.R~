@@ -172,6 +172,7 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform) {
                      ) %>% sum
                ) %>% sum -> lik
     }
+    print(-lik)
     return(-lik)
 }
 
