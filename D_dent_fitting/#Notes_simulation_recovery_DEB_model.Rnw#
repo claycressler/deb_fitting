@@ -1106,7 +1106,7 @@ panel.cor <- function(x, y, digits=2, prefix="", cex.cor)
 {
     usr <- par("usr"); on.exit(par(usr))
     par(usr = c(0, 1, 0, 1))
-    r <- abs(cor(x, y))
+    r <- cor(x, y)
     txt <- format(c(r, 0.123456789), digits=digits)[1]
     txt <- paste(prefix, txt, sep="")
     if(missing(cex.cor)) cex <- 0.8/strwidth(txt)
@@ -1117,7 +1117,7 @@ panel.cor <- function(x, y, digits=2, prefix="", cex.cor)
                   cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
                   symbols = c("***", "**", "*", ".", " "))
 
-    text(0.5, 0.5, txt, cex = cex * r)
+    text(0.5, 0.5, txt, cex = cex * abs(r))
     text(.8, .8, Signif, cex=cex, col=2)
 }
 
@@ -1149,15 +1149,108 @@ Just to look at things a bit more closely, I also decided to construct a profile
 For each of the simulated datasets, I fixed the value of $\rho$ between 0 and 0.5 and estimated all of the other parameters.
 This will reveal how easy it is for the algorithm to slide other parameters around and achieve a similar likelihood.
 We can also look to see where the true value of the parameter falls within that likelihood slice.
+Fig. \ref{rho-profile-lik} shows the profile likelihood over $\rho$.
+You can see very clearly that the likelihood surface is very jagged.
+You can also see that the ability of the algorithm to return an estimate that is near the truth is dependent on the shape of the likelihood surface.
+For the datasets where the estimate of $\rho$ is far from the truth, there is often a wide ridge in likelihood space where the likelihood is very similar for a wide range of $\rho$ values.
 
-<<>>=
+<<'rho-profile-lik', fig.width=5, fig.height=5, out.width='0.75\\textwidth', fig.cap='Profile likelihood over the assimilation efficiency. The horizontal dashed line is 1 log-likelihood unit less than the maximum. The vertical dashed line is the estimate reached by the algorithm. The red line is the true value used to generate the simulated dataset.'>>=
+prof <- readRDS(file="Profile_lik_rho_8-8.RDS")
+
+par(mfrow=c(5,5), oma=c(3,3,0,0), mar=c(2,2,0.25,0.25))
+for (i in 1:25) {
+    plot(seq(0,0.5,length=31)[-1], -prof[[i]], type='l', ylim=c(max(-prof[[i]],na.rm=TRUE)-6, max(-prof[[i]],na.rm=TRUE)))
+    abline(v=results[[i]][1,'rho'], col=1, lty=2)
+    abline(h=-(results[[i]][1,'lik']+1), col=1, lty=2)
+    abline(v=datasets[[i]]$params['rho'], col=2, lty=1)
+}
+mtext(side=1, outer=TRUE, expression("Assimilation efficiency"~~rho), line=1.5)
+mtext(side=2, outer=TRUE, 'Log-Likelihood', line=1.5)
 
 
-@ 
+@
 
-<<>>=
+We can also look at how the parameters are varying with one another when $\rho$ is fixed (Fig. \ref{profile-pairs}).
+You can see here that the parameters do indeed trade off against one another - the red points are within two log-likelihood units of the maximum.
+You can see the strong correlations between $\rho$ and $F_h$, $\kappa$, $k_m$, and $E_R$ (especially $\kappa$ and $E_R$).
+This confirms my suspicians that it will be hard to estimate the parameters separately.
+
+<<'profile-pairs', fig.width=5, fig.height=5, out.width='0.75\\textwidth', fig.cap='Correlations among parameters when assimilation efficiency is fixed and the other parameters are optimized.'>>=
+##d <- 1
+##mclapply(seq(0,0.3,length=61)[-1] %>% as.list,
+##             profile_lik,
+##            estpars=results[[d]][1,c("Fh","K","km","E0","W0","Lobs","Robs")],
+##             data=datasets[[d]]$data,
+##             mc.cores=15) %>% unlist -> prof
+
+prof <- readRDS("profile_rho_dataset_1.RDS") %>% matrix(., ncol=9, byrow=TRUE) %>% as.data.frame
+colnames(prof) <- c("Fh","K","km","E0","W0","Lobs","Robs","lik","conv")
+prof$rho <- seq(0,0.3,length=61)[-1]
+prof[-(prof$conv==10),] -> prof
+prof <- subset(prof, select=-conv)
+mutate(prof, ER=E0+W0, lik=-lik) -> prof
+prof$good = factor(prof$lik > max(prof$lik)-2)
+prof[,c("lik","rho","Fh","K","km","ER","Lobs","Robs","good")] -> prof
+
+pairs(~lik+rho+Fh+K+km+ER+Lobs+Robs, data=subset(prof, lik > max(lik)-10), col=prof$good)
+pairs(~lik+rho+Fh+K+km+ER+Lobs+Robs, data=subset(prof, lik > max(lik)-10), lower.panel=panel.cor)
+
+@
+
+However, if you look at the growth trajectories, in particular, a little more closely, you can see one of the problems that might be affecting things.
+Fig. \ref{growth-trajectories} shows the growth trajectories just up to day 10.
+You can see that for several parameter sets, the initial length (which was unobserved) is very large, and the animal rapidly loses weight and then gains it back so that by the first observation (at day 5), the size is reasonable.
+That is clearly biologically unreasonable.
+There are a couple of ways to deal with that problem.
+
+<<'growth-trajectories', fig.width=4, fig.height=4, out.width='0.6\\textwidth', fig.cap='Growth trajectories at the maximum likelihood parameter estimates for each simulated dataset.'>>=
 ## what is the likelihood of the true parameter values?
 source("Growth_reproduction_trajectory_matching.R")
+
+out <- vector(mode='list', length=25)
+for (i in 1:25) {
+    estpars <- results[[i]][1,1:8] %>% unlist
+    fixpars <- c(Imax=22500, g=1.45, v=10, F0=1e6/30)
+    transform <- c("log", rep("logit",2), rep("log",5))
+    parorder <- c("Imax","Fh","g","rho","K","km","v","F0","E0","W0","Lobs","Robs")
+    fixpars["Imax"] <- calc_Imax(unname(estpars["Fh"]))
+    fixpars["g"] <- calc_g(unname(estpars["Fh"]))
+    ## combine the parameters to be estimated and the fixed parameters
+    ## into a single vector, with an order specified by parorder
+    pars <- c(estpars, fixpars)
+    pars[match(parorder, names(pars))] -> pars
+
+    eventdat <- data.frame(var="F",
+                           time=1:35,
+                           value=unname(pars["F0"]),
+                           method=rep(c(rep("add",4),"rep"),35/5))
+
+    ## Initial condition
+    y0 <- c(pars[c("F0","E0","W0")],R=0)
+    names(y0)[1:3] <- c("F","E","W")
+
+    ## Simulate the system
+    try(ode(y0,
+            times=0:35,
+            func="derivs",
+            parms=pars,
+            dllname="tm_deb",
+            initfunc="initmod",
+            events=list(data=eventdat))) %>%
+                as.data.frame %>%
+                    mutate(., L=((E+W)/0.00262)^(1/2.4)) -> out[[i]]
+}
+
+plot.new()
+plot.window(xlim=c(0,10), ylim=c(lapply(out, function(o) min(o$L)) %>% unlist %>% min, lapply(out, function(o) max(o$L)) %>% unlist %>% max))
+box('plot')
+axis(1)
+axis(2)
+mtext(side=1, line=2.5, 'Age')
+mtext(side=2, line=2.5, 'Length (mm)')
+for (i in 1:25) with(out[[i]], lines(time, L, lty=i))
+
+
 
 lapply(datasets,
        function(d)
@@ -1171,6 +1264,168 @@ lapply(datasets,
        ) %>% unlist -> truth.lik
 
 lapply(results, function(r) r[1,'lik']) %>% unlist -> best.lik
+
+
+@
+
+The simplest would be to go back and redo the trajectory matching, but with a more constrained box of initial guesses.
+Looking at that box now, I can see that the initial guesses of the cost of reproduction would have allowed a newborn of 1.7mm!
+By simply reducing the size of this box to only include more realistic values, it might be possible to avoid biologically unreasonable, but high likelihood, parameter sets.
+I refit the data for the simulated datasets that produced a cost of reprduction that was ~1.67mm using this more constrained box.
+However, the algorithm still managed to find the same likelihood peak, corresponding to a massive size at birth.
+
+Another way would be to have cost of reproduction be constrained between 0 and 1, with 0 equal to the minimum biologically feasible initial offspring size, and 1 equal to the maximum biologically reasonable initial offspring size.
+
+This is an interesting challenge, because on the one hand, you don't want to overrestrict the initial parameter guesses, but on the other hand, you don't want to allow guesses that produce dynamics that are unreasonable outside the boundaries of the data.
+
+A final possibility would be, rather than fitting the data to the model predictions, to use nonlinear forecasting.
+That is, fit a simple statistical model to the DEB model's predictions; fit the same statistical model to the data; then compare the coefficients of the statistical models as a measure of how different the DEB model prediction is from the data.
+For example, I have often used generalized additive models to fit growth trajectories, so I could fit a GAM to both and then compare the two.
+Of course, that might not solve the problem: as I explore in some code below, if you force the GAM to have the same number of knots for both the DEB model prediction fitting and the data fitting, that initially super-high length value does not show up in the GAM predictions.
+Only if you have a lot of knots (say one for every two simulated datapoints) will you pick up this unreasonable model behavior.
+
+<<>>=
+i <- 15
+
+## DEB model prediction
+estpars <- results[[i]][1,1:8] %>% unlist
+fixpars <- c(Imax=22500, g=1.45, v=10, F0=1e6/30)
+transform <- c("log", rep("logit",2), rep("log",5))
+parorder <- c("Imax","Fh","g","rho","K","km","v","F0","E0","W0","Lobs","Robs")
+fixpars["Imax"] <- calc_Imax(unname(estpars["Fh"]))
+fixpars["g"] <- calc_g(unname(estpars["Fh"]))
+## combine the parameters to be estimated and the fixed parameters
+## into a single vector, with an order specified by parorder
+pars <- c(estpars, fixpars)
+pars[match(parorder, names(pars))] -> pars
+
+eventdat <- data.frame(var="F",
+                       time=1:35,
+                       value=unname(pars["F0"]),
+                       method=rep(c(rep("add",4),"rep"),35/5))
+
+## Initial condition
+y0 <- c(pars[c("F0","E0","W0")],R=0)
+names(y0)[1:3] <- c("F","E","W")
+
+## Simulate the system
+try(ode(y0,
+        times=0:35,
+        func="derivs",
+        parms=pars,
+        dllname="tm_deb",
+        initfunc="initmod",
+        events=list(data=eventdat))) %>%
+            as.data.frame %>%
+                mutate(., L=((E+W)/0.00262)^(1/2.4)) -> pred
+colnames(pred) <- c('age','F','E','W','eggs','length')
+
+## observation
+data <- datasets[[i]]$data
+
+library(scam)
+mod1 <- scam(length~s(age,bs='cr',k=4), data=data)
+mod2 <- scam(length~s(age,bs='cr',k=4), data=pred)
+pred1 <- predict(mod1, data.frame(age=0:35))
+pred2 <- predict(mod2, data.frame(age=0:35))
+
+
+
+@
+
+Another possibility, which may be better than any of these solutions, is to alter the DEB model.
+In reality, the DEB models should not permit shrinking.
+If I implemented a starvation condition, even a very simple one, then that should prevent these problems.
+
+The simplest way to implement this is the following: if $\kappa p_C < k_m W$, then simply set the value of $\kappa$ to be equal to $k_m W/p_C$. If $k_m W/p_C > 1$, then there was not enough reserve mobilized to meet maintenance, and I assume that the individual dies.
+
+Hmmm, this did not fix the problem.
+I think there might be deeper problems.
+In particular, in the current version of the model, the relationship between the state variable $W$ and observed length is not at all straightforward.
+I assume that observed length is related to the sum of reserves $E$ and ``structural'' weight $W$.
+Thus an individual can shrink in length by reducing reserves, because my constraint is on structural weight.
+I think that is a big problem.
+
+However, there are some issues to figure out.
+The ingestion scaling is with \emph{observed} length.
+And the relationship between observed length and observed mass is specified by length-weight regressions.
+However, it is important to keep in mind that the parameters of this regression are not known for this species of \emph{Daphnia} - they are coming from Nisbet et al. 2004.
+Regardless, the observed weight must be $E+W$, not just $W$.
+But this realistic thinking is what got me in trouble in the first place.
+
+Somewhere in there, I have to make an assumption which cannot be strictly true.
+The easiest is to assume that structural weight is related to observed length in a very simple way: specifically, that structural weight is related to length as $L = W^{1/3}$, and that structural length is what we observe.
+This is definitely somewhat problematic, in that I am assuming that everything can be done in terms of carbon content, and mass$^{1/3}$ does not have units of mm.
+In some ways, that is exactly what the parameter $E_G$ (the cost of growth) is meant to capture.
+On the other hand, if you look at the DEB model predictions, the reserves are really only a small part of total mass.
+And my previous fitting exercises have shown that the energy conductance $\nu$ can really take any value, up to very, very large values.
+As $\nu$ approaches infinity, the DEB model approaches a ``reserve-less'' model where $E = 0$.
+
+Thus, I think the most reasonable way to move forward is to assume that observed length is equal to $L = \xi W^q$, ignoring the contribution of reserves to mass.
+I will also no longer attempt to estimate $E(0)$ - instead, I will use the DEB assumption that reserves are initially at their maximum, which is set by the following relation $\max(E/W) = \rho/\nu$.
+If this is insufficient, then the reserve mobilization rate is exactly equal to the 
+
+<<>>=
+source("Growth_reproduction_trajectory_matching.R")
+results <- readRDS("Trajectory_matching_8-6.RDS")
+datasets <- readRDS("Trajectory_matching_datasets_8-6.RDS")
+
+i <- 15
+## DEB model prediction
+estpars <- results[[i]][1,1:8] %>% unlist
+estpars <- estpars[-5] ## remove E0
+fixpars <- c(Imax=22500, g=1.45, v=10, F0=1e6/30)
+parorder <- c("Imax","Fh","g","rho","K","km","v","F0","W0","Lobs","Robs")
+fixpars["Imax"] <- calc_Imax(unname(estpars["Fh"]))
+fixpars["g"] <- calc_g(unname(estpars["Fh"]))
+## combine the parameters to be estimated and the fixed parameters
+## into a single vector, with an order specified by parorder
+pars <- c(estpars, fixpars)
+pars[match(parorder, names(pars))] -> pars
+
+eventdat <- data.frame(var="F",
+                       time=1:35,
+                       value=unname(pars["F0"]),
+                       method=rep(c(rep("add",4),"rep"),35/5))
+
+## Initial condition
+y0 <- c(F=unname(pars["F0"]),E=unname(pars["W0"]/10),W=unname(pars["W0"]),R=0)
+
+## Simulate the system
+try(ode(y0,
+        times=0:35,
+        func="derivs",
+        parms=pars,
+        dllname="tm_deb_starve",
+        initfunc="initmod",
+        events=list(data=eventdat))) -> out
+## this works
+
+tm_obj(estpars=par_transform(estpars,c("log", rep("logit",2), rep("log",4))),
+       data=datasets[[15]]$data,
+       fixpars=fixpars,
+       parorder=parorder,
+       transform=c("log", rep("logit",2), rep("log",4)))
+## as does this
+
+## But if I make the initial size too large, I 
+y0["W"] <- 0.01
+try(ode(y0,
+        times=0:35,
+        func="derivs",
+        parms=pars,
+        dllname="tm_deb_starve",
+        initfunc="initmod",
+        events=list(data=eventdat))) -> out
+## I get all NaN
+
+estpars["W0"] <- 0.01
+tm_obj(estpars=par_transform(estpars,c("log", rep("logit",2), rep("log",4))),
+       data=datasets[[15]]$data,
+       fixpars=fixpars,
+       parorder=parorder,
+       transform=c("log", rep("logit",2), rep("log",4)))
+## I get Inf
 
 
 
