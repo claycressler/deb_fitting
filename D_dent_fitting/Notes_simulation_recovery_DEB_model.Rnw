@@ -223,6 +223,39 @@ I still have good evidence that the model can be recovered reasonably well, whic
 v_vals <- c(seq(10, 100, 10), seq(200, 1000, 100))
 fitpars <- readRDS(file="~/Dropbox/Growth_reproduction_trajectory_fitting_dyn_food_profile_v_2.RDS")
 
+panel.cor <- function(x, y, digits=2, prefix="", cex.cor)
+{
+    usr <- par("usr"); on.exit(par(usr))
+    par(usr = c(0, 1, 0, 1))
+    r <- abs(cor(x, y))
+    txt <- format(c(r, 0.123456789), digits=digits)[1]
+    txt <- paste(prefix, txt, sep="")
+    if(missing(cex.cor)) cex <- 0.8/strwidth(txt)
+
+    test <- cor.test(x,y)
+    # borrowed from printCoefmat
+    Signif <- symnum(test$p.value, corr = FALSE, na = FALSE,
+                  cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
+                  symbols = c("***", "**", "*", ".", " "))
+
+    text(0.5, 0.5, txt, cex = cex * r)
+    text(.8, .8, Signif, cex=cex, col=2)
+}
+
+panel.dens <- function(x,...) {
+    usr <- par("usr"); on.exit(par(usr))
+    par(usr = c(usr[1:2], 0, 1.5) )
+    h <- hist(x, plot = FALSE)
+    breaks <- h$breaks; nB <- length(breaks)
+    y <- h$counts; y <- y/max(y)
+    rect(breaks[-nB], 0, breaks[-1], y,col=hist.col)
+    tryd <- try( d <- density(x,na.rm=TRUE,bw="nrd",adjust=1.2),silent=TRUE)
+    if(class(tryd) != "try-error") {
+
+        d$y <- d$y/max(d$y)
+        lines(d)}
+}
+
 subset(fitpars[[1]], lik < min(lik)+2 & conv==0)[,1:6] %>%
     mutate(., lik=-lik, best=ifelse(lik==max(lik),4,1)) %>%
         rbind(., c(10000, 0.3, 0.15, 1.51e-3, 0.1, -90.69359, 2)) -> fit
@@ -981,71 +1014,164 @@ However, the size at birth and the cost of reproduction should be very closely r
 That is, the size at birth is $W(0)$, and the cost of reproduction is $W(0)+E(0)$.
 This added constraint will hopefully make the parameters much easier to estimate.
 
-<<>>=
-source("Growth_reproduction_trajectory_matching.R")
+<<'rep-cost-est', fig.height=4, fig.width=6, out.width='0.75\\textwidth', fig.cap='The highest likelihood parameter estimate from fitting each of 25 parameter sets using the model with normal measurement errors. Note that here I am also estimating the cost of reproduction. The true parameter value is given by the x-axis value and the estimate is given by the y-axis value. The line is the one-to-one line for reference.'>>=
+datasets <- readRDS("Trajectory_matching_datasets_8-6.RDS")
+results <- readRDS("Trajectory_matching_8-6.RDS")
 
-pars <- c(Imax=22500, Fh=10000, g=1.45, rho=0.1, K=0.3, km=0.15, v=10, F0=1e6/30, E0=0.0005, W0=0.0005, Lobs=0.1, Robs=2)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
 
-## days when observations will take place
-times <- c(5,10,12,15,18,25,30,35)
-## number of reps per observation day
-inds <- 1:12
+cbind(lapply(datasets, function(l) l$params[colnames(results[[1]])[1:8]]) %>%
+          unlist %>%
+              matrix(., ncol=8, byrow=TRUE, dimnames=list(as.character(1:25),colnames(results[[1]])[1:8])) %>%
+                  as.data.frame %>%
+                      mutate(., ER=E0+W0, Fh=log(Fh)) %>%
+                          gather(., key="parameter", value="truth", 1:9),
+      lapply(results, function(l) head(l,1)[1:8]) %>%
+          unlist %>%
+              matrix(., ncol=8, byrow=TRUE, dimnames=list(as.character(1:25),colnames(results[[1]])[1:8])) %>%
+                  as.data.frame %>%
+                      mutate(., ER=E0+W0, Fh=log(Fh)) %>%
+                          gather(., key="parameter", value="estimate", 1:9)
+      ) -> best
+best <- best[,-3]
 
-set.seed(101)
-out <- vector(mode='list', length=length(times)*length(inds))
-for (i in 1:(length(times)*length(inds))) {
-    ## feeding schedule - amount of food added each time is stochastic
-    eventdat <- data.frame(var="F",
-                           time=1:35,
-                           value=rnorm(35,
-                               mean=unname(pars["F0"]),
-                               sd=15000),
-                           method=rep(c(rep("add",4),"rep"),7))
-    y0 <- c(pars[c("F0","E0","W0")],R=0)
-    names(y0)[1:3] <- c("F","E","W")
-    ode(y0,
-        times=0:35,
-        func="derivs",
-        parms=pars,
-        dllname="tm_deb",
-        initfunc="initmod",
-        events=list(data=eventdat)) -> out[[i]]
-}
+cbind(lapply(datasets, function(l) l$params[colnames(results[[1]])[1:8]]) %>%
+          unlist %>%
+              matrix(., ncol=8, byrow=TRUE, dimnames=list(as.character(1:25),colnames(results[[1]])[1:8])) %>%
+                  as.data.frame %>%
+                      mutate(., ER=E0+W0, Fh=log(Fh)) %>%
+                          gather(., key="parameter", value="truth", 1:9),
+      lapply(results, function(l) subset(l, lik < min(lik)+1 & conv==0) %>% apply(., 2, median)) %>%
+          unlist %>%
+              matrix(., ncol=10, byrow=TRUE, dimnames=list(as.character(1:25),colnames(results[[1]]))) %>%
+                  as.data.frame %>%
+                      mutate(., ER=E0+W0, Fh=log(Fh)) %>%
+                          subset(., select=-c(conv,lik)) %>%
+                              gather(., key="parameter", value="estimate", 1:9)
+      ) -> med
+med <- med[,-3]
 
-## Simulate observations
-set.seed(101)
-data = expand.grid(ind=inds, age=times)
-data$length <- rnorm(nrow(data),
-                     mean=sapply(1:nrow(data),
-                         function(i)
-                             (sum(out[[i]][data[i,'age']+1,c('E','W')])/2.62e-3)^(1/2.4)),
-                     sd=pars['Lobs'])
-data$eggs <- rnorm(nrow(data),
-                   mean=sapply(1:nrow(data),
-                       function(i) out[[i]][data[i,'age']+1,'R']),
-                   sd=pars['Robs'])
+cbind(lapply(datasets, function(l) l$params[colnames(results[[1]])[1:8]]) %>%
+          unlist %>%
+              matrix(., ncol=8, byrow=TRUE, dimnames=list(as.character(1:25),colnames(results[[1]])[1:8])) %>%
+                  as.data.frame %>%
+                      mutate(., ER=E0+W0, Fh=log(Fh)) %>%
+                          gather(., key="parameter", value="truth", 1:9),
+      lapply(results, function(l) subset(l, lik < min(lik)+1 & conv==0) %>% apply(., 2, mean)) %>%
+          unlist %>%
+              matrix(., ncol=10, byrow=TRUE, dimnames=list(as.character(1:25),colnames(results[[1]]))) %>%
+                  as.data.frame %>%
+                      mutate(., ER=E0+W0, Fh=log(Fh)) %>%
+                          subset(., select=-c(conv,lik)) %>%
+                              gather(., key="parameter", value="estimate", 1:9)
+      ) -> avg
+avg <- avg[,-3]
 
-## With this fake data in hand, let's write some functions for fitting it!
-fixpars <- pars[c("Imax","g","v","F0")]
-estpars <- pars[c("Fh","rho","K","km","E0","W0","Lobs","Robs")]
-transform <- c("log", rep("logit",2), rep("log",5))
-parorder <- c("Imax","Fh","g","rho","K","km","v","F0","E0","W0","Lobs","Robs")
-
-tm_obj(par_transform(estpars, transform),
-       data,
-       fixpars,
-       parorder,
-       transform)
-optimizer(estpars,fixpars,parorder,transform,data,eval.only=TRUE,type="trajectory_matching")
-
-## This works pretty f*ing well! And it's super f*ing fast!
-optimizer(estpars,fixpars,parorder,transform,data,type="trajectory_matching",method="Nelder-Mead")
-
-
-
+ggplot(best[which(best[,1] %in% c("Fh","rho","K","km","ER")),], aes(x=truth, y=estimate)) +
+    geom_point() +
+        facet_wrap(~parameter, scales='free') +
+            geom_abline(slope=1, intercept=0)
 
 
 
 @
+
+Fig \ref{rep-cost-est} above shows the estimates against the true parameter values. You can see that the estimates are reasonably good for most of the parameters, although the error can be quite large in some cases.
+
+Another way to look at it is to look at the relative error (the estimate minus the true value, divided by the true value).
+This gives the fraction the error was over (or under) estimated.
+Fig. \ref{rel-error-25} shows this for all 25 parameter sets. You can see that the relative error in the estimates of $F_h$ and $k_m$ are usually pretty small.
+The error in the stimates of $\kappa$, $\rho$, and the cost of reproduction $E_R$ can be quite high, however.
+This makes a lot of sense that these three parameters are the hardest to estimate, because they trade-off against one another.
+
+<<'rel-error-25', fig.height=4, fig.width=6, out.width='0.75\\textwidth', fig.cap='Relative error in the parameter estimates for all 25 datasets.'>>=
+mutate(best, error=(estimate-truth)/truth) -> best
+best$set <- rep(1:25, 9)
+
+ggplot(best[which(best[,1] %in% c("Fh","rho","K","km","ER")),], aes(x=set, y=error)) +
+    geom_point() +
+        facet_wrap(~parameter, scales="free")
+
+@
+
+Fig. \ref{pairwise-par-corr-25} shows pairwise scatterplots showing all of the parameter estimates within one log-likelihood unit of the best for the first set of simulated data.
+You can see that there are \emph{very} strong correlations between the estimates of $\rho$, $\kappa$, and $E_R$.
+Interestingly, there are also strong correlations between $\kappa$ and $k_m$, but those don't seem to be as problematic.
+
+<<'pairwise-par-corr-25', fig.height=5, fig.width=5, out.width='0.75\\textwidth', fig.cap='Pairwise correlations btween parameter estimates.'>>=
+
+panel.cor <- function(x, y, digits=2, prefix="", cex.cor)
+{
+    usr <- par("usr"); on.exit(par(usr))
+    par(usr = c(0, 1, 0, 1))
+    r <- abs(cor(x, y))
+    txt <- format(c(r, 0.123456789), digits=digits)[1]
+    txt <- paste(prefix, txt, sep="")
+    if(missing(cex.cor)) cex <- 0.8/strwidth(txt)
+
+    test <- cor.test(x,y)
+    # borrowed from printCoefmat
+    Signif <- symnum(test$p.value, corr = FALSE, na = FALSE,
+                  cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
+                  symbols = c("***", "**", "*", ".", " "))
+
+    text(0.5, 0.5, txt, cex = cex * r)
+    text(.8, .8, Signif, cex=cex, col=2)
+}
+
+panel.dens <- function(x,...) {
+    usr <- par("usr"); on.exit(par(usr))
+    par(usr = c(usr[1:2], 0, 1.5) )
+    h <- hist(x, plot = FALSE)
+    breaks <- h$breaks; nB <- length(breaks)
+    y <- h$counts; y <- y/max(y)
+    rect(breaks[-nB], 0, breaks[-1], y)
+    tryd <- try( d <- density(x,na.rm=TRUE,bw="nrd",adjust=1.2),silent=TRUE)
+    if(class(tryd) != "try-error") {
+
+        d$y <- d$y/max(d$y)
+        lines(d)}
+}
+
+dd <- results[[2]] %>% as.data.frame %>% mutate(., ER=E0+W0, Fh=log(Fh)) %>% subset(., lik < min(lik)+1 & conv==0)
+pairs(dd[,c("Fh","rho","K","km","ER")],upper.panel=panel.cor, diag.panel=panel.dens)
+
+
+@
+
+However, it is important to note that this model and fitting algorithm are doing much better than the algorithm I was using previously.
+If you look back at Fig. 5, you can see that the correlations between parameter estimates were even stronger and the error was even larger than it is here.
+So I do seem to be on the right track.
+
+Just to look at things a bit more closely, I also decided to construct a profile likelihood over $\rho$.
+For each of the simulated datasets, I fixed the value of $\rho$ between 0 and 0.5 and estimated all of the other parameters.
+This will reveal how easy it is for the algorithm to slide other parameters around and achieve a similar likelihood.
+We can also look to see where the true value of the parameter falls within that likelihood slice.
+
+
+
+<<>>=
+## what is the likelihood of the true parameter values?
+source("Growth_reproduction_trajectory_matching.R")
+
+lapply(datasets,
+       function(d)
+           optimizer(d$params[c("Fh","rho","K","km","E0","W0","Lobs","Robs")],,
+                     fixpars=c(Imax=22500, g=1.45, v=10, F0=1e6/30),
+                     parorder=c("Imax","Fh","g","rho","K","km","v","F0","E0","W0","Lobs","Robs"),
+                     transform=c("log", rep("logit",2), rep("log",5)),
+                     obsdata=d$data,
+                     eval.only=TRUE,
+                     type="trajectory_matching")$lik
+       ) %>% unlist -> truth.lik
+
+lapply(results, function(r) r[1,'lik']) %>% unlist -> best.lik
+
+
+
+@
+
 
 \end{document}

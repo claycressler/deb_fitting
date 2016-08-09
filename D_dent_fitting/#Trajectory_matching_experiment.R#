@@ -124,3 +124,4 @@ profile_lik <- function(rho, estpars, data) {
     optimizer(estpars, fixpars, parorder, transform, data, eval.only=FALSE, type="trajectory_matching", method="Nelder-Mead")$lik
 }
 
+saveRDS(profile, file="Profile_lik_rho_8-8.RDS")
