@@ -48,7 +48,7 @@ for (d in 1:25) {
     data$length <- rnorm(nrow(data),
                          mean=sapply(1:nrow(data),
                              function(i)
-                                 (sum(out[[i]][data[i,'age']+1,c('E','W')])/2.62e-3)^(1/2.4)),
+                                 (sum(out[[i]][data[i,'age']+1,'W'])/2.62e-3)^(1/2.4)),
                          sd=pars['Lobs'])
     data$eggs <- rnorm(nrow(data),
                        mean=sapply(1:nrow(data),
