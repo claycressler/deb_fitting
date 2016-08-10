@@ -1365,6 +1365,10 @@ Thus, I think the most reasonable way to move forward is to assume that observed
 I will also no longer attempt to estimate $E(0)$ - instead, I will use the DEB assumption that reserves are initially at their maximum, which is set by the following relation $\max(E/W) = \rho/\nu$.
 I have implemented a catch that sets all state variables equal to NaN if the mobilized energy is insufficient to meet the maintenance demands.
 
+But then again, there are other issues here.
+I actually think the easier way to do this would be to estimate the cost of growth directly, then use the relationship between $E$ and $W$ to translate.
+This should greatly help with this problem.
+
 <<>>=
 source("Growth_reproduction_trajectory_matching.R")
 results <- readRDS("Trajectory_matching_8-6.RDS")
@@ -1373,9 +1377,9 @@ datasets <- readRDS("Trajectory_matching_datasets_8-6.RDS")
 i <- 15
 ## DEB model prediction
 estpars <- results[[i]][1,1:8] %>% unlist
-estpars <- estpars[-5] ## remove E0
+estpars <- c(estpars[c("Fh","rho","K","km","Lobs","Robs")],ER=0.0005)
 fixpars <- c(Imax=22500, g=1.45, v=10, F0=1e6/30)
-parorder <- c("Imax","Fh","g","rho","K","km","v","F0","W0","Lobs","Robs")
+parorder <- c("Imax","Fh","g","rho","K","km","v","ER","F0","Lobs","Robs")
 fixpars["Imax"] <- calc_Imax(unname(estpars["Fh"]))
 fixpars["g"] <- calc_g(unname(estpars["Fh"]))
 ## combine the parameters to be estimated and the fixed parameters
@@ -1389,14 +1393,18 @@ eventdat <- data.frame(var="F",
                        method=rep(c(rep("add",4),"rep"),35/5))
 
 ## Initial condition
-y0 <- c(F=unname(pars["F0"]),E=unname(pars["rho"]/pars["v"]*pars["W0"]),W=unname(pars["W0"]),R=0)
+y0 <- c(F=unname(pars["F0"]),
+        E=0,
+        W=unname(pars["ER"]/(1+pars["rho"]/pars["v"])),
+        R=0)
+y0["E"] <- unname(y0["W"]*pars["rho"]/pars["v"])
 
 ## Simulate the system
 try(ode(y0,
         times=0:35,
         func="derivs",
         parms=pars,
-        dllname="tm_deb_starve",
+        dllname="tm_deb",
         initfunc="initmod",
         events=list(data=eventdat))) -> out
 ## this works
@@ -1407,27 +1415,6 @@ tm_obj(estpars=par_transform(estpars,c("log", rep("logit",2), rep("log",4))),
        parorder=parorder,
        transform=c("log", rep("logit",2), rep("log",4)))
 ## as does this
-
-## But if I make the initial size too large, I should get an error
-y0["W"] <- 0.01
-try(ode(y0,
-        times=0:35,
-        func="derivs",
-        parms=pars,
-        dllname="tm_deb_starve",
-        initfunc="initmod",
-        events=list(data=eventdat))) -> out
-## I get all NaN
-
-estpars["W0"] <- 0.01
-tm_obj(estpars=par_transform(estpars,c("log", rep("logit",2), rep("log",4))),
-       data=datasets[[15]]$data,
-       fixpars=fixpars,
-       parorder=parorder,
-       transform=c("log", rep("logit",2), rep("log",4)))
-## I get Inf
-
-
 
 @
 

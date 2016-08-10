@@ -8,10 +8,10 @@ library(tidyr)
 library(ggplot2)
 
 ## rebuild source for this computer
-if (is.loaded("tm_deb_starve.so")) dyn.unload("tm_deb_starve.so")
-system("rm tm_deb_starve.so")
-system("R CMD SHLIB tm_deb_starve.c")
-dyn.load("tm_deb_starve.so")
+if (is.loaded("tm_deb.so")) dyn.unload("tm_deb.so")
+system("rm tm_deb.so")
+system("R CMD SHLIB tm_deb.c")
+dyn.load("tm_deb.so")
 
 #if (is.loaded("tm_deb.so")) dyn.unload("tm_deb.so")
 #system("rm tm_deb.so")
@@ -139,15 +139,20 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform) {
                            value=unname(pars["F0"]),
                            method=rep(c(rep("add",4),"rep"),max(data$age)/5))
 
-    ## Initial condition
-    y0 <- c(F=unname(pars["F0"]),E=unname(pars["rho"]/pars["v"]*pars["W0"]),W=unname(pars["W0"]),R=0)
+    ## Initial condition: assuming that E/W = rho/v and E+W=ER, then W
+    ## + W*rho/v = ER, W(1+rho/v)=ER, W=ER/(1+rho/v)
+    y0 <- c(F=unname(pars["F0"]),
+            E=0,
+            W=unname(pars["ER"]/(1+pars["rho"]/pars["v"])),
+            R=0)
+    y0["E"] <- unname(y0["W"]*pars["rho"]/pars["v"])
 
     ## Simulate the system
     try(ode(y0,
             times=0:35,
             func="derivs",
             parms=pars,
-            dllname="tm_deb_starve",
+            dllname="tm_deb",
             initfunc="initmod",
             events=list(data=eventdat))) -> out
     if (inherits(out, "try-error"))

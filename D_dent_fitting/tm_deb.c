@@ -1,7 +1,7 @@
 #include <R.h>
 #include <stdio.h>
 
-static double parms[12];
+static double parms[11];
 
 #define Imax parms[0]
 #define Fh parms[1]
@@ -10,15 +10,14 @@ static double parms[12];
 #define K parms[4]
 #define km parms[5]
 #define v parms[6]
-#define F0 parms[7]
-#define E0 parms[8]
-#define W0 parms[9]
-#define Lerr parms[10]
-#define Rerr parms[11]
+#define ER parms[7]
+#define F0 parms[8]
+#define Lerr parms[9]
+#define Rerr parms[10]
 
 /* initializer */
 void initmod(void (* odeparms)(int *, double *)) {
-  int N=12;
+  int N=11;
   odeparms(&N, parms);
 }
 
@@ -35,7 +34,7 @@ void derivs (int *neq, double *t, double *y, double *ydot) {
   double E = y[1]; // energy reserves
   double W = y[2]; // structural weight
   double L = pow(W, 1/3); // structural length
-  double Lobs = pow((W+E)/xi, 1/q); //observed length
+  double Lobs = pow(W/xi, 1/q); //observed length
 
   // ingestion
   double ing = Imax * F/(Fh+F) * pow(Lobs,g);
@@ -46,7 +45,7 @@ void derivs (int *neq, double *t, double *y, double *ydot) {
   ydot[0] = -ing;
   ydot[1] = rho*eps*V*ing - pc;
   ydot[2] = K*pc - km*W;
-  ydot[3] = (1-K)*pc/(E0+W0);
+  ydot[3] = (1-K)*pc/ER;
 
 }
 
