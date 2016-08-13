@@ -1577,7 +1577,6 @@ ggplot(truth, aes(x=set, y=value, col=factor(col))) +
 
 
 Regardless, if you remove these three extreme datasets, the plots of the estimates compared to the truth look great!
-
 <<>>=
 ggplot(subset(best, parameter%in%c("Fh","rho","K","km","ER") & set%in%c(1,3:10,12,14:25)), aes(x=truth, y=estimate)) +
     geom_point() +
@@ -1587,8 +1586,96 @@ ggplot(subset(best, parameter%in%c("Fh","rho","K","km","ER") & set%in%c(1,3:10,1
 
 @
 
+I am wondering, however, whether I couldn't do better if I increased the size of the initial box of guesses and the number of estimates that I refine through Nelder-Mead.
+In particular, I am wondering whether some parameter sets that are somewhat close to the true parameter set have lower likelihoods than other places in parameter space, and are thus excluded from the Nelder-Mead optimization, even though if they were optimized they would end up with higher likelihoods.
+Another possibility, of course, is that the true parameter values are actually somewhat less likely than other places and, moreover, sit on a very steep, isolated peak in likelihood space, so that they are hard to find and hard to stay near.
+I am going to explore this by initializing optimizations at the true parameter values and then seeing how the results of those optimizations compare with the results from the blind optimization.
+
+Fig. \ref{free-vs-truth-start} shows that, when you start the optimization algorithm at the true parameter values, the ML parameter estimates are closer to the truth (in almost every case) than those started blindly.
+This is encouraging, in that it suggests that it is possible to very nearly truly recover the parameters.
+
+<<>>=
+source("Growth_reproduction_trajectory_matching.R")
+datasets <- readRDS("Trajectory_matching_datasets_8-9.RDS")
+
+results <- vector(mode='list', length=25)
+for (i in 1:25){
+    print(i)
+    optimizer(estpars=datasets[[i]]$params[c("Fh","rho","K","km","ER","Lobs","Robs")],
+              fixpars=datasets[[i]]$params[c("Imax","g","v","F0")],
+              parorder=c("Imax","Fh","g","rho","K","km","v","ER","F0","Lobs","Robs"),
+              transform=c("log","logit","logit",rep("log",4)),
+              obsdata=datasets[[i]]$data,
+              type="trajectory_matching",
+              method="Nelder-Mead") -> results[[i]]
+}
+
+truth <- vector(mode='list', length=25)
+for (i in 1:25){
+    print(i)
+    optimizer(estpars=datasets[[i]]$params[c("Fh","rho","K","km","ER","Lobs","Robs")],
+              fixpars=datasets[[i]]$params[c("Imax","g","v","F0")],
+              parorder=c("Imax","Fh","g","rho","K","km","v","ER","F0","Lobs","Robs"),
+              transform=c("log","logit","logit",rep("log",4)),
+              obsdata=datasets[[i]]$data,
+              eval.only=TRUE,
+              type="trajectory_matching",
+              method="Nelder-Mead") -> truth[[i]]
+}
+
+estimates <- readRDS("Trajectory_matching_8-9.RDS")
+
+## Compare the
+data.frame(parameter=c("Fh","rho","K","km","ER","Lobs","Robs","lik"),
+           set=rep(1:25,each=8),
+           optimFree=lapply(estimates, function(e) e[1,1:8]) %>% unlist,
+           optimTruth=lapply(results, function(r) c(r$params, r$lik)) %>% unlist,
+           truth=lapply(truth, function(t) c(t$params, t$lik)) %>% unlist
+           ) %>%
+    gather(., key="likMethod", value="value", 3:4) -> out
+
+ggplot(subset(out, parameter%in%c("Fh","rho","K","km","ER")), aes(x=truth, y=value, color=likMethod)) +
+    geom_abline(slope=1, intercept=0) +
+        geom_point() +
+            facet_wrap(~parameter, scales="free")
 
 
+@
+
+More interesting, however, are the results of the likelihood calculation.
+The likelihoods of the parameter estimates found either by the full optimization process or by starting at the true parameter values are so close that they lie on top of one another for almost every dataset.
+However, the likelihoods of the true parameter sets themselves are often much, much smaller.
+This is most evident for parameter set 13, but you can see huge log-likelihood differences across the board.
+What this suggests to me is that, indeed, it may be possible to find parameter sets that are closer to the truth by expanding the number of parameter sets that are optimized.
+However, it is also important to note that, in all cases, the likelihood found by the full optimization is at least as good as the likelihood found by starting at the true parameter values.
+Thus it may be the case that there will be multiple parameter sets that give rise to the same likelihood, making it impossible to know, in general, which is closer to the truth.
+
+<<>>=
+
+data.frame(parameter=c("Fh","rho","K","km","ER","Lobs","Robs","lik"),
+           set=rep(1:25,each=8),
+           optimFree=lapply(estimates, function(e) e[1,1:8]) %>% unlist,
+           optimTruth=lapply(results, function(r) c(r$params, r$lik)) %>% unlist,
+           truth=lapply(truth, function(t) c(t$params, t$lik)) %>% unlist
+           ) %>%
+    gather(., key="likMethod", value="value", 3:5) %>%
+        subset(., parameter=='lik')-> out2
+
+ggplot(out2, aes(x=set, y=log(value), color=likMethod)) +
+    geom_point() +
+        xlab("Dataset") +
+            ylab("Log-likelihood")
+
+
+@
+
+<<>>=
+ggplot(subset(out2, likMethod!="truth"), aes(x=set, y=value, color=likMethod)) +
+    geom_point() +
+        xlab("Dataset") +
+            ylab("Log-likelihood")
+
+@
 
 
 \end{document}
