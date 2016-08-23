@@ -1,7 +1,8 @@
 source("Growth_reproduction_trajectory_matching.R")
 
-if (!file.exists("Trajectory_matching_datasets_8-9.RDS")) {
-datasets <- vector(mode='list', length=25)
+if (!file.exists("Trajectory_matching_datasets_8-23.RDS")) {
+
+    datasets <- vector(mode='list', length=25)
 set.seed(101)
 for (d in 1:25) {
     pars <- c(Imax=rnorm(1, mean=22500, sd=2000),
@@ -28,7 +29,7 @@ for (d in 1:25) {
                                time=1:35,
                                value=rnorm(35,
                                    mean=unname(pars["F0"]),
-                                   sd=15000),
+                                   sd=5000),
                                method=rep(c(rep("add",4),"rep"),7))
         y0 <- c(F=unname(pars["F0"]),
                 E=0,
@@ -57,10 +58,9 @@ for (d in 1:25) {
     datasets[[d]] <- list(data=data,
                           params=pars)
 }
-saveRDS(datasets, file="Trajectory_matching_datasets_8-9.RDS")
-} else datasets <- readRDS("Trajectory_matching_datasets_8-9.RDS")
+saveRDS(datasets, file="Trajectory_matching_datasets_8-23.RDS")
+} else datasets <- readRDS("Trajectory_matching_datasets_8-23.RDS")
 
-## For this first set of attempts, do not attempt to estimate ER, but allow it to be fixed at the correct value.
 tm_ests <- vector(mode='list', length=25)
 for (d in 1:25) {
     print(d)
@@ -109,27 +109,6 @@ for (d in 1:25) {
                     as.data.frame -> refine_pars
     refine_pars[order(refine_pars$lik),] -> refine_pars
     tm_ests[[d]] <- refine_pars
-    saveRDS(tm_ests, file="Trajectory_matching_8-6.RDS")
+    saveRDS(tm_ests, file="Trajectory_matching_estimates_8-23.RDS")
 }
 
-## Construct a profile likelihood over rho for each parameter set
-datasets <- readRDS("Trajectory_matching_datasets_8-6.RDS")
-results <- readRDS("Trajectory_matching_8-6.RDS")
-
-profile <- vector(mode='list', length=25)
-for (d in 1:25)
-    mclapply(seq(0,0.3,length=61)[-1] %>% as.list,
-             profile_lik,
-             estpars=results[[d]][1,c("Fh","K","km","E0","W0","Lobs","Robs")],
-             data=datasets[[d]]$data,
-             mc.cores=15) %>% unlist -> profile
-#[[d]]
-
-profile_lik <- function(rho, estpars, data) {
-    fixpars <- c(Imax=22500, g=1.45, rho=rho, v=10, F0=1e6/30)
-    transform <- c("log", "logit", rep("log",5))
-    parorder <- c("Imax","Fh","g","rho","K","km","v","F0","E0","W0","Lobs","Robs")
-    optimizer(estpars, fixpars, parorder, transform, data, eval.only=FALSE, type="trajectory_matching", method="Nelder-Mead")
-}
-
-saveRDS(profile, file="Profile_lik_rho_8-8.RDS")
