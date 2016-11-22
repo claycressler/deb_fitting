@@ -92,7 +92,7 @@ for (d in 1:25) {
                  upper=c(Fh=20000, rho=1, K=1, km=1, ER=0.001, Lobs=2, Robs=10, Wmat=0.01))
     sobolDesign(lower=box[,'lower'],
                 upper=box[,'upper'],
-                nseq=50) %>%
+                nseq=50000) %>%
                     apply(., 1, as.list) %>%
                         lapply(., unlist) -> guesses
 
@@ -108,10 +108,10 @@ for (d in 1:25) {
              obsdata=data,
              eval.only=TRUE,
              type='trajectory_matching',
-             mc.cores=4) %>%
+             mc.cores=15) %>%
                  lapply(., function(x) x$lik) %>%
                      unlist -> guess_lik
-    guesses[order(guess_lik)[1:4]] -> refine
+    guesses[order(guess_lik)[1:300]] -> refine
     mclapply(refine,
              optimizer,
              fixpars=fixpars,
@@ -121,7 +121,7 @@ for (d in 1:25) {
              eval.only=FALSE,
              type='trajectory_matching',
              method='Nelder-Mead',
-             mc.cores=4) -> refine_lik
+             mc.cores=15) -> refine_lik
     refine_lik %>%
         lapply(., unlist) %>%
             unlist %>%
@@ -129,6 +129,6 @@ for (d in 1:25) {
                     as.data.frame -> refine_pars
     refine_pars[order(refine_pars$lik),] -> refine_pars
     tm_ests[[d]] <- refine_pars
-    saveRDS(tm_ests, file="Trajectory_matching_estimates_8-23.RDS")
+    saveRDS(tm_ests, file="Trajectory_matching_estimates_11-22.RDS")
 }
 

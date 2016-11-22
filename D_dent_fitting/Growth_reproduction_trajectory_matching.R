@@ -10,6 +10,7 @@ library(ggplot2)
 ## rebuild source for this computer
 if (is.loaded("tm_deb.so")) dyn.unload("tm_deb.so")
 system("rm tm_deb.so")
+system("rm tm_deb.o")
 system("R CMD SHLIB tm_deb.c")
 dyn.load("tm_deb.so")
 
