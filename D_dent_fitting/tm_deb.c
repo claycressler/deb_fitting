@@ -1,7 +1,7 @@
 #include <R.h>
 #include <stdio.h>
 
-static double parms[11];
+static double parms[12];
 
 #define Imax parms[0]
 #define Fh parms[1]
@@ -14,20 +14,21 @@ static double parms[11];
 #define F0 parms[8]
 #define Lerr parms[9]
 #define Rerr parms[10]
+#define Wmat parms[11]
 
 /* initializer */
 void initmod(void (* odeparms)(int *, double *)) {
-  int N=11;
+  int N=12;
   odeparms(&N, parms);
 }
 
 /* derivatives */
 void derivs (int *neq, double *t, double *y, double *ydot) {
   // fixed parameters whose values will not ever vary
-  double eps = 0.0000000445; // carbon content of algae
+  double eps = 0.00000000816536; // carbon content of algae from Meg's data
   double V = 30; // volume of the container
-  double xi = 0.00262; // length-weight regression coefficient
-  double q = 2.4; // length-weight regression exponent
+  double xi = 0.0018; // length-weight regression coefficient from Spencer
+  double q = 3; // length-weight regression exponent from Spencer
 
   // state variables
   double F = y[0]; // algal concentration
