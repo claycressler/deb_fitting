@@ -60,11 +60,14 @@ out[,'R'] <- out[,'R'] - out[max(which(out[,'W'] < pars['Wmat'])),'R']
 out[out[,'R'] < 0,'R'] = 0
 ## extract only the data points that can be compared against the true data
 as.data.frame(out[out[,'time']%in%data$age,]) -> pred
+## compute the observed weight as Wobs = W + E and compute the observed length prediction as Wobs=xi*Lobs^q; (Wobs/xi)^(1/q)=Lobs
+xi <- 1.8e-3; q <- 3;
+mutate(pred, Wobs=W+E, Lobs=(Wobs/xi)^(1/q)) -> pred
 ## compute the probability of observing the data, given the prediction
 sapply(unique(data$age),
        function(d)
            c(dnorm(x=data$length[data$age==d],
-                   mean=(pred$W[pred$time==d]/1.8e-3)^(1/3),
+                   mean=pred$Lobs[pred$time==d],
                    sd=pars["Lobs"],
                    log=TRUE) %>% sum,
              dnorm(x=data$eggs[data$age==d],
@@ -102,25 +105,44 @@ box <- cbind(lower=c(Fh=2000, rho=0, K=0, km=0.001, ER=0.00001, Lobs=0.001, Robs
              upper=c(Fh=20000, rho=1, K=1, km=1, ER=0.001, Lobs=2, Robs=10, Wmat=0.01))
 sobolDesign(lower=box[,'lower'],
             upper=box[,'upper'],
-            nseq=1000) %>%
+            nseq=100000) %>%
                 apply(., 1, as.list) %>%
                     lapply(., unlist) -> guesses
 
 ## Fixed parameter values (actually, Imax and g are set by the value of Fh)
 fixpars <- c(Imax=22500, g=1.45, v=10, F0=1e6/30)
 ## Parameter transformation to the unconstrained scale
-transform <- c("log", rep("logit",2), rep("log",6))
+transform <- c("log", rep("logit",2), rep("log",5))
 ## Order that tm_deb.c expects the parameters to be in
 parorder <- c("Imax","Fh","g","rho","K","km","v","ER","F0","Lobs","Robs","Wmat")
 
 ## Estimate likelihood
 mclapply(guesses,
          optimizer,
+         fixpars=fixpars,
          parorder=parorder,
          transform=transform,
          obsdata=data,
          eval.only=TRUE,
          type="trajectory_matching",
-         mc.cores=15) -> out
-
-
+         mc.cores=15) %>%
+             lapply(., function(x) x$lik) %>%
+                 unlist -> guess_lik
+guesses[order(guess_lik)[1:1500]] -> refine
+mclapply(refine,
+         optimizer,
+         fixpars=fixpars,
+         parorder=parorder,
+         transform=transform,
+         obsdata=data,
+         eval.only=FALSE,
+         type='trajectory_matching',
+         method='Nelder-Mead',
+         mc.cores=15) -> refine_lik
+refine_lik %>%
+    lapply(., unlist) %>%
+        unlist %>%
+            matrix(., ncol=(nrow(box)+2), byrow=TRUE, dimnames=list(1:length(refine_lik), c(rownames(box),"lik","conv"))) %>%
+                as.data.frame -> refine_pars
+refine_pars[order(refine_pars$lik),] -> refine_pars
+saveRDS(refine_pars, file="Trajectory_matching_estimates_uninfected_animals_11-22.RDS")

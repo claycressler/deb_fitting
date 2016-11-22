@@ -174,11 +174,15 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform) {
         ## extract only the data points that can be compared against the true data
         as.data.frame(out[out[,'time']%in%data$age,]) -> pred
 
+        ## compute the observed weight as Wobs = W + E and compute the observed length prediction as Wobs=xi*Lobs^q; (Wobs/xi)^(1/q)=Lobs
+        xi <- 1.8e-3; q <- 3;
+        mutate(pred, Wobs=W+E, Lobs=(Wobs/xi)^(1/q)) -> pred
+
         ## compute the probability of observing the data, given the prediction
         sapply(unique(data$age),
                function(d)
                    c(dnorm(x=data$length[data$age==d],
-                           mean=(pred$W[pred$time==d]/1.8e-3)^(1/3),
+                           mean=pred$Lobs[pred$time==d],
                            sd=pars["Lobs"],
                            log=TRUE) %>% sum,
                      dnorm(x=data$eggs[data$age==d],
