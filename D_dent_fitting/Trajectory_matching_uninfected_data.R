@@ -64,7 +64,7 @@ as.data.frame(out[out[,'time']%in%data$age,]) -> pred
 sapply(unique(data$age),
        function(d)
            c(dnorm(x=data$length[data$age==d],
-                   mean=(pred$W[pred$time==d]/2.62e-3)^(1/2.4),
+                   mean=(pred$W[pred$time==d]/1.8e-3)^(1/3),
                    sd=pars["Lobs"],
                    log=TRUE) %>% sum,
              dnorm(x=data$eggs[data$age==d],
@@ -79,3 +79,48 @@ tm_obj(estpars=par_transform(estpars, transform), data=data, fixpars=fixpars, pa
 
 ## compute the likelihood using the 'optimizer' function
 optimizer(estpars=estpars, fixpars=fixpars, parorder=parorder, transform=transform, obsdata=data, eval.only=TRUE)
+
+
+####################################################################
+####################################################################
+########    TRAJECTORY MATCHING OF THE REAL DATA!!!!    ############
+####################################################################
+####################################################################
+
+## Load the code for performing trajectory matching
+source("Growth_reproduction_trajectory_matching_real_data.R")
+
+## Load Cat's data
+x <- read.csv("Cat_data/uninfected_growth_reproduction.csv")
+data <- x[1:103,1:3]
+data$eggs[is.na(data$eggs)] <- 0 ## set reproduction = 0 for all individuals that have not yet matured
+## change the name of 'times' to 'age'
+colnames(data)[1] <- 'age'
+
+## Begin the funnel of opimization by estimating the likelihood of a huge number of parameter guesses
+box <- cbind(lower=c(Fh=2000, rho=0, K=0, km=0.001, ER=0.00001, Lobs=0.001, Robs=0.01, Wmat=0.0001),
+             upper=c(Fh=20000, rho=1, K=1, km=1, ER=0.001, Lobs=2, Robs=10, Wmat=0.01))
+sobolDesign(lower=box[,'lower'],
+            upper=box[,'upper'],
+            nseq=1000) %>%
+                apply(., 1, as.list) %>%
+                    lapply(., unlist) -> guesses
+
+## Fixed parameter values (actually, Imax and g are set by the value of Fh)
+fixpars <- c(Imax=22500, g=1.45, v=10, F0=1e6/30)
+## Parameter transformation to the unconstrained scale
+transform <- c("log", rep("logit",2), rep("log",6))
+## Order that tm_deb.c expects the parameters to be in
+parorder <- c("Imax","Fh","g","rho","K","km","v","ER","F0","Lobs","Robs","Wmat")
+
+## Estimate likelihood
+mclapply(guesses,
+         optimizer,
+         parorder=parorder,
+         transform=transform,
+         obsdata=data,
+         eval.only=TRUE,
+         type="trajectory_matching",
+         mc.cores=15) -> out
+
+
