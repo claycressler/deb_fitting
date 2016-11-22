@@ -178,7 +178,7 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform) {
         sapply(unique(data$age),
                function(d)
                    c(dnorm(x=data$length[data$age==d],
-                           mean=(pred$W[pred$time==d]/2.62e-3)^(1/2.4),
+                           mean=(pred$W[pred$time==d]/1.8e-3)^(1/3),
                            sd=pars["Lobs"],
                            log=TRUE) %>% sum,
                      dnorm(x=data$eggs[data$age==d],
