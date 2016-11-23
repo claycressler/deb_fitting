@@ -12,13 +12,9 @@ library(ggplot2)
 ## rebuild source for this computer
 if (is.loaded("tm_deb.so")) dyn.unload("tm_deb.so")
 system("rm tm_deb.so")
+system("rm tm_deb.o")
 system("R CMD SHLIB tm_deb.c")
 dyn.load("tm_deb.so")
-
-#if (is.loaded("tm_deb.so")) dyn.unload("tm_deb.so")
-#system("rm tm_deb.so")
-#system("R CMD SHLIB tm_deb.c")
-#dyn.load("tm_deb.so")
 
 calc_Imax <- function(fh) 10616.500976 + 1.129421*fh
 calc_g <- function(fh) 1.38413 + 9.839020e-6*fh - 2.738144e-10*fh^2 + 2.648817e-15*fh^3
