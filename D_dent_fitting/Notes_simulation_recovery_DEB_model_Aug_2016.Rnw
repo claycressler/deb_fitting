@@ -120,47 +120,55 @@ I spent a lot of time trying to figure out why, and discovered a number of probl
 Here's a brief list of the changes:
 \begin{enumerate}
 \item Previously, I assumed a Poisson distribution of measurement error. This is convenient because it is discrete and because it has no parameters to estimate (because the variance is equal to the mean). However, because we are measuring cumulative reproduction, this creates huge problems for fitting. For example, if the model-predicted cumulative reproduction was 50, and the observed cumulative reproduction was 45, I evaluated the likelihood using the call \texttt{dpois(x=45, lambda=50)}, so the measurement error variance was equal to 50! Basically, the Poisson has a variance that is far too high, given that observed reproduction is actually likely to have low measurement error - it's pretty easy to count babies! Now I am assuming normally distributed error.
-\item In the previous version, there were issues with individuals shrinking. In particular, the DEB model tracks the dynamics of structural weight $W$ and reserves $E$. Structural weight is related to structural length $L$ as $L = W^{1/3}$. However, feeding is related to \emph{observed} length, $L_{obs}$. Thus I need to specify a relationship between the DEB variables and structural length. Often it is assumed that structural length is equal to observed length (e.g., $L=L_{obs}$). But length-weight regressions for \emph{Daphnia} do not suggest that this is true. For example, Nisbet et al. report that the scaling of observed length with observed weight has an exponent of 2.4, not 3. Since observed weight is the sum of structural mass and reserves, I assumed that $L_{obs} = ((W+E)/\xi)^{1/q}$, where $\xi$ and $q$ are regression parameters. However, this can make really weird things happen to weight between observations. For example, if you measure length on day 5 and day 10, then all that matters to the fitting is the value of $L_{obs}$ on day 5 and day 10 - between those dates, $L_{obs}$ can make biologically unreasonable excursions. For example, if there is a spike in $E$ between day 5 and 10 that quickly decays, $L_{obs}$ will also rapidly increase and decrease. So long as $E$ (and $L_{obs}$) have fallen by day 10, the fitting algorithm won't care about that spike. But biologically, it doesn't make any sense. This was especially problematic when I tried to estimate the initial value of both $W$ and $E$, because you could have high likelihood parameter sets where the initial $L_{obs}$ was 5mm (because $E$ was huge, and then rapidly decayed), and the animal just shrank from birth until the first measurement. Now I am assuming that $L_{obs} = (W/\xi)^{1/q}$ - the dynamics of $W$ are much less sensitive to the environment, which better matches with the insensitivity that we observe in $L_{obs}$. Moreover, $W$ doesn't fluctuate nearly as rapidly as does $E$.
 \item Previously, I showed that it was essentially impossible to estimate the cost of reproduction $E_R$ while simultaneously estimating the allocation to growth $\kappa$ and the assimilation efficiency $\rho$ - the algorithm could arbitrarily slide these parameters around, making them essentially impossible to estimate simultaneously. However, I realized that there is actually some independent information about the cost of reproduction, which is that the cost of reproduction should be related to the initial values of reserves and structural mass. Now I am estimating the cost of reproduction, but assuming that $E_R = E(0) + W(0)$ to help constrain the fitting. I am using a standard DEB assumption to relate $E(0)$ and $W(0)$, which is that, at birth, $E(0)/W(0)$ is equal to the maximum reserve density, which is equal to $\rho/\nu$ (where $\rho$ is the assimilation efficiency and $\nu$ is the ``energy conductance'').
 \end{enumerate}
 
 Thus, the model that I am fitting is the following:
 \begin{align}
-\frac{dF}{dt} &= I_{max} \frac{F}{F_h+F} L_{obs}^g, \\
+\frac{dF}{dt} &= -I_{max} \frac{F}{F_h+F} L_{obs}^g, \\
 \frac{dE}{dt} &= \rho \epsilon V I_{max} \frac{F}{F_h+F} L_{obs}^g - P_C, \\
 \frac{dW}{dt} &= \kappa P_C - k_m W, \\
 \frac{dR}{dt} &= \frac{(1-\kappa) P_C}{E_R}, \text{ where} \\
 P_C &= \frac{E (\nu/L + k_m)}{1 + \kappa E/W}, \\
 L &= W^{1/3}, \\
-L_{obs} &= (\frac{W}{\xi})^{1/q},
+W_{obs} &= W + E, \\
+L_{obs} &= (\frac{W_{obs}}{\xi})^{1/q},
 F(0) &= F_0, \\
 E(0) &= \frac{\rho W(0)}{\nu}, \\
-W(0) &= \frac{E_R}{1+\rho/\nu}, \\
+W(0) &= \frac{E_R}{1+\rho/\nu}, \text{ and}\\
 R(0) &= 0.
 \end{align}
 
-The only aspects of this model that diverge from the standard DEB model (other than those discussed above) is the assumption that mobilization rate $P_C$ depends on structural length, whereas ingestion depends on observed length, and that there is no ``maturity maintenance.''
+There are several things to note about this model.
+Ingestion rate depends on observed length, $L_{obs}$, rather than the DEB variable of ``structural'' length.
+This takes advantage of our independent feeding data, which allows us to relate observed length to the feeding parameters $I_{max}$, $F_h$, and $g$.
+Somatic maintenance rate depends on the DEB variable of structural weight, $W$, and mobilization flux $P_C$ depends on structural length, $L$, where $W = L^3$.
+The relationship between observed length and the DEB variables is based on a length-weight regression.
+Since observed weight, $W_{obs}$, should account for weight as structural weight and weight of reserves, we assume that $W_{obs} = W + E$ and $L_{obs} = (W_{obs}/\xi)^{(1/q)}$, where $\xi$ and $q$ are parameters of the length-weight regression.
+For simplicity, we assume that the cost of growth $E_G$ is equal to one.
+That suggests that reserves and structural weight are measured in biomass units.
+This was an assumption that was necessary because it was possible to find parameter sets with identical likelihoods but very different estimates of cost of growth, cost of reproduction ($E_R$), and growth allocation ($\kappa$).
+We assume that the cost of growth $E_R$ is equal to the amount of biomass in a neonate, so $E_R = E(0) + W(0)$.
+The partitioning between reserves and weight based on the standard DEB assumption that reserve density, $E/W$, is equal to $\rho/\nu$.
+Finally, contrary to the standard DEB theory, we do not consider ``maturity maintenance'', so the allocation of biomass to reproduction can never be reclaimed via ``shrinking.''
 
-Of the parameters of this model, many are fixed:
-\begin{align}
-\epsilon &= 4.45 \times 10^{-8} \text{ carbon content of algae}, \\
-V &= 30 \text{ volume of the experimental container}, \\
-\xi &= 0.00262 \text{ length-weight regression coefficient (from Nisbet et al. 2004)}, \\
-q &= 2.4 \text{ length-weight regression exponent (from Nisbet et al. 2004)}, \\
-\nu &= 10 \text{ energy conductance}.
-\end{align}
+Of the parameters of this model, many are fixed.
+The carbon content of algae, $\epsilon = 8.17 \times 10^{-9}$, is based on dry weight of a known number of \emph{Ankistrodesmus} cells, which were used in the experiment.
+The volume of the experimental container is $V = 30$ml.
+The parameters of the length-weight regression are $\xi = 1.8 \times 10^{-3}$ and $q = 3$.
+The energy conductance parameter $\nu$ is fixed at a value of 10, as previous fitting attempts by ourselves and others (Martin et al. 2013) have shown that this parameter cannot be independently estimated.
 
-Other the $\nu$, the other parameters can be determined on the basis of other data.
-My previous fitting attempts (as well as the results from other DEB fitting studies) suggest that the fitting results are basically insensitive to the value of $\nu$, so I fix this at 10.
 Two other parameters are set by the results of the feeding model fitting.
-The algorithm estimates the value of $F_h$ (the half-saturation constant), but once the value of $F_h$ is specified, both the maximum ingestion rate $I_{max}$ and the length-feeding rate exponent $g$ are set.
-Thus the only parameters that are estimated are $F_h$, $\rho$ (the assimilation efficiency), $\kappa$ (the fractional allocation to growth), $k_m$ (the somatic maintenance rate), $E_R$ (the cost of reproduction), and the standard deviations of normal distributions describing the error in measurement of length and reproduction, $\sigma_L$ and $\sigma_R$.
+The algorithm estimates the value of $F_h$ (the half-saturation constant), but once the value of $F_h$ is specified, both the maximum ingestion rate $I_{max}$ and the length-feeding rate exponent $g$ are set by the results of the feeding model fitting.
+Thus the only parameters that are estimated are $F_h$, $\rho$ (the assimilation efficiency), $\kappa$ (the fractional allocation to growth), $k_m$ (the somatic maintenance rate), $E_R$ (the cost of reproduction), the structural weight at maturation (when reproduction begins), $W_{mat}$, and the standard deviations of normal distributions describing the error in measurement of length and reproduction, $\sigma_L$ and $\sigma_R$.
 
-For this exercise, I simulated 25 datasets, varying the values of $F_h$, $\rho$, $\kappa$, $k_m$, $\nu$, $E_R$, and $F(0)$.
-I also let the amount of food added each timestep be variable, with a mean of $F(0)=33333$ and a standard deviation of 15000.
+To perform a simulation/recovery experiment, we generated 25 simulated datasets.
+To generate each dataset, we randomly drew values of $F_h$, $\rho$, $\kappa$, $k_m$, $\nu$, $E_R$, and $W_{mat}$ to create a parameter set.
+For each parameter set, we simulated growth and reproduction trajectories by allowing the amount of food added each timestep to vary, with a mean of $F(0)=33333$ and a standard deviation of 5000.
 The variability in food addition is meant to reflect the reality that food addition is not perfect, even though we assume that it is in the model.
 With the standard deviation being so high, this produces a lot of variation in food addition, with large impacts on growth and reproduction.
-In reality, the standard deviation in food addition is probably much less than this, so the simulation may be overly pessimistic!
+In reality, the standard deviation in food addition is probably much less than this, so the simulation may be overly pessimistic.
+For each of 8 timepoints (day 5, 10, 12, 15, 18, 25, 30, and 35, matching the days that experimental observations of growth and reproduction were collected), we generated 12 independent observations of growth and reproduction, leading to a simulated dataset with 96 datapoints.
 
 You can see in Fig. \ref{fig:rep-cost-est-2} that, overall, the algorithm does a pretty good job estimating all of the parameters.
 The estimates are very close to the true values for almost every parameter and every dataset, as the the true value and estimate pairs are closely scattered around the one-to-one line.
