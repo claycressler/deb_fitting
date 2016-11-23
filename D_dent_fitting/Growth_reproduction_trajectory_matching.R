@@ -150,7 +150,7 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform) {
 
     ## Simulate the system
     try(ode(y0,
-            times=0:35,
+            times=seq(0,35,0.1),
             func="derivs",
             parms=pars,
             dllname="tm_deb",
