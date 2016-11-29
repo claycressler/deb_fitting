@@ -171,48 +171,46 @@ In reality, the standard deviation in food addition is probably much less than t
 For each of 8 timepoints (day 5, 10, 12, 15, 18, 25, 30, and 35, matching the days that experimental observations of growth and reproduction were collected), we generated 12 independent observations of growth and reproduction, leading to a simulated dataset with 96 datapoints.
 
 You can see in Fig. \ref{fig:rep-cost-est-2} that, overall, the algorithm does a pretty good job estimating all of the parameters.
-The estimates are very close to the true values for almost every parameter and every dataset, as the the true value and estimate pairs are closely scattered around the one-to-one line.
-In fact, there were only a few datasets where the algorithm really failed to estimate parameter reasonably well.
+The estimates are reasonably close to the true values for every parameter and dataset, as the the true value and estimate pairs are fairly closely scattered around the one-to-one line.
 
 <<'rep-cost-est-2', fig.height=4, fig.width=6, fig.cap='The highest likelihood parameter estimate from fitting each of 25 parameter sets using the model with normal measurement errors. Note that here I am also estimating the cost of reproduction. The true parameter value is given by the x-axis value and the estimate is given by the y-axis value. The line is the one-to-one line for reference.'>>=
-datasets <- readRDS("Trajectory_matching_datasets_8-9.RDS")
-results <- readRDS("Trajectory_matching_estimates_8-9.RDS")
+datasets <- readRDS("Trajectory_matching_datasets_11-22.RDS")
+results <- readRDS("Trajectory_matching_estimates_11-22.RDS")
 
 library(dplyr)
 library(tidyr)
 library(ggplot2)
 
-cbind(lapply(datasets, function(l) l$params[colnames(results[[1]])[1:7]]) %>%
+cbind(lapply(datasets, function(l) l$params[colnames(results[[1]])[1:8]]) %>%
           unlist %>%
-              matrix(., ncol=7, byrow=TRUE, dimnames=list(as.character(1:25),colnames(results[[1]])[1:7])) %>%
+              matrix(., ncol=8, byrow=TRUE, dimnames=list(as.character(1:25),colnames(results[[1]])[1:8])) %>%
                   as.data.frame %>%
                       mutate(., Fh=log(Fh)) %>%
-                          gather(., key="parameter", value="truth", 1:7),
-      lapply(results, function(l) head(l,1)[1:7]) %>%
+                          gather(., key="parameter", value="truth", 1:8),
+      lapply(results, function(l) head(l,1)[1:8]) %>%
           unlist %>%
-              matrix(., ncol=7, byrow=TRUE, dimnames=list(as.character(1:25),colnames(results[[1]])[1:7])) %>%
+              matrix(., ncol=8, byrow=TRUE, dimnames=list(as.character(1:25),colnames(results[[1]])[1:8])) %>%
                   as.data.frame %>%
                       mutate(., Fh=log(Fh)) %>%
-                          gather(., key="parameter", value="estimate", 1:7)
+                          gather(., key="parameter", value="estimate", 1:8)
       ) -> best
+## Remove extra "parameter" column
 best <- best[,-3]
 
-ggplot(best[which(best[,1] %in% c("Fh","rho","K","km","ER")),], aes(x=truth, y=estimate)) +
+ggplot(best[which(best[,1] %in% c("Fh","rho","K","km","ER","Wmat")),], aes(x=truth, y=estimate)) +
     geom_point() +
         facet_wrap(~parameter, scales='free') +
             geom_abline(slope=1, intercept=0)
 
-
-
 @
 
 Fig. \ref{fig:rel-error-25-2} shows the relative (fractional) error for each parameter, organized by dataset.
-For some of these datasets, we can understand what was going on that caused the parameter estimate to be so badly off.
-For example, dataset 13 produced an estimate of assimilation efficiency that was much too high (the true value was 0.27 and the estimate was 0.99), an estimate of cost of reproduction that was too high (the true value was 5.2e-3 and the etimate was 2.4e-4), and an estimate of the observation error in reproduction that was much too high (the true value was 2 and the estimate was 134).
+Again, these suggest that error was fairly reasonable for most of the datasets.
+One of the few datasets that was difficult to estimate was dataset 5.
 
 <<'rel-error-25-2', fig.height=4, fig.width=6, fig.cap='Relative error in the parameter estimates for all 25 datasets.'>>=
 mutate(best, error=(estimate-truth)/truth) -> best
-best$set <- rep(1:25, 7)
+best$set <- rep(1:25, 8)
 
 ggplot(best, aes(x=set, y=error)) +
     geom_point() +
@@ -222,10 +220,9 @@ ggplot(best, aes(x=set, y=error)) +
 
 \clearpage
 
-However, if you look at the growth and reproduction trajectories for dataset 13 compared to all of the other growth and reproduction trajectories, you can see the problem.
-Fig. \ref{fig:comparing-trajectories} shows that dataset 13 produced an animal that grew incredibly quickly and produced a \emph{huge} number of offspring.
-This was because the true value of the cost of reproduction (which also sets the initial size of the offspring) was very low compared to all of the other parameter sets.
-With such an extreme parameter value, the dataset itself was also extreme, and the algorithm struggled to find a good estimate.
+However, if you look at the growth and reproduction trajectories for dataset 5 compared to all of the other growth and reproduction trajectories, you can see that this dataset had the lowest reproduction (the red line in Fig. \ref{fig:comparing-trajectories}).
+Another dataset that was somewhat challenging to estimate was dataset 10, which also had low reproduction (the blue line).
+Note that the two datasets with very high reproduction were datasets 6 and 19, which have very high estimates of the observation error in reproduction, but the other parameters were well-estimated.
 
 <<'comparing-trajectories', fig.width=6, fig.height=4, fig.cap='The growth and reproduction trajectories at the true parameter values for dataset 13 (black) and all other datasets (grey).'>>=
 ## what is the likelihood of the true parameter values?
@@ -233,9 +230,9 @@ source("Growth_reproduction_trajectory_matching.R")
 
 out <- vector(mode='list', length=25)
 for (i in 1:25) {
-    estpars <- results[[i]][1,1:7] %>% unlist
+    estpars <- results[[i]][1,1:8] %>% unlist
     fixpars <- c(Imax=22500, g=1.45, v=10, F0=1e6/30)
-    parorder <- c("Imax","Fh","g","rho","K","km","v","ER","F0","Lobs","Robs")
+    parorder <- c("Imax","Fh","g","rho","K","km","v","ER","F0","Lobs","Robs","Wmat")
     fixpars["Imax"] <- calc_Imax(unname(estpars["Fh"]))
     fixpars["g"] <- calc_g(unname(estpars["Fh"]))
     ## combine the parameters to be estimated and the fixed parameters
@@ -264,7 +261,7 @@ for (i in 1:25) {
             initfunc="initmod",
             events=list(data=eventdat))) %>%
                 as.data.frame %>%
-                    mutate(., L=(W/0.00262)^(1/2.4)) -> out[[i]]
+                    mutate(., L=((W+E)/0.0018)^(1/3)) -> out[[i]]
 
 }
 
@@ -277,7 +274,8 @@ axis(2)
 mtext(side=1, line=2.5, 'Age')
 mtext(side=2, line=2.5, 'Length (mm)')
 for (i in 1:25) with(out[[i]], lines(time, L, col=grey(0.7)))
-with(out[[13]], lines(time, L, col=2, lwd=2))
+with(out[[5]], lines(time, L, col=2, lwd=2))
+with(out[[10]], lines(time, L, col=4, lwd=2))
 
 plot.new()
 plot.window(xlim=c(0,35), ylim=c(lapply(out, function(o) min(o$R)) %>% unlist %>% min, lapply(out, function(o) max(o$R)) %>% unlist %>% max))
@@ -287,95 +285,11 @@ axis(2)
 mtext(side=1, line=2.5, 'Age')
 mtext(side=2, line=2.5, 'Cum. no. of eggs')
 for (i in 1:25) with(out[[i]], lines(time, R, col=grey(0.7)))
-with(out[[13]], lines(time, R, col=2, lwd=2))
+with(out[[5]], lines(time, R, col=2, lwd=2))
+with(out[[10]], lines(time, R, col=4, lwd=2))
 
 @
 
-Another dataset that provided at least one very badly estimated parameter was dataset 2, where the half-saturation constant was estimated to be 11.7 when the true value was 10285.6.
-Although it wasn't quite as large of an error, the estimate of assimilation efficiency was also quite off (the true value was 0.15 and the estimate was 0.26).
-Looking at the growth and reproduction trajectories for dataset 2 compared to all of the other datasets (except 13, which we exclude to help with visualization, Fig. \ref{fig:comparing-trajectories-3}), you can see that this dataset was extreme in the other direction - the trajectory produced an animal that was tiny compared to every other animal in the dataset.
-
-<<'comparing-trajectories-2', fig.width=6, fig.height=4, fig.cap='The growth and reproduction trajectories at the true parameter values for dataset 2 (red) and all other parameter sets (grey).'>>=
-par(mfrow=c(1,2), mar=c(4,4,0.25,0.25), oma=rep(0.25,4))
-plot.new()
-plot.window(xlim=c(0,35), ylim=c(lapply(out, function(o) min(o$L)) %>% unlist %>% min, lapply(out, function(o) max(o$L)) %>% unlist %>% max))
-box('plot')
-axis(1)
-axis(2)
-mtext(side=1, line=2.5, 'Age')
-mtext(side=2, line=2.5, 'Length (mm)')
-for (i in c(1:12,14:25)) with(out[[i]], lines(time, L, col=grey(0.7)))
-with(out[[2]], lines(time, L, col=2, lwd=2))
-
-plot.new()
-plot.window(xlim=c(0,35), ylim=c(lapply(out, function(o) min(o$R)) %>% unlist %>% min, 300))
-box('plot')
-axis(1)
-axis(2)
-mtext(side=1, line=2.5, 'Age')
-mtext(side=2, line=2.5, 'Cum. no. of eggs')
-for (i in c(1:12,14:25)) with(out[[i]], lines(time, R, col=grey(0.7)))
-with(out[[2]], lines(time, R, col=2, lwd=2))
-
-@
-
-The final dataset that produced some bad parameter estimates was dataset 11, which produced an estimate of growth allocation $\kappa$ that was too high (the true value was 0.25 and the estimate was 0.93), you can see that again, the dataset was extreme, with the animal growing very rapidly to very large size and having very few offspring (Fig. \ref{fig:comparing-trajectories-2}).
-
-<<'comparing-trajectories-3', fig.width=6, fig.height=4, fig.cap='The growth and reproduction trajectories at the true parameter values for dataset 11 (red) and all other datasets (grey).'>>=
-par(mfrow=c(1,2), mar=c(4,4,0.25,0.25), oma=rep(0.25,4))
-plot.new()
-plot.window(xlim=c(0,35), ylim=c(lapply(out, function(o) min(o$L)) %>% unlist %>% min, lapply(out, function(o) max(o$L)) %>% unlist %>% max))
-box('plot')
-axis(1)
-axis(2)
-mtext(side=1, line=2.5, 'Age')
-mtext(side=2, line=2.5, 'Length (mm)')
-for (i in c(1:12,14:25)) with(out[[i]], lines(time, L, col=grey(0.7)))
-with(out[[11]], lines(time, L, col=2, lwd=2))
-
-plot.new()
-plot.window(xlim=c(0,35), ylim=c(lapply(out, function(o) min(o$R)) %>% unlist %>% min, 300))
-box('plot')
-axis(1)
-axis(2)
-mtext(side=1, line=2.5, 'Age')
-mtext(side=2, line=2.5, 'Cum. no. of eggs')
-for (i in c(1:12,14:25)) with(out[[i]], lines(time, R, col=grey(0.7)))
-with(out[[11]], lines(time, R, col=2, lwd=2))
-
-@
-
-So, basically, the algorithm struggles to fit extreme datasets.
-Interestingly, while this datasets are extreme, relative to the other datasets being fit, it is unclear why they should be hard to fit.
-An examination of the true parameter values for each dataset can be somewhat illustrative (Fig. \ref{fig:comparing-parameters}).
-In particular, as noted above, for the case of dataset 13, one of the parameter values was actually fairly extreme (cost of reproduction was very low).
-For dataset 2, on the other hand, both the growth allocation $\kappa$ and the assimilation efficiency $\rho$ were very low.
-Dataset 11, on the other hand, doesn't appear to be very unusual in terms of its parameter values.
-
-<<'comparing-parameters', fig.width=6, fig.height=4, fig.cap='True parameter values for all 25 parameter sets. The hard-to-fit parameter sets are colored blue.'>>=
-lapply(datasets, function(d) d$params[c("Fh","rho","K","km","ER")]) %>% unlist %>% matrix(., ncol=5, byrow=TRUE, dimnames=list(1:25, c("Fh","rho","K","km","ER"))) %>% as.data.frame %>% mutate(., Fh=log(Fh), set=1:25) %>% gather(., key="parameter", value="value", 1:5) -> truth
-truth$col <- 1
-truth[truth$set%in%c(2,11,13),'col'] <- 2
-
-ggplot(truth, aes(x=set, y=value, col=factor(col))) +
-    geom_point() +
-        facet_wrap(~parameter, scales="free") +
-            theme_bw() +
-                theme(legend.position='none')
-
-@
-
-\clearpage
-
-Regardless, if you remove these three extreme datasets, the plots of the estimates compared to the truth look great (Fig. \ref{fig:best-estimates}).
-<<'best-estimates', fig.width=6, fig.height=4, fig.cap="Looking at the estimates when you exclude the 3 datasets that were hard to fit.">>=
-ggplot(subset(best, parameter%in%c("Fh","rho","K","km","ER") & set%in%c(1,3:10,12,14:25)), aes(x=truth, y=estimate)) +
-    geom_point() +
-        facet_wrap(~parameter, scales='free') +
-            geom_abline(slope=1, intercept=0)
-
-
-@
 
 \clearpage
 
