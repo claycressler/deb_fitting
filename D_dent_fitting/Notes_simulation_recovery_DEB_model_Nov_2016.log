@@ -1,9 +1,9 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015) (preloaded format=pdflatex 2015.5.24)  5 DEC 2015 01:02
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015) (preloaded format=pdflatex 2015.5.24)  29 NOV 2016 14:24
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**Notes_feeding_model
-(./Notes_feeding_model.tex
+**Notes_simulation_recovery_DEB_model_Nov_2016
+(./Notes_simulation_recovery_DEB_model_Nov_2016.tex
 LaTeX2e <2015/01/01>
 Babel <3.9l> and hyphenation patterns for 79 languages loaded.
 (/usr/local/texlive/2015/texmf-dist/tex/latex/amscls/amsart.cls
@@ -308,41 +308,41 @@ Package textcomp Info: Setting pplj sub-encoding to TS1/3 on input line 407.
 Package textcomp Info: Setting ptmx sub-encoding to TS1/4 on input line 408.
 Package textcomp Info: Setting ptmj sub-encoding to TS1/4 on input line 409.
 ))
-(./Notes_feeding_model.aux)
-\openout1 = `Notes_feeding_model.aux'.
+(./Notes_simulation_recovery_DEB_model_Nov_2016.aux)
+\openout1 = `Notes_simulation_recovery_DEB_model_Nov_2016.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 117.
-LaTeX Font Info:    ... okay on input line 117.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 117.
-LaTeX Font Info:    ... okay on input line 117.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 117.
-LaTeX Font Info:    ... okay on input line 117.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 117.
-LaTeX Font Info:    ... okay on input line 117.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 117.
-LaTeX Font Info:    ... okay on input line 117.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 117.
-LaTeX Font Info:    ... okay on input line 117.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 117.
-LaTeX Font Info:    Try loading font information for TS1+cmr on input line 117.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 118.
+LaTeX Font Info:    ... okay on input line 118.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 118.
+LaTeX Font Info:    ... okay on input line 118.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 118.
+LaTeX Font Info:    ... okay on input line 118.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 118.
+LaTeX Font Info:    ... okay on input line 118.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 118.
+LaTeX Font Info:    ... okay on input line 118.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 118.
+LaTeX Font Info:    ... okay on input line 118.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 118.
+LaTeX Font Info:    Try loading font information for TS1+cmr on input line 118.
 
 
 (/usr/local/texlive/2015/texmf-dist/tex/latex/base/ts1cmr.fd
 File: ts1cmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
-LaTeX Font Info:    ... okay on input line 117.
-LaTeX Font Info:    Try loading font information for OT1+ptm on input line 117.
+LaTeX Font Info:    ... okay on input line 118.
+LaTeX Font Info:    Try loading font information for OT1+ptm on input line 118.
 
 
 (/usr/local/texlive/2015/texmf-dist/tex/latex/psnfss/ot1ptm.fd
 File: ot1ptm.fd 2001/06/04 font definitions for OT1/ptm.
 )
-LaTeX Font Info:    Try loading font information for U+msa on input line 117.
+LaTeX Font Info:    Try loading font information for U+msa on input line 118.
 
 (/usr/local/texlive/2015/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 117.
+LaTeX Font Info:    Try loading font information for U+msb on input line 118.
 
 (/usr/local/texlive/2015/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
@@ -411,119 +411,101 @@ e
 Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: subfig package v1.3 is loaded.
 Package caption Info: End \AtBeginDocument code.
-
-[1{/usr/local/texlive/2015/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
-Package color Info: Redefining color shadecolor on input line 177.
-
-<figure/feeding-1.png, id=14, 602.25pt x 1053.9375pt>
-File: figure/feeding-1.png Graphic file (type png)
-
-<use figure/feeding-1.png>
-Package pdftex.def Info: figure/feeding-1.png used on input line 179.
-(pdftex.def)             Requested size: 361.35136pt x 632.38347pt.
-LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <12> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 181.
+LaTeX Font Info:    Try loading font information for OT1+pcr on input line 128.
 
 
-LaTeX Warning: Float too large for page by 40.02098pt on input line 182.
-
-Package color Info: Redefining color shadecolor on input line 196.
-<figure/inf-feeding-1.png, id=16, 602.25pt x 1053.9375pt>
-File: figure/inf-feeding-1.png Graphic file (type png)
-
-<use figure/inf-feeding-1.png>
-Package pdftex.def Info: figure/inf-feeding-1.png used on input line 198.
-(pdftex.def)             Requested size: 361.35136pt x 632.38347pt.
-
-
-LaTeX Warning: Float too large for page by 54.02098pt on input line 201.
-
-Package color Info: Redefining color shadecolor on input line 210.
-<figure/Imax-comp-1.png, id=17, 602.25pt x 376.40625pt>
-File: figure/Imax-comp-1.png Graphic file (type png)
-
-<use figure/Imax-comp-1.png>
-Package pdftex.def Info: figure/Imax-comp-1.png used on input line 212.
-(pdftex.def)             Requested size: 316.17987pt x 197.62198pt.
-
+(/usr/local/texlive/2015/texmf-dist/tex/latex/psnfss/ot1pcr.fd
+File: ot1pcr.fd 2001/06/04 font definitions for OT1/pcr.
+)
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [2]
-[3 <./figure/feeding-1.png>] [4 <./figure/inf-feeding-1.png>]
-Package color Info: Redefining color shadecolor on input line 241.
+ [1{/usr/local/texlive/2015/texmf-var/fonts/map/pdftex/updmap/pdftex.map}] [2]
+Package color Info: Redefining color shadecolor on input line 183.
 
-<figure/spore-dep-feeding-1.png, id=31, 602.25pt x 1053.9375pt>
-File: figure/spore-dep-feeding-1.png Graphic file (type png)
+<figure/rep-cost-est-2-1.png, id=18, 903.375pt x 602.25pt>
+File: figure/rep-cost-est-2-1.png Graphic file (type png)
 
-<use figure/spore-dep-feeding-1.png>
-Package pdftex.def Info: figure/spore-dep-feeding-1.png used on input line 243.
-
-(pdftex.def)             Requested size: 361.35136pt x 632.38347pt.
-
-
-LaTeX Warning: Float too large for page by 68.02098pt on input line 246.
-
-[5 <./figure/Imax-comp-1.png>] [6 <./figure/spore-dep-feeding-1.png>]
-Package color Info: Redefining color shadecolor on input line 260.
-
-<figure/spore-dep-feeding-2-1.png, id=40, 602.25pt x 1053.9375pt>
-File: figure/spore-dep-feeding-2-1.png Graphic file (type png)
-
-<use figure/spore-dep-feeding-2-1.png>
-Package pdftex.def Info: figure/spore-dep-feeding-2-1.png used on input line 26
-2.
-(pdftex.def)             Requested size: 361.35136pt x 632.38347pt.
-
-
-LaTeX Warning: Float too large for page by 68.02098pt on input line 265.
-
-Package color Info: Redefining color shadecolor on input line 288.
-<figure/clearance-thru-time-1.png, id=41, 903.375pt x 602.25pt>
-File: figure/clearance-thru-time-1.png Graphic file (type png)
-
-<use figure/clearance-thru-time-1.png>
-Package pdftex.def Info: figure/clearance-thru-time-1.png used on input line 29
-0.
+<use figure/rep-cost-est-2-1.png>
+Package pdftex.def Info: figure/rep-cost-est-2-1.png used on input line 185.
 (pdftex.def)             Requested size: 451.6875pt x 301.13344pt.
+Package color Info: Redefining color shadecolor on input line 198.
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
+<figure/rel-error-25-2-1.png, id=20, 903.375pt x 602.25pt>
+File: figure/rel-error-25-2-1.png Graphic file (type png)
 
- [7]
-[8 <./figure/spore-dep-feeding-2-1.png>]
-Package color Info: Redefining color shadecolor on input line 317.
+<use figure/rel-error-25-2-1.png>
+Package pdftex.def Info: figure/rel-error-25-2-1.png used on input line 200.
+(pdftex.def)             Requested size: 451.6875pt x 301.13344pt.
+ [3] [4 <./figure/rep-cost-est-2-1.png>]
+[5 <./figure/rel-error-25-2-1.png>]
+Package color Info: Redefining color shadecolor on input line 215.
 
-<figure/Clay-vs-Spencer-1.png, id=50, 451.6875pt x 752.8125pt>
-File: figure/Clay-vs-Spencer-1.png Graphic file (type png)
+<figure/comparing-trajectories-1.png, id=32, 903.375pt x 602.25pt>
+File: figure/comparing-trajectories-1.png Graphic file (type png)
 
-<use figure/Clay-vs-Spencer-1.png>
-Package pdftex.def Info: figure/Clay-vs-Spencer-1.png used on input line 319.
-(pdftex.def)             Requested size: 271.01524pt x 451.71396pt.
- [9 <./figure/clearance-thru-time-1.png>]
-[10 <./figure/Clay-vs-Spencer-1.png>] (./Notes_feeding_model.aux) ) 
+<use figure/comparing-trajectories-1.png>
+Package pdftex.def Info: figure/comparing-trajectories-1.png used on input line
+ 217.
+(pdftex.def)             Requested size: 451.6875pt x 301.13344pt.
+ [6
+
+ <./figure/comparing-trajectories-1.png>]
+Package color Info: Redefining color shadecolor on input line 236.
+ <figure/free-vs-truth-start-1.png, id=37, 903.375pt x 602.25pt>
+File: figure/free-vs-truth-start-1.png Graphic file (type png)
+
+<use figure/free-vs-truth-start-1.png>
+Package pdftex.def Info: figure/free-vs-truth-start-1.png used on input line 23
+8.
+(pdftex.def)             Requested size: 451.6875pt x 301.13344pt.
+Package color Info: Redefining color shadecolor on input line 251.
+
+<figure/lik-comparison-1.png, id=38, 602.25pt x 451.6875pt>
+File: figure/lik-comparison-1.png Graphic file (type png)
+
+<use figure/lik-comparison-1.png>
+Package pdftex.def Info: figure/lik-comparison-1.png used on input line 253.
+(pdftex.def)             Requested size: 451.6875pt x 338.77856pt.
+ [7
+
+ <./figure/free-vs-truth-start-1.png>]
+Package color Info: Redefining color shadecolor on input line 262.
+
+<figure/lik-comparison-2-1.png, id=44, 602.25pt x 451.6875pt>
+File: figure/lik-comparison-2-1.png Graphic file (type png)
+
+<use figure/lik-comparison-2-1.png>
+Package pdftex.def Info: figure/lik-comparison-2-1.png used on input line 264.
+(pdftex.def)             Requested size: 451.6875pt x 338.77856pt.
+ [8 <./figure/lik-comparison-1.png>]
+[9 <./figure/lik-comparison-2-1.png>] [10
+
+]
+(./Notes_simulation_recovery_DEB_model_Nov_2016.aux) ) 
 Here is how much of TeX's memory you used:
- 6558 strings out of 493089
- 106905 string characters out of 6134842
+ 6583 strings out of 493089
+ 107533 string characters out of 6134842
  182353 words of memory out of 5000000
- 9788 multiletter control sequences out of 15000+600000
- 20787 words of font info for 54 fonts, out of 8000000 for 9000
+ 9812 multiletter control sequences out of 15000+600000
+ 18598 words of font info for 53 fonts, out of 8000000 for 9000
  1302 hyphenation exceptions out of 8191
- 44i,10n,42p,429b,408s stack positions out of 5000i,500n,10000p,200000b,80000s
-{/usr/local/
-texlive/2015/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/local/texlive/2015/te
-xmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/local/texlive/2015/tex
-mf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/local/texlive/2015/texm
-f-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2015/texmf-
-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2015/texmf-di
-st/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2015/texmf-dist/
-fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2015/texmf-dist/f
-onts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2015/texmf-dist/fon
-ts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/u
-rw/times/utmr8a.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/urw/times/u
-tmri8a.pfb>
-Output written on Notes_feeding_model.pdf (10 pages, 606881 bytes).
+ 44i,10n,42p,993b,357s stack positions out of 5000i,500n,10000p,200000b,80000s
+{/usr/local/texlive/2015/
+texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/local/texlive/2015/texmf-dist/font
+s/type1/public/amsfonts/cm/cmmi12.pfb></usr/local/texlive/2015/texmf-dist/fonts
+/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2015/texmf-dist/fonts/t
+ype1/public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2015/texmf-dist/fonts/typ
+e1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/
+public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/p
+ublic/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/urw
+/courier/ucrr8a.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/urw/times/u
+tmr8a.pfb></usr/local/texlive/2015/texmf-dist/fonts/type1/urw/times/utmri8a.pfb
+>
+Output written on Notes_simulation_recovery_DEB_model_Nov_2016.pdf (10 pages, 4
+73793 bytes).
 PDF statistics:
- 93 PDF objects out of 1000 (max. 8388607)
- 56 compressed objects within 1 object stream
+ 87 PDF objects out of 1000 (max. 8388607)
+ 53 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 36 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 31 words of extra memory for PDF output out of 10000 (max. 10000000)
 

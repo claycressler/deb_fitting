@@ -302,16 +302,16 @@ Fig. \ref{fig:free-vs-truth-start} shows that, when you start the optimization a
 
 <<'free-vs-truth-start', fig.width=6, fig.height=4, fig.cap='Comparing the true parameter values (x-axis) against the parameter estimates when the optimization algorithm starts from naive guesses and when the algorithm starts at the true parameter values.'>>=
 source("Growth_reproduction_trajectory_matching.R")
-datasets <- readRDS("Trajectory_matching_datasets_8-9.RDS")
+datasets <- readRDS("Trajectory_matching_datasets_11-22.RDS")
 
 if (!file.exists("Trajectory_matching_estimates_starting_at_truth.RDS")) {
     results <- vector(mode='list', length=25)
     for (i in 1:25){
         print(i)
-        optimizer(estpars=datasets[[i]]$params[c("Fh","rho","K","km","ER","Lobs","Robs")],
+        optimizer(estpars=datasets[[i]]$params[c("Fh","rho","K","km","ER","Lobs","Robs","Wmat")],
                   fixpars=datasets[[i]]$params[c("Imax","g","v","F0")],
-                  parorder=c("Imax","Fh","g","rho","K","km","v","ER","F0","Lobs","Robs"),
-                  transform=c("log","logit","logit",rep("log",4)),
+                  parorder=c("Imax","Fh","g","rho","K","km","v","ER","F0","Lobs","Robs","Wmat"),
+                  transform=c("log","logit","logit",rep("log",5)),
                   obsdata=datasets[[i]]$data,
                   type="trajectory_matching",
               method="Nelder-Mead") -> results[[i]]
@@ -322,27 +322,27 @@ if (!file.exists("Trajectory_matching_estimates_starting_at_truth.RDS")) {
 truth <- vector(mode='list', length=25)
 for (i in 1:25){
     print(i)
-    optimizer(estpars=datasets[[i]]$params[c("Fh","rho","K","km","ER","Lobs","Robs")],
+    optimizer(estpars=datasets[[i]]$params[c("Fh","rho","K","km","ER","Lobs","Robs","Wmat")],
               fixpars=datasets[[i]]$params[c("Imax","g","v","F0")],
-              parorder=c("Imax","Fh","g","rho","K","km","v","ER","F0","Lobs","Robs"),
-              transform=c("log","logit","logit",rep("log",4)),
+              parorder=c("Imax","Fh","g","rho","K","km","v","ER","F0","Lobs","Robs","Wmat"),
+              transform=c("log","logit","logit",rep("log",5)),
               obsdata=datasets[[i]]$data,
               eval.only=TRUE,
               type="trajectory_matching",
               method="Nelder-Mead") -> truth[[i]]
 }
 
-estimates <- readRDS("Trajectory_matching_estimates_8-9.RDS")
+estimates <- readRDS("Trajectory_matching_estimates_11-22.RDS")
 
-data.frame(parameter=c("Fh","rho","K","km","ER","Lobs","Robs","lik"),
-           set=rep(1:25,each=8),
-           optimFree=lapply(estimates, function(e) e[1,1:8]) %>% unlist,
+data.frame(parameter=c("Fh","rho","K","km","ER","Lobs","Robs","Wmat","lik"),
+           set=rep(1:25,each=9),
+           optimFree=lapply(estimates, function(e) e[1,1:9]) %>% unlist,
            optimTruth=lapply(results, function(r) c(r$params, r$lik)) %>% unlist,
            truth=lapply(truth, function(t) c(t$params, t$lik)) %>% unlist
            ) %>%
     gather(., key="likMethod", value="value", 3:4) -> out
 
-ggplot(subset(out, parameter%in%c("Fh","rho","K","km","ER")), aes(x=truth, y=value, color=likMethod)) +
+ggplot(subset(out, parameter%in%c("Fh","rho","K","km","ER","Wmat")), aes(x=truth, y=value, color=likMethod)) +
     geom_abline(slope=1, intercept=0) +
         geom_point() +
             facet_wrap(~parameter, scales="free")
@@ -352,15 +352,13 @@ ggplot(subset(out, parameter%in%c("Fh","rho","K","km","ER")), aes(x=truth, y=val
 
 More interesting, however, are the results of the likelihood calculation.
 The likelihoods of the parameter estimates found either by the full optimization process or by starting at the true parameter values are so close that they lie on top of one another for almost every dataset (Fig. \ref{fig:lik-comparison}).
-However, the likelihoods of the true parameter sets themselves are often much, much smaller.
-This is most evident for parameter set 13, but you can see huge log-likelihood differences across the board.
-However, it is also important to note that, in all but one case, the likelihood found by the full optimization is at least as good as the likelihood found by starting at the true parameter values (Fig. \ref{fig:lik-comparison-2}), although the differences are almost always very tiny.
+However, the likelihoods of the true parameter sets themselves are always much smaller (i.e., the negative log-likelihood is larger).
 
 <<'lik-comparison', fig.height=3, fig.width=4, fig.cap='Comparing the likelihood of the true parameter values to the likelihoods obtained by the fitting algorithm when initialized completely randomly and when initialized at the true parameter values.'>>=
 
-data.frame(parameter=c("Fh","rho","K","km","ER","Lobs","Robs","lik"),
-           set=rep(1:25,each=8),
-           optimFree=lapply(estimates, function(e) e[1,1:8]) %>% unlist,
+data.frame(parameter=c("Fh","rho","K","km","ER","Lobs","Robs","Wmat","lik"),
+           set=rep(1:25,each=9),
+           optimFree=lapply(estimates, function(e) e[1,1:9]) %>% unlist,
            optimTruth=lapply(results, function(r) c(r$params, r$lik)) %>% unlist,
            truth=lapply(truth, function(t) c(t$params, t$lik)) %>% unlist
            ) %>%
@@ -370,7 +368,7 @@ data.frame(parameter=c("Fh","rho","K","km","ER","Lobs","Robs","lik"),
 ggplot(out2, aes(x=set, y=log(value), color=likMethod)) +
     geom_point() +
         xlab("Dataset") +
-            ylab("Log-likelihood")
+            ylab("-Log-likelihood")
 
 
 @
@@ -394,45 +392,7 @@ ggplot(newd, aes(x=x, y=y, col=col)) +
 
 Thus it appears to be generally true that there will be multiple parameter sets that give rise to nearly identical likelihoods, making it impossible to know, in general, which is closer to the truth.
 However, the overall message from this fitting is pretty encouraging, as most of the parameter estimates are close to the truth and the algorithm is finding high likelihood parameter sets.
-The problem of ridges in likelihood space is almost certain to be unavoidable.
+The problem of ridges in likelihood space is almost certain to be unavoidable, but doesn't appear to be completely fatal.
 
-Moreover, if I reduce the variability in the food addition (from a standard deviation of 15000 to just 5000, which is probably more realistic), the estimates improve further.
-Fig. \ref{fig:rep-cost-est-3} shows the relative error in the parameter estimates for 25 parameter sets (note that all parameters are equal to the parameter sets above except for the variability in food addition).
-As you can see, there is only one dataset with absolute relative error greater than one (dataset 13, which hugely overestimated the cost of reproduction and the observation error).
-However, this is the parameter set that produced an individual that reproduced far more than any other, so this result is expected.
-Otherwise, the parameter estimates look good for basically every parameter.
-
-<<'rep-cost-est-3', fig.height=4, fig.width=6, fig.cap='Relative error in parameter estimates for 25 parameter sets when the variability in food addition is reduced.'>>=
-
-datasets <- readRDS("Trajectory_matching_datasets_8-23.RDS")
-results <- readRDS("Trajectory_matching_estimates_8-23.RDS")
-
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-
-cbind(lapply(datasets, function(l) l$params[colnames(results[[1]])[1:7]]) %>%
-          unlist %>%
-              matrix(., ncol=7, byrow=TRUE, dimnames=list(as.character(1:25),colnames(results[[1]])[1:7])) %>%
-                  as.data.frame %>%
-                      mutate(., Fh=log(Fh)) %>%
-                          gather(., key="parameter", value="truth", 1:7),
-      lapply(results, function(l) head(l,1)[1:7]) %>%
-          unlist %>%
-              matrix(., ncol=7, byrow=TRUE, dimnames=list(as.character(1:25),colnames(results[[1]])[1:7])) %>%
-                  as.data.frame %>%
-                      mutate(., Fh=log(Fh)) %>%
-                          gather(., key="parameter", value="estimate", 1:7)
-      ) -> best
-best <- best[,-3]
-
-mutate(best, error=(estimate-truth)/truth) -> best
-best$set <- rep(1:25, 7)
-
-ggplot(best, aes(x=set, y=error)) +
-    geom_point() +
-        facet_wrap(~parameter, scales="free")
-
-@
 
 \end{document}

@@ -145,4 +145,4 @@ refine_lik %>%
             matrix(., ncol=(nrow(box)+2), byrow=TRUE, dimnames=list(1:length(refine_lik), c(rownames(box),"lik","conv"))) %>%
                 as.data.frame -> refine_pars
 refine_pars[order(refine_pars$lik),] -> refine_pars
-saveRDS(refine_pars, file="Trajectory_matching_estimates_uninfected_animals_11-22.RDS")
+saveRDS(refine_pars, file="Trajectory_matching_estimates_uninfected_animals_11-29.RDS")
