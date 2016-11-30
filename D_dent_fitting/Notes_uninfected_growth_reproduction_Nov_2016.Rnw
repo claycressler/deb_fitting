@@ -131,32 +131,37 @@ W(0) &= E_R, \\
 R(0) &= 0.
 \end{align}
 
-The assumptions that this model makes are the following:
-\begin{enumerate}
-\item Ingestion rate depends on observed length, not structural length, as in the standard DEB theory.
-This allows us to take advantage of our data on feeding to estimate length-dependent feeding parameters.
-\item Mobilization flux $P_C$, however, depends on ``structural'' length, which is related to structural weight $W$ according to $W = L^3$, as specified by standard DEB theory.
-\item The relationship between weight ($W$) and observed length $L_{obs}$ is given by the empirical length-weight regression, $W=\xi L_{obs}^q$, where $\xi=1.8\times 10^{-3}$ mgC mm$^{-3}$ and $q = 3$.
-Those relationships are established for \emph{D. dentifera} in Hall et al. (2009).
-We note that in reality, observed weight does not exactly correspond to structural weight as we are assuming here.
-More correctly, observed weight likely depends on the sum $W+E$; this assumption can allow $E$ to take biologically unreasonable excursions.
-In particular, early fitting attempts often returned estimates where the initial $L_{obs}$ was 5mm because the initial $E$ was very large.
-The value of $E$ decayed rapidly, so that by the first empirical observation of length the $L_{obs}$ would be reasonable.
-
-\item The cost of growth ($E_G$) is assumed to be equal to one; this is not necessarily biologically realistic, but early simulation/recovery experiments showed that it is impossible to estimate $E_G$, the cost of reproduction $E_R$, and the allocation to growth $\kappa$ independently.
-The fitting algorithm can simply slide these parameters around relative to one another and achieve identical fits.
-\item We assume that the investment in reproduction cannot shrink.
-\item We assume that the size at birth is equal to the cost of reproduction, and that the reserve level at birth is the value such that reserve density at birth, $E(0)/W(0)$ is equal to the maximum reserve density, $\rho/v$.
-
 <<echo=FALSE, fig.width=5, fig.height=5, fig.cap="Pairwise plot of parameter estimates from fitting Cat's growth and reproduction dataset.", label="Cat-fits-1">>=
-x <- readRDS("Growth_reproduction_trajectory_fitting_Cat.RDS")
+x <- readRDS(file="Trajectory_matching_estimates_uninfected_animals_11-29.RDS")
 library(plyr)
 library(dplyr)
 library(GGally)
 x %>% subset(., lik < min(lik) + 2 & conv==0) %>% mutate(., lik=-lik) -> y
-ggpairs(y, 1:4)
+ggpairs(y, c(1:5,8))
+
+## Load Cat's data
+x <- read.csv("Cat_data/uninfected_growth_reproduction.csv")
+data <- x[1:103,1:3]
+data$eggs[is.na(data$eggs)] <- 0 ## set reproduction = 0 for all individuals that have not yet matured
+## change the name of 'times' to 'age'
+colnames(data)[1] <- 'age'
+
 
 @
+
+One thing we can look at is how well the estimated parameters correspond with parameters we can ``eyeball'' on the basis of the data.
+In particular, we can use the length-weight regression parameters to convert the predicted mass at maturity to a length at maturity and compare that to the observed lengths when reproduction started in the empirical data.
+
+<<>>=
+xi <- 0.0018
+
+y$Lmat <- (y$Wmat/xi)^(1/3)
+
+subset(y, lik < min(lik)+2 & conv==0)$Lmat
+
+
+@
+
 
 I think the best thing to do is to try fixing $f_h$ at different values, and see how that affects the other parameter estimates.
 Although I doubt if there is a parameter set with a higher likelihood that was overlooked by the algorithm, my sense is that it may be that the likelihood surface is quite flat, so $f_h$ can run off towards 0, dragging all of the other parameter estimates with it.
