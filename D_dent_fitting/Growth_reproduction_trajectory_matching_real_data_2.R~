@@ -10,11 +10,11 @@ library(ggplot2)
 ## I need to think carefully about how to deal with maturation. The DEB model will allow individuals to reproduce immediately. I could treat size at maturity as a parameter to be estimated. Or I could simply say, for each individual, that size at maturity is whatever size reproduction was first observed. I will have to play around with both of these models. I will start with a model where age at maturity has to be estimated along with the other parameters. Thus, size at maturity must be included in the source code for simulating the model.
 
 ## rebuild source for this computer
-if (is.loaded("tm_deb.so")) dyn.unload("tm_deb.so")
-system("rm tm_deb.so")
-system("rm tm_deb.o")
-system("R CMD SHLIB tm_deb.c")
-dyn.load("tm_deb.so")
+if (is.loaded("tm_deb_2.so")) dyn.unload("tm_deb_2.so")
+system("rm tm_deb_2.so")
+system("rm tm_deb_2.o")
+system("R CMD SHLIB tm_deb_2.c")
+dyn.load("tm_deb_2.so")
 
 calc_Imax <- function(fh) 10616.500976 + 1.129421*fh
 calc_g <- function(fh) 1.38413 + 9.839020e-6*fh - 2.738144e-10*fh^2 + 2.648817e-15*fh^3

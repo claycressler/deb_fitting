@@ -150,7 +150,7 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform) {
             times=seq(0,35,0.1),
             func="derivs",
             parms=pars,
-            dllname="tm_deb",
+            dllname="tm_deb_2",
             initfunc="initmod",
             events=list(data=eventdat))) -> out
     if (inherits(out, "try-error"))
