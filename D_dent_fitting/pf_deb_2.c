@@ -49,10 +49,8 @@ void derivs (int *neq, double *t, double *y, double *ydot) {
   ydot[2] = K*pc - km*W;
   ydot[3] = 0;
   ydot[4] = 0;
-  // if W < Wmat, increase maturity
   if (W < Wmat)
     ydot[3] = (1-K)*pc-km*M;
-  // if W > mat, maturity is fixed and reproduction begins - maturity maintenance is fixed
   if (W > Wmat)
     ydot[4] = ((1-K)*pc-km*M)/ER;
 }

@@ -1,5 +1,5 @@
 ## Load the code for performing trajectory matching
-source("Growth_reproduction_trajectory_matching_real_data.R")
+source("Growth_reproduction_trajectory_matching_real_data_2.R")
 
 ## Load Cat's data
 x <- read.csv("Cat_data/uninfected_growth_reproduction.csv")
@@ -36,6 +36,7 @@ pars[match(parorder, names(pars))] -> pars
 y0 <- c(F=unname(pars["F0"]),
         E=0,
         W=unname(pars["ER"]/(1+pars["rho"]/pars["v"])),
+        M=0,
         R=0)
 y0["E"] <- unname(y0["W"]*pars["rho"]/pars["v"])
 
@@ -50,14 +51,11 @@ ode(y0,
     times=seq(0,35,0.1),
     func="derivs",
     parms=pars,
-    dllname="tm_deb",
+    dllname="tm_deb_2",
     initfunc="initmod",
     events=list(data=eventdat)) -> out
 
 ## compute the likelihood
-## subtract off any reproduction that has happened before the size at maturity was reached
-out[,'R'] <- out[,'R'] - out[max(which(out[,'W'] < pars['Wmat'])),'R']
-out[out[,'R'] < 0,'R'] = 0
 ## extract only the data points that can be compared against the true data
 as.data.frame(out[out[,'time']%in%data$age,]) -> pred
 ## compute the observed weight as Wobs = W + E and compute the observed length prediction as Wobs=xi*Lobs^q; (Wobs/xi)^(1/q)=Lobs
@@ -102,10 +100,10 @@ colnames(data)[1] <- 'age'
 
 ## Begin the funnel of opimization by estimating the likelihood of a huge number of parameter guesses
 box <- cbind(lower=c(Fh=2000, rho=0, K=0, km=0.001, ER=0.00001, Lobs=0.001, Robs=0.01, Wmat=0.0001),
-             upper=c(Fh=20000, rho=1, K=1, km=1, ER=0.001, Lobs=2, Robs=10, Wmat=0.01))
+             upper=c(Fh=20000, rho=1, K=1, km=1, ER=0.01, Lobs=2, Robs=20, Wmat=0.01))
 sobolDesign(lower=box[,'lower'],
             upper=box[,'upper'],
-            nseq=100000) %>%
+            nseq=300000) %>%
                 apply(., 1, as.list) %>%
                     lapply(., unlist) -> guesses
 
@@ -128,7 +126,7 @@ mclapply(guesses,
          mc.cores=15) %>%
              lapply(., function(x) x$lik) %>%
                  unlist -> guess_lik
-guesses[order(guess_lik)[1:1500]] -> refine
+guesses[order(guess_lik)[1:3000]] -> refine
 mclapply(refine,
          optimizer,
          fixpars=fixpars,
