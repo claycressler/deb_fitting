@@ -164,10 +164,6 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform) {
         lik <- -Inf
     ## If no errors, compute the likelihood
     else {
-        ## subtract off any reproduction that has happened before the size at maturity was reached
-        out[,'R'] <- out[,'R'] - out[max(which(out[,'W'] < pars['Wmat'])),'R']
-        out[out[,'R'] < 0,'R'] = 0
-
         ## extract only the data points that can be compared against the true data
         as.data.frame(out[out[,'time']%in%data$age,]) -> pred
 
