@@ -120,16 +120,17 @@ optimizer <- function(estpars, fixpars, parorder, transform, obsdata, Np=100, ev
 
 ## Trajectory matching
 tm_obj <- function(estpars, data, fixpars, parorder, transform) {
-    ## Put the estimated parameters back on the natural scale
+     ## Put the estimated parameters back on the natural scale
     estpars <- par_untransform(estpars, transform)
-    ## compute Imax and g based on the estimate of fh
-    fixpars["Imax"] <- calc_Imax(unname(estpars["Fh"]))
-    fixpars["g"] <- calc_g(unname(estpars["Fh"]))
     ## combine the parameters to be estimated and the fixed parameters
     ## into a single vector, with an order specified by parorder
     pars <- c(estpars, fixpars)
     pars[match(parorder, names(pars))] -> pars
     if(any(names(pars)!=parorder)) stop("parameter are in the wrong order")
+
+    ## compute Imax and g based on the estimate of fh
+    pars["Imax"] <- calc_Imax(unname(pars["Fh"]))
+    pars["g"] <- calc_g(unname(pars["Fh"]))
 
     ## Generic set of food addition events
     eventdat <- data.frame(var="F",
@@ -164,10 +165,6 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform) {
         lik <- -Inf
     ## If no errors, compute the likelihood
     else {
-        ## subtract off any reproduction that has happened before the size at maturity was reached
-        out[,'R'] <- out[,'R'] - out[max(which(out[,'W'] < pars['Wmat'])),'R']
-        out[out[,'R'] < 0,'R'] = 0
-
         ## extract only the data points that can be compared against the true data
         as.data.frame(out[out[,'time']%in%data$age,]) -> pred
 
@@ -196,14 +193,15 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform) {
 pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
     ## Put the estimated parameters back on the natural scale
     estpars <- par_untransform(estpars, transform)
-    ## compute Imax and g based on the estimate of fh
-    fixpars["Imax"] <- calc_Imax(unname(estpars["Fh"]))
-    fixpars["g"] <- calc_g(unname(estpars["Fh"]))
     ## combine the parameters to be estimated and the fixed parameters
     ## into a single vector, with an order specified by parorder
     pars <- c(estpars, fixpars)
     pars[match(parorder, names(pars))] -> pars
     if(any(names(pars)!=parorder)) stop("parameter are in the wrong order")
+
+    ## compute Imax and g based on the estimate of fh
+    pars["Imax"] <- calc_Imax(unname(pars["Fh"]))
+    pars["g"] <- calc_g(unname(pars["Fh"]))
 
     ## Generic set of food addition events
     eventdat <- data.frame(var="F",
@@ -220,6 +218,7 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
                F=rnorm(Np, mean=unname(pars["F0"]), sd=Ferr),
                E=0,
                W=unname(pars["ER"]/(1+pars["rho"]/pars["v"])),
+               M=0,
                R=0) %>%
                    mutate(., E = W*pars['rho']/pars['v']) -> x.F -> x.P
 
@@ -228,6 +227,7 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
     tstep <- 1
     lik <- 0
     while (tstep < length(times)) {
+        print(tail(x.F))
         ## For each of the Np particles
         for (i in 1:Np) {
             ## generate the food addition events
@@ -236,24 +236,24 @@ pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
                                   mean=events$value,
                                   sd=Ferr)
             # obtain a sample of points from the prediction distribution by simulating the model forward
-            try(ode(x.F[i,2:5] %>% unlist,
+            try(ode(x.F[i,2:6] %>% unlist,
                     times=seq(times[tstep], times[tstep+1]),
                     func="derivs",
                     parms=pars,
-                    dllname="tm_deb",
+                    dllname="tm_deb_2",
                     initfunc="initmod",
                     events=list(data=events))) -> out
             if (inherits(out, "try-error") ||
                 max(out[,"time"]) < times[tstep+1] ||
                 any(is.nan(out)) ||
                 any(out < -1e-4))
-                x.P[i,] <- rep(NA,5)
+                x.P[i,] <- rep(NA,6)
             else tail(out,1) -> x.P[i,]
         }
 
         ## determine the weights by computing the probability of observing the data, given the points in the prediction distribution
         xi <- 1.8e-3; q <- 3
-        sapply((x.P$W/pars['xi'])^(1/pars['q']),
+        sapply((x.P$W/xi)^(1/q),
                function(l)
                    dnorm(x=data$length[data$age==times[tstep+1]],
                          mean=l,

@@ -121,18 +121,24 @@ To recap, the model we are fitting is the following:
 \frac{dF}{dt} &= I_{max} \frac{F}{F_h+F} L_{obs}^g, \\
 \frac{dE}{dt} &= \rho \epsilon V I_{max} \frac{F}{F_h+F} L_{obs}^g - P_C, \\
 \frac{dW}{dt} &= \kappa P_C - k_m W, \\
-\frac{dR}{dt} &= \frac{(1-\kappa) P_C}{E_R}, \text{ where} \\
+\frac{dM}{dt} &= \begin{cases} (1-\kappa) P_C - k_m M \text{ if W < W_{mat}}, \\ 0 \text{ if W >= W_{mat}}, \end{cases} \\
+\frac{dR}{dt} &= \begin{cases} 0 \text{ if W < W_{mat}}, \\ \frac{(1-\kappa) P_C - k_m M}{E_R} \text{ if W >= W_{mat}}, \end{cases} \\
 P_C &= \frac{E (\nu/L + k_m)}{1 + \kappa E/W}, \\
 L &= W^{1/3}, \\
 L_{obs} &= (\frac{W}{\xi})^{1/q},
 F(0) &= F_0, \\
 E(0) &= \frac{\rho E_R}{\nu}, \\
 W(0) &= E_R, \\
+M(0) &= 0, \\
 R(0) &= 0.
 \end{align}
 
+Fig. \ref{fig:Cat-fits-1} shows that the range of parameter estimates is very large among parameter sets that had negative log-likelihoods within two units of the minimum.
+There are also very strong correlations among parameter estimates, in particular between the fraction of resources allocated towards growth $\kappa$ and the cost of reproduction $E_R$ and between the assimilation efficiency $\rho$ and the size at maturity $W_{mat}$.
+This is indicative of problems with the fitting algorithm.
+
 <<echo=FALSE, fig.width=5, fig.height=5, fig.cap="Pairwise plot of parameter estimates from fitting Cat's growth and reproduction dataset.", label="Cat-fits-1">>=
-x <- readRDS(file="Trajectory_matching_estimates_uninfected_animals_11-29.RDS")
+x <- readRDS(file="Trajectory_matching_estimates_uninfected_animals_12-6.RDS")
 library(plyr)
 library(dplyr)
 library(GGally)
@@ -149,23 +155,40 @@ colnames(data)[1] <- 'age'
 
 @
 
-One thing we can look at is how well the estimated parameters correspond with parameters we can ``eyeball'' on the basis of the data.
-In particular, we can use the length-weight regression parameters to convert the predicted mass at maturity to a length at maturity and compare that to the observed lengths when reproduction started in the empirical data.
+Many of the ``consensus'' parameter estimates (in the sense that these estimates were very common) seem biologically unreasonable.
+For example, all of the 25 best-fitting parameter sets have estimates of the half-saturation constant less than 500 cells/mL, which, given translates into 0.0036 mgC/L.
+McCauley et al. 2008 used a half-saturation constant of 0.164 mgC/L, which is 50 times higher.
+All of the 25 best-fitting parameter sets have estimates of $\kappa$ greater than 0.8, whereas McCauley et al. has an estimate of 0.23.
 
-<<>>=
-xi <- 0.0018
-
-y$Lmat <- (y$Wmat/xi)^(1/3)
-
-subset(y, lik < min(lik)+2 & conv==0)$Lmat
-
-
-@
-
-
-I think the best thing to do is to try fixing $f_h$ at different values, and see how that affects the other parameter estimates.
+I think the best thing to do is to try fixing $F_h$ at different values, and see how that affects the other parameter estimates.
 Although I doubt if there is a parameter set with a higher likelihood that was overlooked by the algorithm, my sense is that it may be that the likelihood surface is quite flat, so $f_h$ can run off towards 0, dragging all of the other parameter estimates with it.
 The profile likelihood will be very informative in this regard.
+
+A quick and dirty look at the parameter estimates suggests that fixing $F_h$ and estimating the other parameters may not be super-helpful (Fig. \ref{fig:Cat-fits-2}).
+There is still a \emph{very} strong negative correlation between, e.g., the estimates of $\kappa$ and $E_R$.
+In the simulation-recovery experiment, that correlation was broken down somewhat by using the estimate of $E_R$ to inform the initial conditions of the simulation.
+That seems to be less true here: the majority of estimates still indicate that $\kappa$ is very large (> 0.5), and the larger the estimate of $\kappa$ is, the smaller the estimate of $E_R$ is.
+There is also a very strong negative correlation with assimilation efficiency and $\kappa$.
+So basically, what is happening is the following: if assimilation efficiency is low, then to fit the data the estimate of $\kappa$ needs to be low, and the cost of reproduction is higher, meaning that neonates are born at a larger size and thus have less growth that they need to do in order to sexually mature and start reproducing.
+
+However, Martin et al. 2013 also estimate a pretty high value for $\kappa$ - their estimate is something like 0.68, so an estimate of that magnitude would be pretty reasonable.
+Martin et al. also had to use somewhat of a kludgy process to get an estimate of the cost of reproduction based on the DEB rules for how offspring grow prior to birth and the estimate of the scaled maturity at birth.
+He also makes use of the parameter $g$, which is dimensionless but is related to dimensional DEB parameters as
+\begin{equation}
+g = \frac{E_G \nu}{\kappa \rho I_{max}}.
+\end{equation}
+It can be used to replace some stuff in the mobilization equation.
+Note also that $\nu/k_m/g = L_m$ is the maximum possible length.
+It might be worth considering reparameterizing the model this way to see if it makes any difference.
+Note that Martin et al. was not able to estimate $g$, however, nor were they able to reliably estimate $\nu$.
+In the end, they fixed the estimate of $g$ to obtain an estimate of $\nu$.
+
+TO DO: rerun the parameter estimation with a much higher estimate of $v$ to see how and if that affects the estimates of the other parameters.
+
+<<fig.width=5, fig.height=5, fig.cap="Pairwise plot of parameter estimates when the estimate of Fh was between 10,000 and 30,000.", label="Cat-fits-2">>=
+ggpairs(subset(y, Fh > 10000 & Fh < 30000), c(1:5,8))
+
+@
 
 Suprisingly, the profile likelihood suggests that, indeed, the likelihood does increase in the direction of smaller $f_h$ values (Fig. \ref{fig:Cat-profile-lik-fh}).
 You can see some interesting patterns in Fig. \ref{fig:Cat-profile-lik-fh}.

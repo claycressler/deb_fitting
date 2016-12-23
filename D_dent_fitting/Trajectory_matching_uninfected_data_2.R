@@ -55,6 +55,7 @@ ode(y0,
     initfunc="initmod",
     events=list(data=eventdat)) -> out
 
+
 ## compute the likelihood
 ## extract only the data points that can be compared against the true data
 as.data.frame(out[out[,'time']%in%data$age,]) -> pred
@@ -143,4 +144,125 @@ refine_lik %>%
             matrix(., ncol=(nrow(box)+2), byrow=TRUE, dimnames=list(1:length(refine_lik), c(rownames(box),"lik","conv"))) %>%
                 as.data.frame -> refine_pars
 refine_pars[order(refine_pars$lik),] -> refine_pars
-saveRDS(refine_pars, file="Trajectory_matching_estimates_uninfected_animals_11-29.RDS")
+saveRDS(refine_pars, file="Trajectory_matching_estimates_uninfected_animals_12-6.RDS")
+
+
+####################################################################
+####################################################################
+########    TRAJECTORY MATCHING OF THE REAL DATA!!!!    ############
+####################################################################
+####################################################################
+
+#############   WITH FIXED FH ################
+######## TO COMPUTE PROFILE LIKELIHOOD #######
+## Load the code for performing trajectory matching
+source("Growth_reproduction_trajectory_matching_real_data_2.R")
+
+## Load Cat's data
+x <- read.csv("Cat_data/uninfected_growth_reproduction.csv")
+data <- x[1:103,1:3]
+data$eggs[is.na(data$eggs)] <- 0 ## set reproduction = 0 for all individuals that have not yet matured
+## change the name of 'times' to 'age'
+colnames(data)[1] <- 'age'
+
+## Begin the funnel of opimization by estimating the likelihood of a huge number of parameter guesses
+box <- cbind(lower=c(rho=0, K=0, km=0.001, ER=0.00001, Lobs=0.001, Robs=0.01, Wmat=0.0001),
+             upper=c(rho=1, K=1, km=1, ER=0.01, Lobs=2, Robs=20, Wmat=0.01))
+sobolDesign(lower=box[,'lower'],
+            upper=box[,'upper'],
+            nseq=150000) %>%
+                apply(., 1, as.list) %>%
+                    lapply(., unlist) -> guesses
+
+results <- vector(mode='list', length=length(seq(1000,20000,1000)))
+for (i in 1:length(seq(1000,20000,1000))) {
+    fh <- seq(1000, 20000, 1000)[i]
+    print(fh)
+
+    ## Fixed parameter values (actually, Imax and g are set by the value of Fh)
+    fixpars <- c(Fh=fh, Imax=22500, g=1.45, v=10, F0=1e6/30)
+    ## Parameter transformation to the unconstrained scale
+    transform <- c(rep("logit",2), rep("log",5))
+    ## Order that tm_deb.c expects the parameters to be in
+    parorder <- c("Imax","Fh","g","rho","K","km","v","ER","F0","Lobs","Robs","Wmat")
+
+    ## Estimate likelihood
+    mclapply(guesses,
+             optimizer,
+             fixpars=fixpars,
+             parorder=parorder,
+             transform=transform,
+             obsdata=data,
+             eval.only=TRUE,
+             type="trajectory_matching",
+             mc.cores=15) %>%
+                 lapply(., function(x) x$lik) %>%
+                     unlist -> guess_lik
+    guesses[order(guess_lik)[1:1500]] -> refine
+    mclapply(refine,
+             optimizer,
+             fixpars=fixpars,
+             parorder=parorder,
+             transform=transform,
+             obsdata=data,
+             eval.only=FALSE,
+             type='trajectory_matching',
+             method='Nelder-Mead',
+             mc.cores=15) -> refine_lik
+    refine_lik %>%
+        lapply(., unlist) %>%
+            unlist %>%
+                matrix(., ncol=(nrow(box)+2), byrow=TRUE, dimnames=list(1:length(refine_lik), c(rownames(box),"lik","conv"))) %>%
+                    as.data.frame -> refine_pars
+    refine_pars[order(refine_pars$lik),] -> refine_pars
+    results[[i]] <- refine_pars
+    saveRDS(results, file="Profile_lik_Fh_uninfected_animals_12-6.RDS")
+}
+
+for (v in c(20,50,100)) {
+    results <- vector(mode='list', length=length(seq(1000,20000,1000)))
+    for (i in 1:length(seq(1000,20000,1000))) {
+        fh <- seq(1000, 20000, 1000)[i]
+        print(fh)
+
+        ## Fixed parameter values (actually, Imax and g are set by the value of Fh)
+        fixpars <- c(Fh=fh, Imax=22500, g=1.45, v=v, F0=1e6/30)
+        ## Parameter transformation to the unconstrained scale
+        transform <- c(rep("logit",2), rep("log",5))
+        ## Order that tm_deb.c expects the parameters to be in
+        parorder <- c("Imax","Fh","g","rho","K","km","v","ER","F0","Lobs","Robs","Wmat")
+
+        ## Estimate likelihood
+        mclapply(guesses,
+                 optimizer,
+                 fixpars=fixpars,
+                 parorder=parorder,
+                 transform=transform,
+                 obsdata=data,
+                 eval.only=TRUE,
+                 type="trajectory_matching",
+                 mc.cores=15) %>%
+                     lapply(., function(x) x$lik) %>%
+                         unlist -> guess_lik
+        guesses[order(guess_lik)[1:1500]] -> refine
+        mclapply(refine,
+                 optimizer,
+                 fixpars=fixpars,
+                 parorder=parorder,
+                 transform=transform,
+                 obsdata=data,
+                 eval.only=FALSE,
+                 type='trajectory_matching',
+                 method='Nelder-Mead',
+                 mc.cores=15) -> refine_lik
+        refine_lik %>%
+            lapply(., unlist) %>%
+                unlist %>%
+                    matrix(., ncol=(nrow(box)+2), byrow=TRUE, dimnames=list(1:length(refine_lik), c(rownames(box),"lik","conv"))) %>%
+                        as.data.frame -> refine_pars
+        refine_pars[order(refine_pars$lik),] -> refine_pars
+        results[[i]] <- refine_pars
+        saveRDS(results, file=paste0("~/Dropbox/Profile_lik_Fh_uninfected_animals_v=",v,"_12-23.RDS"))
+    }
+}
+
