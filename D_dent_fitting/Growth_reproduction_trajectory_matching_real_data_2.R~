@@ -142,6 +142,7 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform) {
     y0 <- c(F=unname(pars["F0"]),
             E=0,
             W=unname(pars["ER"]/(1+pars["rho"]/pars["v"])),
+            M=0,
             R=0)
     y0["E"] <- unname(y0["W"]*pars["rho"]/pars["v"])
 
@@ -191,3 +192,101 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform) {
     return(-lik)
 }
 
+## Implement a particle filter to compute the likelihood of a particular parameter set.
+pf_obj <- function(estpars, data, fixpars, parorder, transform, Np=100) {
+    ## Put the estimated parameters back on the natural scale
+    estpars <- par_untransform(estpars, transform)
+    ## compute Imax and g based on the estimate of fh
+    fixpars["Imax"] <- calc_Imax(unname(estpars["Fh"]))
+    fixpars["g"] <- calc_g(unname(estpars["Fh"]))
+    ## combine the parameters to be estimated and the fixed parameters
+    ## into a single vector, with an order specified by parorder
+    pars <- c(estpars, fixpars)
+    pars[match(parorder, names(pars))] -> pars
+    if(any(names(pars)!=parorder)) stop("parameter are in the wrong order")
+
+    ## Generic set of food addition events
+    eventdat <- data.frame(var="F",
+                           time=1:35,
+                           value=unname(pars['F0']),
+                           method=rep(c(rep("add",4),"rep"),max(data$age)/5))
+
+    ## Generate Np sets of initial conditions to initilize both the filtering distribution and the prediction distribution
+    ## Initial condition: assuming that E/W = rho/v and E+W=ER, then W
+    ## + W*rho/v = ER, W(1+rho/v)=ER, W=ER/(1+rho/v)
+    ## error in food addition comes from fitting of feeding data
+    Ferr <- 2000
+    data.frame(T=0,
+               F=rnorm(Np, mean=unname(pars["F0"]), sd=Ferr),
+               E=0,
+               W=unname(pars["ER"]/(1+pars["rho"]/pars["v"])),
+               R=0) %>%
+                   mutate(., E = W*pars['rho']/pars['v']) -> x.F -> x.P
+
+    ## timepoints when the likelihood should be evaluated
+    times <- c(0, data$age %>% unique)
+    tstep <- 1
+    lik <- 0
+    while (tstep < length(times)) {
+        ## For each of the Np particles
+        for (i in 1:Np) {
+            ## generate the food addition events
+            events <- subset(eventdat, time >= times[tstep] & time < times[tstep+1])
+            events$value <- rnorm(nrow(events),
+                                  mean=events$value,
+                                  sd=Ferr)
+            # obtain a sample of points from the prediction distribution by simulating the model forward
+            try(ode(x.F[i,2:5] %>% unlist,
+                    times=seq(times[tstep], times[tstep+1]),
+                    func="derivs",
+                    parms=pars,
+                    dllname="tm_deb",
+                    initfunc="initmod",
+                    events=list(data=events))) -> out
+            if (inherits(out, "try-error") ||
+                max(out[,"time"]) < times[tstep+1] ||
+                any(is.nan(out)) ||
+                any(out < -1e-4))
+                x.P[i,] <- rep(NA,5)
+            else tail(out,1) -> x.P[i,]
+        }
+
+        ## determine the weights by computing the probability of observing the data, given the points in the prediction distribution
+        xi <- 1.8e-3; q <- 3
+        sapply((x.P$W/pars['xi'])^(1/pars['q']),
+               function(l)
+                   dnorm(x=data$length[data$age==times[tstep+1]],
+                         mean=l,
+                         sd=pars['Lobs'],
+                         log=FALSE) %>% prod
+               ) *
+            sapply(x.P$R,
+                   function(r)
+                       dnorm(x=data$eggs[data$age==times[tstep+1]],
+                             mean=r,
+                             sd=pars['Robs'],
+                             log=FALSE) %>% prod
+                   ) -> weights
+        ## set weight to 0 for any particles that had integration errors
+        if (any(is.na(weights)))
+            weights[is.na(weights)] <- 0
+
+        if (any(weights > 0)) {
+            ## conditional likelihood for this timestep is the mean probability across the points in the prediction distribution (discarding all zeros)
+            lik <- lik + log(mean(weights[weights > 0]))
+            ## use the weights to update the filtering distribution by resampling from the prediction distribution
+            w <- cumsum(weights)
+            du <- max(w)/length(w)
+            u <- runif(1,-du,0)
+            p <- sapply(seq(u+du,u+length(w)*du,du), function(u) min(which(!(u > w))))
+            x.F <- x.P[p,]
+            rownames(x.F) <- as.character(1:length(weights))
+            tstep <- tstep+1
+        }
+        else {
+	    lik <- -Inf
+	    break
+        }
+    }
+    return(-lik)
+}
