@@ -303,7 +303,7 @@ library(tidyr)
 library(ggplot2)
 library(magrittr)
 library(dplyr)
-x <- readRDS("Feeding_model_fitting_infecteds_spore_dependent_2.RDS")
+x <- readRDS("RDS_files/Feeding_model_fitting_infecteds_spore_dependent_2.RDS")
 lapply(1:length(x),
        function(i) subset(x[[i]], lik < min(lik)+1) %>% mutate(., best=ifelse(lik==min(lik),1,0), fh=seq(100,10000,100)[i])) -> x
 res <- vector()
