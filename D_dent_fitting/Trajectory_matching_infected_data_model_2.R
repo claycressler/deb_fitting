@@ -1,6 +1,6 @@
 ## Testing
 
-source("Growth_reproduction_trajectory_matching_infecteds_model_1.R")
+source("Growth_reproduction_trajectory_matching_infecteds_model_2.R")
 
 ## Load the observed data
 x <- read.csv("Cat_data/all_data.csv") %>% as.data.frame
@@ -12,11 +12,11 @@ data$spores[is.na(data$spores)] <- 0
 
 ## start w/a simple case: only estimate parasite parameters, assume all others equal to parasite free values
 fixpars <- c(rho=0.152, K=0.68, km=0.073, v=10, F0=1e6/30, Lobs=0.0102)
-estpars <- c(aP=1e-12, hP=1e-5, eP=1e11, m=0.1, tau=1, Pobs=1000)
+estpars <- c(phimax=0.1, hP=1e3, eP=1e8, m=0.1, tau=1, Pobs=1000)
 
 ## unconstrained scale transformation
-transform <- rep('log',6)
-parorder <- c("rho","K","km","v","F0","Lobs","aP","hP","eP","m","tau","Pobs")
+transform <- c('logit',rep('log',5))
+parorder <- c("rho","K","km","v","F0","Lobs","phimax","hP","eP","m","tau","Pobs")
 
 ## combine into a single vector and sort
 pars <- c(estpars, fixpars)
@@ -43,7 +43,7 @@ try(ode(y0,
         times=seq(0,35,0.1),
         func="derivs",
         parms=pars,
-        dllname="tm_deb_parasite_1",
+        dllname="tm_deb_parasite_2",
         initfunc="initmod",
         events=list(data=eventdat))) -> out
 ## extract only the data points that can be compared against the true data
@@ -83,18 +83,20 @@ optimizer(estpars=estpars, fixpars=fixpars, parorder=parorder, transform=transfo
 ####################################################################
 ####################################################################
 
-source("Growth_reproduction_trajectory_matching_infecteds_model_1.R")
+source("Growth_reproduction_trajectory_matching_infecteds_model_2.R")
 
 ## parameters fixed at the uninfected data values
 fixpars <- c(rho=0.152, K=0.68, km=0.073, v=10, F0=1e6/30, Lobs=0.0102)
 
 ## unconstrained scale transformation
-transform <- rep('log',6)
-parorder <- c("rho","K","km","v","F0","Lobs","aP","hP","eP","m","tau","Pobs")
+transform <- c('logit',rep('log',5))
+parorder <- c("rho","K","km","v","F0","Lobs","phimax","hP","eP","m","tau","Pobs")
+
+estpars <- c(phimax=0.1, hP=1e3, eP=1e8, m=0.1, tau=1, Pobs=1000)
 
 ## Estimate the parameters
-box <- cbind(lower=c(aP=1e-10, hP=1e-2, eP=1e10, m=1e-1, tau=0.1, Pobs=1e2),
-             upper=c(aP=1e-4, hP=10, eP=1e16, m=10, tau=20, Pobs=1e4))
+box <- cbind(lower=c(aP=0.01, hP=10, eP=1e5, m=1e-1, tau=0.1, Pobs=1e4),
+             upper=c(aP=0.5, hP=1000, eP=1e10, m=10, tau=20, Pobs=1e6))
 sobolDesign(lower=box[,'lower'],
             upper=box[,'upper'],
             nseq=300000) %>%
@@ -112,7 +114,7 @@ mclapply(guesses,
          mc.cores=15) %>%
              lapply(., function(x) x$lik) %>%
                  unlist -> guess_lik
-guesses[order(guess_lik)[1:sum(guess_lik < Inf)]] -> refine
+guesses[order(guess_lik)[1:3000]] -> refine
 mclapply(refine,
          optimizer,
          fixpars=fixpars,
@@ -123,4 +125,3 @@ mclapply(refine,
          type='trajectory_matching',
          method='Nelder-Mead',
          mc.cores=15) -> refine_lik
-saveRDS(refine_lik, file="TM_parameter_estimates_infecteds_model_1.RDS")

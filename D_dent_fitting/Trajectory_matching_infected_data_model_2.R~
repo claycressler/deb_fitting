@@ -93,8 +93,8 @@ transform <- rep('log',6)
 parorder <- c("rho","K","km","v","F0","Lobs","aP","hP","eP","m","tau","Pobs")
 
 ## Estimate the parameters
-box <- cbind(lower=c(aP=1e-10, hP=1e-2, eP=1e10, m=1e-1, tau=0.1, Pobs=1e2),
-             upper=c(aP=1e-4, hP=10, eP=1e16, m=10, tau=20, Pobs=1e4))
+box <- cbind(lower=c(aP=1e-10, hP=1e-2, eP=1e10, m=1e-1, tau=0.1, Pobs=1e4),
+             upper=c(aP=1e-4, hP=10, eP=1e16, m=10, tau=20, Pobs=1e6))
 sobolDesign(lower=box[,'lower'],
             upper=box[,'upper'],
             nseq=300000) %>%
@@ -112,7 +112,7 @@ mclapply(guesses,
          mc.cores=15) %>%
              lapply(., function(x) x$lik) %>%
                  unlist -> guess_lik
-guesses[order(guess_lik)[1:sum(guess_lik < Inf)]] -> refine
+guesses[order(guess_lik)[1:3000]] -> refine
 mclapply(refine,
          optimizer,
          fixpars=fixpars,
@@ -123,4 +123,3 @@ mclapply(refine,
          type='trajectory_matching',
          method='Nelder-Mead',
          mc.cores=15) -> refine_lik
-saveRDS(refine_lik, file="TM_parameter_estimates_infecteds_model_1.RDS")
