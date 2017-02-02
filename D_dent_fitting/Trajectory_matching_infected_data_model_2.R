@@ -10,13 +10,13 @@ colnames(data) <- c("age","length","spores")
 ## how to deal with 0s?
 data$spores[is.na(data$spores)] <- 0
 
-## start w/a simple case: only estimate parasite parameters, assume all others equal to parasite free values
-fixpars <- c(rho=0.152, K=0.68, km=0.073, v=10, F0=1e6/30, Lobs=0.0102)
-estpars <- c(phimax=0.1, hP=1e3, eP=1e8, m=0.1, tau=1, Pobs=1000)
+## start w/a simple case: only estimate parasite parameters, assume all others equal to parasite free values, except K, which is assumed = 1 (castration is automatic. This is based on fits of the other version of the parasite model)
+fixpars <- c(rho=0.152, K=1, km=0.073, v=10, F0=1e6/30, Lobs=0.0102)
+estpars <- c(phimax=0.1, hP=1e3, eP=1e8, Pobs=1000)
 
 ## unconstrained scale transformation
-transform <- c('logit',rep('log',5))
-parorder <- c("rho","K","km","v","F0","Lobs","phimax","hP","eP","m","tau","Pobs")
+transform <- c('logit',rep('log',3))
+parorder <- c("rho","K","km","v","F0","Lobs","phimax","hP","eP","Pobs")
 
 ## combine into a single vector and sort
 pars <- c(estpars, fixpars)
@@ -34,8 +34,7 @@ eventdat <- data.frame(var="F",
 y0 <- c(F=unname(pars["F0"]),
         E=0,
         W=unname(5.39e-5/(1+pars["rho"]/pars["v"])),
-        P=100,
-        Z=0)
+        P=100)
 y0["E"] <- unname(y0["W"]*pars["rho"]/pars["v"])
 
 ## Simulate the system
@@ -45,13 +44,11 @@ try(ode(y0,
         parms=pars,
         dllname="tm_deb_parasite_2",
         initfunc="initmod",
-        events=list(data=eventdat))) -> out
+        events=list(data=eventdat))) %>%
+    as.data.frame %>%
+        mutate(., Wobs=W+E, Lobs=(Wobs/1.8e-3)^(1/3)) -> out
 ## extract only the data points that can be compared against the true data
-as.data.frame(out[out[,'time']%in%data$age,]) -> pred
-
-## compute the observed weight as Wobs = W + E and compute the observed length prediction as Wobs=xi*Lobs^q; (Wobs/xi)^(1/q)=Lobs
-xi <- 1.8e-3; q <- 3;
-mutate(pred, Wobs=W+E, Lobs=(Wobs/xi)^(1/q)) -> pred
+as.data.frame(out[out$time%in%data$age,]) -> pred
 
 ## compute the probability of observing the data, given the prediction
 sapply(unique(data$age),
@@ -61,7 +58,7 @@ sapply(unique(data$age),
                    sd=pars["Lobs"],
                    log=TRUE) %>% sum,
              dnorm(x=data$spores[data$age==d],
-                   mean=pred$Z[pred$time==d],
+                   mean=pred$P[pred$time==d],
                    sd=pars["Pobs"],
                    log=TRUE) %>% sum
              ) %>% sum
@@ -86,17 +83,59 @@ optimizer(estpars=estpars, fixpars=fixpars, parorder=parorder, transform=transfo
 source("Growth_reproduction_trajectory_matching_infecteds_model_2.R")
 
 ## parameters fixed at the uninfected data values
-fixpars <- c(rho=0.152, K=0.68, km=0.073, v=10, F0=1e6/30, Lobs=0.0102)
+fixpars <- c(rho=0.152, K=1, km=0.073, v=10, F0=1e6/30, Lobs=0.0102)
 
 ## unconstrained scale transformation
-transform <- c('logit',rep('log',5))
-parorder <- c("rho","K","km","v","F0","Lobs","phimax","hP","eP","m","tau","Pobs")
+transform <- c('logit',rep('log',3))
+parorder <- c("rho","K","km","v","F0","Lobs","phimax","hP","eP","Pobs")
 
-estpars <- c(phimax=0.1, hP=1e3, eP=1e8, m=0.1, tau=1, Pobs=1000)
+estpars <- c(phimax=0.1, hP=1e3, eP=1e8, Pobs=1000)
 
 ## Estimate the parameters
-box <- cbind(lower=c(aP=0.01, hP=10, eP=1e5, m=1e-1, tau=0.1, Pobs=1e4),
-             upper=c(aP=0.5, hP=1000, eP=1e10, m=10, tau=20, Pobs=1e6))
+box <- cbind(lower=c(phimax=0.01, hP=10, eP=1e5, Pobs=1e4),
+             upper=c(phimax=0.5, hP=1000, eP=1e10, Pobs=1e6))
+sobolDesign(lower=box[,'lower'],
+            upper=box[,'upper'],
+            nseq=3000) %>%
+                apply(., 1, as.list) %>%
+                    lapply(., unlist) -> guesses
+## Estimate likelihood
+mclapply(guesses,
+         optimizer,
+         fixpars=fixpars,
+         parorder=parorder,
+         transform=transform,
+         obsdata=data,
+         eval.only=TRUE,
+         type="trajectory_matching",
+         mc.cores=2) %>%
+             lapply(., function(x) x$lik) %>%
+                 unlist -> guess_lik
+guesses[order(guess_lik)[1:2]] -> refine
+mclapply(refine,
+         optimizer,
+         fixpars=fixpars,
+         parorder=parorder,
+         transform=transform,
+         obsdata=data,
+         eval.only=FALSE,
+         type='trajectory_matching',
+         method='Nelder-Mead',
+         mc.cores=2) -> refine_lik
+
+
+##############
+#############3
+## This didn't work, for the same reason as before. Pobs goes to a huge value. It's got to be fixed.
+fixpars <- c(rho=0.152, K=1, km=0.073, v=10, F0=1e6/30, Lobs=0.0102, Pobs=1000)
+
+## unconstrained scale transformation
+transform <- c('logit',rep('log',2))
+parorder <- c("rho","K","km","v","F0","Lobs","phimax","hP","eP","Pobs")
+
+## Estimate the parameters
+box <- cbind(lower=c(phimax=0.01, hP=10, eP=1e2),
+             upper=c(phimax=0.5, hP=10000, eP=1e7))
 sobolDesign(lower=box[,'lower'],
             upper=box[,'upper'],
             nseq=300000) %>%
@@ -111,10 +150,10 @@ mclapply(guesses,
          obsdata=data,
          eval.only=TRUE,
          type="trajectory_matching",
-         mc.cores=15) %>%
+         mc.cores=30) %>%
              lapply(., function(x) x$lik) %>%
                  unlist -> guess_lik
-guesses[order(guess_lik)[1:3000]] -> refine
+guesses[order(guess_lik)[1:600]] -> refine
 mclapply(refine,
          optimizer,
          fixpars=fixpars,
@@ -125,3 +164,47 @@ mclapply(refine,
          type='trajectory_matching',
          method='Nelder-Mead',
          mc.cores=15) -> refine_lik
+
+## Alternative model, alternative approach
+## Use carbon mass of Pasteuria to set the value of eP, and keep everything in carbon units ONLY. That will greatly reduce parameter values to more reasonable values, and force the estimation to be a bit better/easier.
+## The dry weight of a spore is 33e-9 mgC and the % C is 48%. So assume that
+
+fixpars <- c(rho=0.152, K=1, km=0.073, v=10, F0=1e6/30, Lobs=0.0102, eP=0.48*33e-9, Pobs=1000)
+
+## unconstrained scale transformation
+transform <- c('logit','log')
+parorder <- c("rho","K","km","v","F0","Lobs","phimax","hP","eP","Pobs")
+
+## Estimate the parameters
+box <- cbind(lower=c(phimax=0.01, hP=10),
+             upper=c(phimax=0.5, hP=10000))
+sobolDesign(lower=box[,'lower'],
+            upper=box[,'upper'],
+            nseq=100000) %>%
+                apply(., 1, as.list) %>%
+                    lapply(., unlist) -> guesses
+## Estimate likelihood
+mclapply(guesses,
+         optimizer,
+         fixpars=fixpars,
+         parorder=parorder,
+         transform=transform,
+         obsdata=data,
+         eval.only=TRUE,
+         type="trajectory_matching",
+         mc.cores=15) %>%
+             lapply(., function(x) x$lik) %>%
+                 unlist -> guess_lik
+guesses[order(guess_lik)[c(1,600)]] -> refine
+mclapply(refine,
+         optimizer,
+         fixpars=fixpars,
+         parorder=parorder,
+         transform=transform,
+         obsdata=data,
+         eval.only=FALSE,
+         type='trajectory_matching',
+         method='Nelder-Mead',
+         mc.cores=15) -> refine_lik
+
+

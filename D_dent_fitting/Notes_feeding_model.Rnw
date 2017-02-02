@@ -369,7 +369,7 @@ data <- read.csv("Cat_data/feeding_infection.csv")
 uninf_data <- subset(data, infected==0)
 ## calculate the expected F0 and Ft
 source("Uninfected_feeding_model_fitting_functions.R")
-p0 <- readRDS("Feeding_model_fitting_uninfecteds.RDS")[[50]] %>% subset(., lik==min(lik))
+p0 <- readRDS("RDS_files/Feeding_model_fitting_uninfecteds.RDS")[[50]] %>% subset(., lik==min(lik))
 pars <- c(p0[1:4], fh=5000) %>% unlist
 ## calculate the clearance rate as Cat did
 mutate(uninf_data,
@@ -383,7 +383,7 @@ inf_data <- subset(data, infected==1)
 inf_data$Z[is.na(inf_data$Z)] <- 0
 ## calculate the expected F0 and Ft
 source("Infected_feeding_model_fitting_functions.R")
-p1 <- readRDS("Feeding_model_fitting_infecteds_spore_dependent_2.RDS")[[50]] %>% subset(., lik==min(lik))
+p1 <- readRDS("RDS_files/Feeding_model_fitting_infecteds_spore_dependent_2.RDS")[[50]] %>% subset(., lik==min(lik))
 pars1 <- c(pars["g"],pars["F0"],pars["Fobs"],pars["fh"],p1[1:3]) %>% unlist
 ## calculate the clearance rate as Cat did
 mutate(inf_data,

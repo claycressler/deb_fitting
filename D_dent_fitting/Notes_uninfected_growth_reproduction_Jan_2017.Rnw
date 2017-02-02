@@ -275,16 +275,14 @@ bootR <- sapply(out[unique(data$age)*10+1,"R"], function(m) rnorm(1000, mean=m, 
 bootR[bootR < 0] <- 0 ## set all negative observations to be equal to 0
 
 ##
-par(mfrow=c(1,2), oma=rep(0.5,4), mar=c(4,4,0,0))
-plot(out$time, out$Lpred, type='l', lwd=2, col="grey", ylim=c(0,2), xlab="Age", ylab="Length (mm)")
-points(unique(data$age), out[unique(data$age)*10+1,"Lpred"], pch=22, bg=1)
-for (i in 1:ncol(bootL)) lines(rep(unique(data$age)[i],2), sort(bootL[,i])[c(25,975)], lwd=2)
-points(data$age, data$length, col=2)
+par(mfrow=c(1,2), oma=rep(0.5,4), mar=c(5,5,0,0))
+plot(out$time, out$Lpred, type='l', lwd=3, col="darkgrey", ylim=c(0,2), xlab="Age", ylab="Length (mm)", cex.lab=1.5)
+for (i in 1:ncol(bootL)) lines(rep(unique(data$age)[i],2), sort(bootL[,i])[c(25,975)], lwd=3)
+points(data$age, data$length, col=1, cex=1.5)
 
-plot(out$time, out$R, type='l', lwd=2, col="grey", ylim=c(0,60), xlab="Age", ylab="Cumulative eggs")
-points(unique(data$age), out[unique(data$age)*10+1,"R"], pch=22, bg=1)
-for (i in 1:ncol(bootR)) if(out[unique(data$age)[i]*10+1,"R"] > 0) lines(rep(unique(data$age)[i],2), sort(bootR[,i])[c(25,975)], lwd=2)
-points(data$age, data$eggs, col=2)
+plot(out$time, out$R, type='l', lwd=3, col="darkgrey", ylim=c(0,60), xlab="Age", ylab="Cumulative eggs", cex.lab=1.5)
+for (i in 1:ncol(bootR)) if(out[unique(data$age)[i]*10+1,"R"] > 0) lines(rep(unique(data$age)[i],2), sort(bootR[,i])[c(25,975)], lwd=3)
+points(data$age, data$eggs, col=1, cex=1.5)
 
 
 

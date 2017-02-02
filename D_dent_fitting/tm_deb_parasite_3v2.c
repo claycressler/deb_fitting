@@ -1,7 +1,7 @@
 #include <R.h>
 #include <stdio.h>
 
-static double parms[9];
+static double parms[10];
 
 #define rho parms[0]
 #define K parms[1]
@@ -9,13 +9,14 @@ static double parms[9];
 #define v parms[3]
 #define F0 parms[4]
 #define Lerr parms[5]
-#define phi parms[6]
+#define aP parms[6]
 #define eP parms[7]
 #define Perr parms[8]
+#define hP parms[9]
 
 /* initializer */
 void initmod(void (* odeparms)(int *, double *)) {
-  int N=9;
+  int N=10;
   odeparms(&N, parms);
 }
 
@@ -50,9 +51,8 @@ void derivs (int *neq, double *t, double *y, double *ydot) {
 
   // balance the equations
   ydot[0] = -ing;
-  ydot[1] = rho*eps*V*ing - pc;
-  ydot[2] = (1-phi)*K*pc - km*W;
-  ydot[3] = eP*phi*K*pc;
-
+  ydot[1] = rho*eps*V*ing - pc ;
+  ydot[2] = K*pc - km*W - aP*W*P/(hP+W);
+  ydot[3] = eP*aP*W*P/(hP+W);
 }
 

@@ -10,11 +10,11 @@ library(ggplot2)
 ## I need to think carefully about how to deal with maturation. The DEB model will allow individuals to reproduce immediately. I could treat size at maturity as a parameter to be estimated. Or I could simply say, for each individual, that size at maturity is whatever size reproduction was first observed. I will have to play around with both of these models. I will start with a model where age at maturity has to be estimated along with the other parameters. Thus, size at maturity must be included in the source code for simulating the model.
 
 ## rebuild source for this computer
-if (is.loaded("tm_deb_parasite_2.so")) dyn.unload("tm_deb_parasite_2.so")
-system("rm tm_deb_parasite_2.so")
-system("rm tm_deb_parasite_2.o")
-system("R CMD SHLIB tm_deb_parasite_2.c")
-dyn.load("tm_deb_parasite_2.so")
+if (is.loaded("tm_deb_parasite_1v2.so")) dyn.unload("tm_deb_parasite_1v2.so")
+system("rm tm_deb_parasite_1v2.so")
+system("rm tm_deb_parasite_1v2.o")
+system("R CMD SHLIB tm_deb_parasite_1v2.c")
+dyn.load("tm_deb_parasite_1v2.so")
 
 ## Transform the parameters.  The optimization routines work best if
 ## the parameter values are unconstrained. Most of the parameters vary
@@ -136,7 +136,7 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform) {
     y0 <- c(F=unname(pars["F0"]),
             E=0,
             W=unname(5.39e-5/(1+pars["rho"]/pars["v"])),
-            P=100)
+            P=1)
     y0["E"] <- unname(y0["W"]*pars["rho"]/pars["v"])
 
     ## Simulate the system
@@ -144,7 +144,7 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform) {
             times=seq(0,35,0.1),
             func="derivs",
             parms=pars,
-            dllname="tm_deb_parasite_2",
+            dllname="tm_deb_parasite_1v2",
             initfunc="initmod",
             events=list(data=eventdat))) -> out
     if (inherits(out, "try-error"))

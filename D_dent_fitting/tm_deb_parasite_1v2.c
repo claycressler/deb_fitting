@@ -9,7 +9,7 @@ static double parms[9];
 #define v parms[3]
 #define F0 parms[4]
 #define Lerr parms[5]
-#define phi parms[6]
+#define aP parms[6]
 #define eP parms[7]
 #define Perr parms[8]
 
@@ -43,6 +43,7 @@ void derivs (int *neq, double *t, double *y, double *ydot) {
   double L = pow(W, 1/3); // structural length
   double Lobs = pow(W/xi, 1/q); //observed length
 
+
   // ingestion
   double ing = Imax * F/(Fh+F) * pow(Lobs,g) * exp(-a * P/pow(Lobs,h));
   // mobilization
@@ -50,9 +51,8 @@ void derivs (int *neq, double *t, double *y, double *ydot) {
 
   // balance the equations
   ydot[0] = -ing;
-  ydot[1] = rho*eps*V*ing - pc;
-  ydot[2] = (1-phi)*K*pc - km*W;
-  ydot[3] = eP*phi*K*pc;
-
+  ydot[1] = rho*eps*V*ing - pc - aP*E*P;
+  ydot[2] = K*pc - km*W;
+  ydot[3] = eP * aP*E*P;
 }
 

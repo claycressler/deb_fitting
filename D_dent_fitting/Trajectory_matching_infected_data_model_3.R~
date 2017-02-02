@@ -1,6 +1,6 @@
 
 ## TESTING
-source("Growth_reproduction_trajectory_matching_infecteds_model_1v2.R")
+source("Growth_reproduction_trajectory_matching_infecteds_model_3.R")
 
 x <- read.csv("Cat_data/all_data.csv") %>% as.data.frame
 x2 <- subset(x, infected==1)
