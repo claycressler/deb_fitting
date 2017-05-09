@@ -1,4 +1,4 @@
-## Load the code for performing trajectory matching
+## Load the code for performing trajectory matching on the real data, which requires assuming maturity so that reproduction doesn't start instantaneously.
 source("Growth_reproduction_trajectory_matching_real_data_2.R")
 
 ## Load Cat's data
@@ -62,7 +62,7 @@ as.data.frame(out[out[,'time']%in%data$age,]) -> pred
 ## compute the observed weight as Wobs = W + E and compute the observed length prediction as Wobs=xi*Lobs^q; (Wobs/xi)^(1/q)=Lobs
 xi <- 1.8e-3; q <- 3;
 mutate(pred, Wobs=W+E, Lobs=(Wobs/xi)^(1/q)) -> pred
-## compute the probability of observing the data, given the prediction
+## compute the probability of observing the data, given the prediction, assuming constant standard deviation
 sapply(unique(data$age),
        function(d)
            c(dnorm(x=data$length[data$age==d],
@@ -77,10 +77,52 @@ sapply(unique(data$age),
        ) %>% sum -> lik
 
 ## compute the likelihood using the 'tm_obj' function
-tm_obj(estpars=par_transform(estpars, transform), data=data, fixpars=fixpars, parorder=parorder, transform=transform)
+tm_obj(estpars=par_transform(estpars, transform), data=data, fixpars=fixpars, parorder=parorder, transform=transform, err="normal")
 
 ## compute the likelihood using the 'optimizer' function
-optimizer(estpars=estpars, fixpars=fixpars, parorder=parorder, transform=transform, obsdata=data, eval.only=TRUE)
+optimizer(estpars=estpars, fixpars=fixpars, parorder=parorder, transform=transform, obsdata=data, eval.only=TRUE, errmodel="normal")
+
+## compute the probability of observing the data, given the prediction, assuming constant coefficient of variation for reproduction
+pars["Robs"] <- 2
+sapply(unique(data$age),
+       function(d)
+           c(dnorm(x=data$length[data$age==d],
+                   mean=pred$Lobs[pred$time==d],
+                   sd=pars["Lobs"],
+                   log=TRUE) %>% sum,
+             dnorm(x=data$eggs[data$age==d],
+                   mean=(pred$R[pred$time==d]+0.001),
+                   sd=(pred$R[pred$time==d]+0.001)*pars["Robs"],
+                   log=TRUE) %>% sum
+             ) %>% sum
+       ) %>% sum -> lik
+
+## compute the likelihood using the 'tm_obj' function
+tm_obj(estpars=par_transform(estpars, transform), data=data, fixpars=fixpars, parorder=parorder, transform=transform, err="normal_cv")
+
+## compute the likelihood using the 'optimizer' function
+optimizer(estpars=estpars, fixpars=fixpars, parorder=parorder, transform=transform, obsdata=data, eval.only=TRUE, errmodel="normal_cv")
+
+## compute the probability of observing the data, given the prediction, assuming negative binomial distribution of error for reproduction
+sapply(unique(data$age),
+       function(d)
+           c(dnorm(x=data$length[data$age==d],
+                   mean=pred$Lobs[pred$time==d],
+                   sd=pars["Lobs"],
+                   log=TRUE) %>% sum,
+             dnbinom(x=data$eggs[data$age==d],
+                     mu=pred$R[pred$time==d],
+                     size=pars["Robs"],
+                     log=TRUE) %>% sum
+             ) %>% sum
+       ) %>% sum -> lik
+
+## compute the likelihood using the 'tm_obj' function
+tm_obj(estpars=par_transform(estpars, transform), data=data, fixpars=fixpars, parorder=parorder, transform=transform, err="negbinom")
+
+## compute the likelihood using the 'optimizer' function
+optimizer(estpars=estpars, fixpars=fixpars, parorder=parorder, transform=transform, obsdata=data, eval.only=TRUE, errmodel="negbinom")
+
 
 
 ####################################################################

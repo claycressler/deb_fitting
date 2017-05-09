@@ -129,13 +129,26 @@ To recap, the model we are fitting is the following:
 \frac{dR}{dt} &= \begin{cases} 0 \mbox{ if $W < W_{mat}$}, \\ \frac{(1-\kappa) P_C - k_m M}{E_R} \mbox{ if $W >= W_{mat}$}, \end{cases} \\
 P_C &= \frac{E (\nu/L + k_m)}{1 + \kappa E/W}, \\
 L &= W^{1/3}, \\
-L_{obs} &= (\frac{W}{\xi})^{1/q}, \\
+L_{obs} &= \left(\frac{W}{\xi}\right)^{1/q}, \\
 F(0) &= F_0, \\
 E(0) &= \frac{\rho E_R}{\nu}, \\
 W(0) &= E_R, \\
 M(0) &= 0, \\
 R(0) &= 0.
 \end{align}
+
+The other issue that we need to deal with here is the measurement model for growth and reproduction.
+It seems reasonable to assume normally distributed measurement error for \emph{Daphnia} size; in this case, the mean of the measurement model is given by the model prediction, and the variance is estimated as a parameter of the fitting.
+For reproduction, however, there are several possibilities.
+Recall that the data is of cumulative reproduction by an individual.
+One possibility is to assume a normal distribution (with mean given by the model-predicted cumulative reproduction at a given age) and constant standard deviation across the lifespan.
+In reality, it is plausible that measurement error for each individual clutch is normally distributed, but the constant standard deviation assumption is problematic for cumulative reproduction.
+A second possibility is to assume that the coefficient of variation of measurement error is constant, and to estimate that coefficient of variation.
+In that case, the model prediction specifies the mean, $\mu$, of the probability distribution, and the standard deviation is $\mu s$, where $s$ is the coefficient of variation.
+The third possibility is to assume that cumulative reproduction has a negative binomial error distribution.
+In this case, the mean is given by the model prediction and the variance is equal to $\mu + \mu^2/k$, where $k$ is the shape parameter, which is estimated.
+
+Since I don't know which to use, I am going to fit the data with these different measurement models, and let the data tell me which measurement model is best supported.
 
 Fig. \ref{fig:Cat-fits-1} shows that the range of parameter estimates is very large among parameter sets that had negative log-likelihoods within two units of the minimum.
 There are also very strong correlations among parameter estimates, in particular between the fraction of resources allocated towards growth $\kappa$ and the cost of reproduction $E_R$ and between the assimilation efficiency $\rho$ and the size at maturity $W_{mat}$.
@@ -289,47 +302,90 @@ points(data$age, data$eggs, col=1, cex=1.5)
 @
 
 \section*{Infected animals}
-For this, I really want to consider at least three possible models.
+There are many different possibilities for the model of parasite replication, but I want to consider three basic variants that differ in terms of where the parasite gets its energy.
 The first assumes that parasites use reserves as a resource, as in Hall et al. 2009.
 The second assumes that parasites capture some fraction of the reserves that have been mobilized for growth.
 The third assumes that parasites use soma as a resource.
 I was somewhat ambiguous about which of models 2 and 3 I was actually considering in my Proc. B paper.
-There is one wrinkle that I will also explore here.
 
-For the first model, the equations for parasite abundance are
-\begin{align}
-\frac{dP}{dt} &= e_P \frac{a_P E}{h_P + E} P - m P,\\
-\frac{dZ}{dt} &= m P,
-\end{align}
-where $e_P$ is the assimilation efficiency of the parasite, $a_P$ is the parasite's attack rate on reserves, $h_P$ is the parasite's half-saturation constant, and $m$ is the parasite's maturation rate from immature to mature (endospore) state.
+Within each of these different energetic architectures, there are multiple possible ways to model parasite replication and development.
+For example, for the model where the parasite uses reserves as a resource, the equation for parasite replication could be
+\begin{equation}
+\frac{dP}{dt} = e_P f(E) P - m P,
+\end{equation}
+where $f(E)$ is the parasite's ``functional response'', $e_P$ is the assimilation efficiency of the parasite, and $m$ is the parasite within-host mortality rate.
+Practically speaking, it may be quite hard to estimate the value of $m$, so it may prove easier to just remove that term from the model.
+
+However, there are multiple developmental stages for \emph{Pasteuria}, and we have no idea what each stage is doing, energetically.
 What we actually count are mature spores, not immature spores.
-By including this simple maturation process, we can better account for the fact that there are stages for the parasite, and that zeros don't mean no parasites, then mean that the maturation rate is such that they are below the detection threshold.
-
-For the second model, the equation for parasite abundance is
+There are multiple ways of accounting for maturation and development.
+For example, if we assume that mature spores are inert (as far as their theft of host resources), then we could imagine the model
 \begin{align}
-\frac{dP}{dt} &= e_P \frac{\phi_{max} P}{P_h + P} \kappa P_C - m P, \\
+\frac{dP}{dt} &= e_P f(E) P - m P, \\
 \frac{dZ}{dt} &= m P,
 \end{align}
-where $\phi_{max}$ is the maximum fraction of growth allocation that the parasite population can capture, and $P_h$ is the half-saturation constant for parasite energy diversion.
-
-For the first model, the equation for parasite abundance is
+where $m$ now has the interpretation of a maturation rate for the parasite.
+The difficulty here is that the rate is almost certainly 0 for a long time, whereas this model, because it assumes that development time is exponentially distributed, would have mature spores appear instantaneously.
+We could instead assume the existence of several immature stages; an exponential distribution for the length of each of these intermediate stages will generate an overall maturation rate that is gamma-distributed.
+The question is whether, in such a scenario, maturation rate should be considered a fixed parameter, or related to the parasite's energy theft.
+For example, if there were $n$ parasite stages, then you could assume the model
 \begin{align}
-\frac{dP}{dt} &= e_P \frac{a_P W}{h_P + W} P - m P, \\
-\frac{dZ}{dt} &= m P.
+\frac{dP_0}{dt} &= e_P a_P E P_0 - m_0 E P_0, \\
+\frac{dP_i}{dt} &= m_{i-1} E P_{i-1} - m_i E P_i \text{ for $1 < i < n$},  \\
+\frac{dP_n}{dt} &= m_{i-1} E P_{i-1}.
 \end{align}
-All three models add the same number of parameters, so they are easily comparable using log-likelihoods.
+Of course, this adds a lot of parameters that have to be estimated (all of the $m_i$, in particular), with no data that can really provide much guidance for these parameter values.
+Another possibility would be assume a delay-differential equation model.
+This could assume a fixed development period or, like the models used for \emph{Daphnia} consumer-resource interactions, it could have the delay itself vary depending on parasite resource theft.
+The fixed-delay model would be:
+\begin{align}
+\frac{dP}{dt} &= e_P f(E(t)) P(t) - e_P f(E(t-\tau)) P(t-\tau), \\
+\frac{dZ}{dt} &= e_P f(E(t-\tau)) P(t-\tau).
+\end{align}
+Note that we are assuming that all of the parasites ``born'' survive to maturity; if parasites experience a constant rate of mortality, $\mu$, then the maturation term would need to be multiplied by $e^{-\mu \tau}$ to account for survivorship to maturity.
+The variable-delay model is more complicated.
+Let the development rate of a spore be $g(t) = m f(E(t))$ (essentially saying that the development rate is proportional to resource ingestion) and let $\tau(t)$ be the length of the immature stage at time $t$.
+Following the arguments of Nisbet \& Gurney 1983, and assuming that there is no mortality of immature spores (an assumption of convenience), the number of parasite maturing at time $t$ is
+\begin{equation}
+\frac{g(t)}{g(t-\tau(t))}P(t-\tau(t)) = \frac{f(E(t))}{f(E(t-\tau(t)))}P(t-\tau(t)).
+\end{equation}
+The dynamics of immature and mature spores are then
+\begin{align}
+\frac{dP}{dt} &= e_P f(E(t)) P(t) - \frac{f(E(t))}{f(E(t-\tau(t)))}P(t-\tau(t)), \\
+\frac{dZ}{dt} &= \frac{f(E(t))}{f(E(t-\tau(t)))}P(t-\tau(t)).
+\end{align}
+We also have to specify the dynamics of the delay itself.
+Again following Nisbet \& Gurney, this equation is
+\begin{equation}
+\frac{d\tau(t)}{dt} = 1 - \frac{g(t)}{g(t-\tau(t))} = 1 - \frac{f(E(t))}{f(E(t-\tau(t)))}.
+\end{equation}
+The variable-delay equation is actually pretty parameter-sparse.
 
-Another issue that is worth thinking about is whether it is reasonable to think about the dynamics of castration.
-In this case, since the animals were exposed to parasites at birth, and none of the animals ever reproduced, I may not be possible to estimate anything about the timing or biological dependencies of castration.
-For simplicity, I will add a parameter $\tau$ which is the age at castration.
-This will allow the model to decide if there is actually a point in the dynamics where growth rate suddenly accelerates.
+All of the forgoing was assuming that the parasite gets its energy from reserves.
+If instead the parasite gets its energy from somatic tissue then the dynamics of parasite replication and development are
+\begin{equation}
+\frac{dP}{dt} = e_P f(W) P - m P,
+\end{equation}
+with all of the same possibilities for dealing with development that we discussed above.
 
-The other thing that has to be dealt with is the fact that ingestion is more complicated now.
-The function for spore-dependent ingestion rate is $I_{max} \frac{F}{F_h + F}L^ge^{-a Z/L^h}$.
-The fitting exercise suggested that $a$ and $h$ were both constant at $a=3.2\times10^{-5}$ and $h=3.57$.
-$g$ was assumed to be equal to the same value as for uninfected animals.
-$I_{max}$ clearly varied with the estimate of $F_h$ in a linear way (the $R^2$ of a linear regression of $I_{max}$ on $F_h$ was 0.97.
-In short, assuming that $F_h = 12000$, we have the following parameters, which will be held fixed in the fitting: $I_{max} = 12162$, $g = 1.467$, $a = 3.2\times10^{-5}$, $h = 3.57$.
+Finally, if the parasite gets its energy from the allocation to growth $\kappa P_C$, then the dynamics of parasite replication may be modelled as
+\begin{equation}
+\frac{dP}{dt} = e_P \phi(P) \kappa P_C - m P = \frac{\phi_{max} P}{P_h + P} \kappa P_C - m P.
+\end{equation}
+The form is more complicated here because the parasite can only steal a fraction $\phi(P)$ of the allocation; that is, $\phi(P)$ is bounded between 0 and 1, excluding some functional forms from consideration.
+As $P$ gets very large, under this model, the parasite will steal a fraction $\phi_{max}$ of the growth allocation for itself.
+Again, we can consider the same variants to deal with development.
+
+There are other possibilities as well, that are even more qualitative.
+For example, consider a situation where every parasites steals energy at a constant rate, regardless of the amount of energy available, but where the total parasite abundance is capped by host body size.
+Assume that the parasite gets its energy from somatic tissue, just for concreteness of the example.
+Then the dynamics of host growth and parasite replication could be modeled as:
+\begin{align}
+\frac{dW}{dt} &= \kappa P_C - k_m W - e P, \\
+\frac{dP}{dt} &= r P \left(1 - \frac{P}{s W}\right),
+\end{align}
+where $e$ is the rate of energy theft per parasite, $r$ is the maximum per-capita growth rate of the parasite, and $s$ is the maximum number of parasites per unit of somatic tissue.
+I'm not sure how to implement a variable delay into this model, but non-variable delays could be considered.
 
 
 <<echo=FALSE>>=

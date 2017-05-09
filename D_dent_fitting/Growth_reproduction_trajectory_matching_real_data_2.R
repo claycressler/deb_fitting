@@ -1,3 +1,4 @@
+## This differs from Growth_reproduction_trajectory_matching_real_data.R in that it assumes that reproduction only starts once some level of maturity has been reached.
 library(deSolve)
 library(magrittr)
 library(subplex)
@@ -45,7 +46,7 @@ par_untransform <- function(pars, transform) {
     return(pars)
 }
 
-optimizer <- function(estpars, fixpars, parorder, transform, obsdata, Np=100, eval.only=FALSE, type="trajectory_matching", method="subplex") {
+optimizer <- function(estpars, fixpars, parorder, transform, obsdata, Np=100, eval.only=FALSE, errmodel=c("normal","normal_cv","negbinom"), type="trajectory_matching", method="subplex") {
     estpars <- par_transform(pars=estpars, transform=transform)
     if (any(is.na(estpars)))
         opt <- list(params=estpars,
@@ -56,7 +57,8 @@ optimizer <- function(estpars, fixpars, parorder, transform, obsdata, Np=100, ev
                         data=obsdata,
                         fixpars=fixpars,
                         parorder=parorder,
-                        transform=transform)
+                        transform=transform,
+                        err=errmodel)
         else if (type=="particle_filter")
             x <- pf_obj(estpars=estpars,
                         data=obsdata,
@@ -71,40 +73,42 @@ optimizer <- function(estpars, fixpars, parorder, transform, obsdata, Np=100, ev
         if (type=="trajectory_matching") {
             if (method=="subplex")
                 x <- try(subplex(par=estpars,
-                             fn=tm_obj,
-                             data=obsdata,
-                             fixpars=fixpars,
-                             parorder=parorder,
-                             transform=transform))
+                                 fn=tm_obj,
+                                 data=obsdata,
+                                 fixpars=fixpars,
+                                 parorder=parorder,
+                                 transform=transform,
+                                 err=errmodel))
             else
                 x <- try(optim(par=estpars,
-                           fn=tm_obj,
-                           method=method,
-                           data=obsdata,
-                           fixpars=fixpars,
-                           parorder=parorder,
-                           transform=transform,
-                           control=list(maxit=5000)))
+                               fn=tm_obj,
+                               method=method,
+                               data=obsdata,
+                               fixpars=fixpars,
+                               parorder=parorder,
+                               transform=transform,
+                               err=errmodel,
+                               control=list(maxit=5000)))
         }
         else if (type=="particle_filter") {
             if (method=="subplex")
                 x <- try(subplex(par=estpars,
                              fn=pf_obj,
-                             data=obsdata,
-                             fixpars=fixpars,
-                             parorder=parorder,
-                             transform=transform,
-                             Np=Np))
+                                 data=obsdata,
+                                 fixpars=fixpars,
+                                 parorder=parorder,
+                                 transform=transform,
+                                 Np=Np))
             else
                 x <- try(optim(par=estpars,
-                           fn=pf_obj,
-                           method=method,
-                           data=obsdata,
-                           fixpars=fixpars,
-                           parorder=parorder,
-                           transform=transform,
-                           Np=Np,
-                           control=list(maxit=5000)))
+                               fn=pf_obj,
+                               method=method,
+                               data=obsdata,
+                               fixpars=fixpars,
+                               parorder=parorder,
+                               transform=transform,
+                               Np=Np,
+                               control=list(maxit=5000)))
         }
         if (inherits(x, 'try-error'))
             opt <- list(params=par_untransform(estpars,transform),
@@ -119,7 +123,7 @@ optimizer <- function(estpars, fixpars, parorder, transform, obsdata, Np=100, ev
 }
 
 ## Trajectory matching
-tm_obj <- function(estpars, data, fixpars, parorder, transform) {
+tm_obj <- function(estpars, data, fixpars, parorder, transform, err) {
      ## Put the estimated parameters back on the natural scale
     estpars <- par_untransform(estpars, transform)
     ## combine the parameters to be estimated and the fixed parameters
@@ -173,18 +177,60 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform) {
         mutate(pred, Wobs=W+E, Lobs=(Wobs/xi)^(1/q)) -> pred
 
         ## compute the probability of observing the data, given the prediction
-        sapply(unique(data$age),
-               function(d)
-                   c(dnorm(x=data$length[data$age==d],
-                           mean=pred$Lobs[pred$time==d],
-                           sd=pars["Lobs"],
-                           log=TRUE) %>% sum,
-                     dnorm(x=data$eggs[data$age==d],
-                           mean=pred$R[pred$time==d],
-                           sd=pars["Robs"],
-                           log=TRUE) %>% sum
-                     ) %>% sum
-               ) %>% sum -> lik
+        if (err=="normal")
+            sapply(unique(data$age),
+                   function(d)
+                       c(dnorm(x=data$length[data$age==d],
+                               mean=pred$Lobs[pred$time==d],
+                               sd=pars["Lobs"],
+                               log=TRUE) %>% sum,
+                         dnorm(x=data$eggs[data$age==d],
+                               mean=pred$R[pred$time==d],
+                               sd=pars["Robs"],
+                               log=TRUE) %>% sum
+                         ) %>% sum
+                   ) %>% sum -> lik
+        else if (err=="normal_cv") {
+            ## Have to be more careful here: if the model predicts 0 reproduction, that makes the sd of the normal ddistribution 0 as well, which means that the log-likelihood will be Inf. So compute the reproduction likelihood carefully - possibly by changing all zeros to some small non-zero number.
+            print(sapply(unique(data$age),
+                   function(d)
+                       c(dnorm(x=data$length[data$age==d],
+                               mean=pred$Lobs[pred$time==d],
+                               sd=pars["Lobs"],
+                               log=TRUE) %>% sum,
+                         dnorm(x=data$eggs[data$age==d],
+                               mean=(pred$R[pred$time==d]+0.001),
+                               sd=(pred$R[pred$time==d]+0.001)*pars["Robs"],
+                               log=TRUE) %>% sum
+                         ) %>% sum
+                   ))
+            sapply(unique(data$age),
+                   function(d)
+                       c(dnorm(x=data$length[data$age==d],
+                               mean=pred$Lobs[pred$time==d],
+                               sd=pars["Lobs"],
+                               log=TRUE) %>% sum,
+                         dnorm(x=data$eggs[data$age==d],
+                               mean=(pred$R[pred$time==d]+0.001),
+                               sd=(pred$R[pred$time==d]+0.001)*pars["Robs"],
+                               log=TRUE) %>% sum
+                         ) %>% sum
+                   ) %>% sum -> lik
+        }
+        else
+            sapply(unique(data$age),
+                   function(d)
+                       c(dnorm(x=data$length[data$age==d],
+                               mean=pred$Lobs[pred$time==d],
+                               sd=pars["Lobs"],
+                               log=TRUE) %>% sum,
+                         dnbinom(x=data$eggs[data$age==d],
+                                 mu=pred$R[pred$time==d],
+                                 size=pars["Robs"],
+                                 log=TRUE) %>% sum
+                         ) %>% sum
+                   ) %>% sum -> lik
+
     }
     return(-lik)
 }
