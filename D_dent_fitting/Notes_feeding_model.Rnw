@@ -402,6 +402,10 @@ ggplot(dat, aes(x=day, y=rate, shape=clear, colour=factor(infected))) +
             scale_colour_manual(values=c("black","red"), name="", labels=c("Uninfected","Infected")) +
                 scale_shape_discrete(solid=F, name="", labels=c("Observed","Predicted")) +
                     xlab("Age") + ylab("Clearance rate")
+
+
+
+
 @
 
 The last thing that I want to do is to see if my feeding model does a better job fitting the data than does the parameter estimates reported by Spencer.

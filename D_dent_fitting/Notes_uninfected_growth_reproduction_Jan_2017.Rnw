@@ -139,49 +139,248 @@ R(0) &= 0.
 
 The other issue that we need to deal with here is the measurement model for growth and reproduction.
 It seems reasonable to assume normally distributed measurement error for \emph{Daphnia} size; in this case, the mean of the measurement model is given by the model prediction, and the variance is estimated as a parameter of the fitting.
-For reproduction, however, there are several possibilities.
-Recall that the data is of cumulative reproduction by an individual.
-One possibility is to assume a normal distribution (with mean given by the model-predicted cumulative reproduction at a given age) and constant standard deviation across the lifespan.
-In reality, it is plausible that measurement error for each individual clutch is normally distributed, but the constant standard deviation assumption is problematic for cumulative reproduction.
-A second possibility is to assume that the coefficient of variation of measurement error is constant, and to estimate that coefficient of variation.
-In that case, the model prediction specifies the mean, $\mu$, of the probability distribution, and the standard deviation is $\mu s$, where $s$ is the coefficient of variation.
+The measurement model for reproduction, however, is more complicated, and there are several possible models that can be justified.
+Recall that the data is cumulative reproduction by an individual.
+One possibility is to assume normally distributed measurement error (where the mean is given by the model-predicted cumulative reproduction at a given age), so the fitting algorithm estimates a constant standard deviation parameter.
+It is plausible that measurement error for each individual clutch is normally distributed, but the constant standard deviation assumption is problematic for cumulative reproduction because of the range for cumulative reproduction data is quite large.
+A second possibility is to assume that measurement error is normally distributed, but rather than assuming a constant standard deviation, instead assume that the coefficient of variation in measurement error is constant.
+In this case, the algorithm estimates the coefficient of variation and the measurement model assumes that the mean is given by the model prediction and the standard deviation is the mean times the coefficient of variation.
 The third possibility is to assume that cumulative reproduction has a negative binomial error distribution.
 In this case, the mean is given by the model prediction and the variance is equal to $\mu + \mu^2/k$, where $k$ is the shape parameter, which is estimated.
-
 Since I don't know which to use, I am going to fit the data with these different measurement models, and let the data tell me which measurement model is best supported.
 
-Fig. \ref{fig:Cat-fits-1} shows that the range of parameter estimates is very large among parameter sets that had negative log-likelihoods within two units of the minimum.
-There are also very strong correlations among parameter estimates, in particular between the fraction of resources allocated towards growth $\kappa$ and the cost of reproduction $E_R$ and between the assimilation efficiency $\rho$ and the size at maturity $W_{mat}$.
-This is indicative of parameter unidentifiability with the fitting algorithm.
+This reveals that the best-supported measurement model, by a \emph{huge} margin, is the normal distribution model with constant coefficient of variation.
+The log-likelihood for the best-fitting parameter set for the model with normally distributed measurement error and constant standard deviation is -209.8; the log-likelihood for the best-fitting parameter set for the model with normally distributed measurement error and constant coefficient of variation is 350.9; the log-likelihood for the best-fitting parameter set for the model with negative binomially distributed measurement error is -19.3.
 
-<<echo=FALSE, fig.width=5, fig.height=5, fig.cap="Pairwise plot of parameter estimates from fitting Cat's growth and reproduction dataset.", label="Cat-fits-1">>=
+
+<<echo=FALSE>>=
 x <- readRDS(file="Trajectory_matching_estimates_uninfected_animals_12-6.RDS")
+y <- readRDS(file="Trajectory_matching_estimates_uninfected_animals_estCV_5-9.RDS")
+z <- readRDS(file="Trajectory_matching_estimates_uninfected_animals_negbinom_5-9.RDS")
+
 library(ggplot2)
 library(plyr)
 library(dplyr)
 library(GGally)
-x %>% subset(., lik < min(lik) + 2 & conv==0) %>% mutate(., lik=-lik) -> y
-ggpairs(y, c(1:5,8))
+
+x %>% subset(., lik < min(lik) + 2 & conv==0) %>% mutate(., lik=-lik) -> x
+y %>% subset(., lik < min(lik) + 2 & conv==0) %>% mutate(., lik=-lik) -> y
+z %>% subset(., lik < min(lik) + 2 & conv==0) %>% mutate(., lik=-lik) -> z
+
+@
+
+However, if you actually look at the model predictions against the data, you can see that the negative binomial model does a much better job of actually fitting the data than does the model with constant coefficient of variation (Fig. \ref{fig:model-data-comp}).
+The reason the model with constant coefficient of variation has such a high likelihood compared to the other two is because of the zeros.
+The log-likelihood of the zeros is 8 to 10 units higher than any other point at the best-fitting parameter set.
+In fact, the estimated CV is very near the CV that would maximize the likelihood when observed and predicted reproduction are both zero, clearly indicating that these values are exerting undue influence on the fitting algorithm.
+
+<<echo=FALSE, fig.height=4, fig.width=6, units='in', fig.cap="Comparing model predictions to observed data. The first row shows the deterministic prediction of growth and reproduction (gray lines) for the model where the error in the observation of reproduction is normally distributed with a constant error through time. The black error bars shows the 95\\% confidence interval in the measurement model at each age where data was observed. The second row shows the same information for the model with normally distributed observation error and a constant coefficient of variation. The third row shows the model with negative binomially distributed error. The red circles are observed data, which largely falls within the confidence interval, except for some of the reproduction data.", label="model-data-comp">>=
+## Load Cat's data
+library(deSolve)
+xx <- read.csv("Cat_data/uninfected_growth_reproduction.csv")
+data <- xx[1:103,1:3]
+data$eggs[is.na(data$eggs)] <- 0 ## set reproduction = 0 for all individuals that have not yet matured
+## change the name of 'times' to 'age'
+colnames(data)[1] <- 'age'
+
+source("Growth_reproduction_trajectory_matching_real_data_2.R")
+fixpars <- c(Imax=22500, g=1.45, v=10, F0=1e6/30)
+## Parameter estimates for the 3 different error models
+estparsx <- unlist(x[1,1:8])
+estparsy <- unlist(y[1,1:8])
+estparsz <- unlist(z[1,1:8])
+fixpars["Imax"] <- calc_Imax(unname(estparsx["Fh"]))
+fixpars["g"] <- calc_g(unname(estparsx["Fh"]))
+fixparsx <- fixpars
+fixpars["Imax"] <- calc_Imax(unname(estparsy["Fh"]))
+fixpars["g"] <- calc_g(unname(estparsy["Fh"]))
+fixparsy <- fixpars
+fixpars["Imax"] <- calc_Imax(unname(estparsz["Fh"]))
+fixpars["g"] <- calc_g(unname(estparsz["Fh"]))
+fixparsz <- fixpars
+
+parorder <- c("Imax","Fh","g","rho","K","km","v","ER","F0","Lobs","Robs","Wmat")
+parsx <- c(estparsx, fixparsx)
+parsy <- c(estparsy, fixparsy)
+parsz <- c(estparsz, fixparsz)
+parsx[match(parorder, names(parsx))] -> parsx
+parsy[match(parorder, names(parsy))] -> parsy
+parsz[match(parorder, names(parsz))] -> parsz
+
+## Set the initial conditions
+yx <- c(F=unname(parsx["F0"]),
+        E=0,
+        W=unname(parsx["ER"]/(1+parsx["rho"]/parsx["v"])),
+        M=0,
+        R=0)
+yx["E"] <- unname(yx["W"]*parsx["rho"]/parsx["v"])
+yy <- c(F=unname(parsy["F0"]),
+        E=0,
+        W=unname(parsy["ER"]/(1+parsy["rho"]/parsy["v"])),
+        M=0,
+        R=0)
+yy["E"] <- unname(yy["W"]*parsy["rho"]/parsy["v"])
+yz <- c(F=unname(parsz["F0"]),
+        E=0,
+        W=unname(parsz["ER"]/(1+parsz["rho"]/parsz["v"])),
+        M=0,
+        R=0)
+yz["E"] <- unname(yz["W"]*parsz["rho"]/parsz["v"])
+
+
+## Feeding
+eventdat <- data.frame(var="F",
+                       time=1:35,
+                       value=unname(pars["F0"]),
+                       method=rep(c(rep("add",4),"rep"),7))
+## simulate the system
+ode(yx,
+    times=seq(0,35,0.1),
+    func="derivs",
+    parms=parsx,
+    dllname="tm_deb_2",
+    initfunc="initmod",
+    events=list(data=eventdat)) %>% as.data.frame -> outx
+mutate(outx, Wpred=W+E, Lpred=(Wpred/1.8e-3)^(1/3)) -> outx
+ode(yy,
+    times=seq(0,35,0.1),
+    func="derivs",
+    parms=parsy,
+    dllname="tm_deb_2",
+    initfunc="initmod",
+    events=list(data=eventdat)) %>% as.data.frame -> outy
+mutate(outy, Wpred=W+E, Lpred=(Wpred/1.8e-3)^(1/3)) -> outy
+ode(yz,
+    times=seq(0,35,0.1),
+    func="derivs",
+    parms=parsz,
+    dllname="tm_deb_2",
+    initfunc="initmod",
+    events=list(data=eventdat)) %>% as.data.frame -> outz
+mutate(outz, Wpred=W+E, Lpred=(Wpred/1.8e-3)^(1/3)) -> outz
+
+## 95% confidence interval around this deterministic prediction, measured at the moments when measurements were actually taken
+bootLx <- sapply(outx[unique(data$age)*10+1,"Lpred"], function(m) rnorm(1000, mean=m, sd=parsx["Lobs"]))
+bootRx <- sapply(outx[unique(data$age)*10+1,"R"], function(m) rnorm(1000, mean=m, sd=parsx["Robs"]))
+bootRx[bootRx < 0] <- 0 ## set all negative observations to be equal to 0
+
+bootLy <- sapply(outy[unique(data$age)*10+1,"Lpred"], function(m) rnorm(1000, mean=m, sd=parsy["Lobs"]))
+bootRy <- sapply(outy[unique(data$age)*10+1,"R"], function(m) rnorm(1000, mean=m, sd=m*parsy["Robs"]))
+bootRy[bootRy < 0] <- 0 ## set all negative observations to be equal to 0
+
+bootLz <- sapply(outz[unique(data$age)*10+1,"Lpred"], function(m) rnorm(1000, mean=m, sd=parsz["Lobs"]))
+bootRz <- sapply(outz[unique(data$age)*10+1,"R"], function(m) rnbinom(1000, mu=m, size=parsz["Robs"]))
+bootRz[bootRz < 0] <- 0 ## set all negative observations to be equal to 0
+
+##
+par(mfrow=c(3,2), oma=rep(0.5,4), mar=c(5,5,0,0))
+plot(outx$time, outx$Lpred, type='l', lwd=3, col="darkgrey", ylim=c(0,2), xlab="Age", ylab="Length (mm)", cex.lab=1.5)
+for (i in 1:ncol(bootLx)) lines(rep(unique(data$age)[i],2), sort(bootLx[,i])[c(25,975)], lwd=3)
+points(data$age, data$length, col=1, cex=1.5)
+
+plot(outx$time, outx$R, type='l', lwd=3, col="darkgrey", ylim=c(0,60), xlab="Age", ylab="Cumulative eggs", cex.lab=1.5)
+for (i in 1:ncol(bootRx)) if(out[unique(data$age)[i]*10+1,"R"] > 0) lines(rep(unique(data$age)[i],2), sort(bootRx[,i])[c(25,975)], lwd=3)
+points(data$age, data$eggs, col=1, cex=1.5)
+
+plot(outy$time, outy$Lpred, type='l', lwd=3, col="darkgrey", ylim=c(0,2), xlab="Age", ylab="Length (mm)", cex.lab=1.5)
+for (i in 1:ncol(bootLy)) lines(rep(unique(data$age)[i],2), sort(bootLy[,i])[c(25,975)], lwd=3)
+points(data$age, data$length, col=1, cex=1.5)
+
+plot(outy$time, outy$R, type='l', lwd=3, col="darkgrey", ylim=c(0,sort(bootRy[,8])[975]), xlab="Age", ylab="Cumulative eggs", cex.lab=1.5)
+for (i in 1:ncol(bootRy)) if(out[unique(data$age)[i]*10+1,"R"] > 0) lines(rep(unique(data$age)[i],2), sort(bootRy[,i])[c(25,975)], lwd=3)
+points(data$age, data$eggs, col=1, cex=1.5)
+
+plot(outz$time, outz$Lpred, type='l', lwd=3, col="darkgrey", ylim=c(0,2), xlab="Age", ylab="Length (mm)", cex.lab=1.5)
+for (i in 1:ncol(bootLz)) lines(rep(unique(data$age)[i],2), sort(bootLz[,i])[c(25,975)], lwd=3)
+points(data$age, data$length, col=1, cex=1.5)
+
+plot(outz$time, outz$R, type='l', lwd=3, col="darkgrey", ylim=c(0,sort(bootRz[,8])[975]), xlab="Age", ylab="Cumulative eggs", cex.lab=1.5)
+for (i in 1:ncol(bootRz)) if(out[unique(data$age)[i]*10+1,"R"] > 0) lines(rep(unique(data$age)[i],2), sort(bootRz[,i])[c(25,975)], lwd=3)
+points(data$age, data$eggs, col=1, cex=1.5)
+
+@
+
+For the model with negative binomial error, if the observation and the prediction are both zero, every value for the size parameter has an identical likelihood (1).
+
+<<echo=FALSE, eval=FALSE>>=
+xi <- 1.8e-3; q <- 3;
+
+## which datapoints dominate the likelihood calculation for each model?
+pred <- outx
+mutate(pred, Wobs=W+E, Lobs=(Wobs/xi)^(1/q)) -> pred
+pars <- parsx
+sapply(unique(data$age),
+       function(d)
+           dnorm(x=data$eggs[data$age==d],
+                 mean=pred$R[pred$time==d],
+                 sd=pars["Robs"],
+                 log=TRUE
+                 )
+       )
+
+pred <- outy
+mutate(pred, Wobs=W+E, Lobs=(Wobs/xi)^(1/q)) -> pred
+pars <- parsy
+sapply(unique(data$age),
+       function(d)
+           dnorm(x=data$eggs[data$age==d],
+                 mean=(pred$R[pred$time==d]+0.001),
+                 sd=(pred$R[pred$time==d]+0.001)*pars["Robs"],
+                 log=TRUE
+                 )
+       )
+
+pred <- outz
+mutate(pred, Wobs=W+E, Lobs=(Wobs/xi)^(1/q)) -> pred
+pars <- parsz
+sapply(unique(data$age),
+       function(d)
+           dnbinom(x=data$eggs[data$age==d],
+                   mu=pred$R[pred$time==d],
+                   size=pars["Robs"],
+                   log=TRUE
+                   )
+       )
+
+@
+
+Focusing on the model with negative binomial error, Fig. \ref{fig:Cat-fits-1} shows that the range of parameter estimates is very large among parameter sets that had negative log-likelihoods within two units of the minimum.
+There are also very strong correlations among parameter estimates, in particular between the fraction of resources allocated towards growth $\kappa$ and the cost of reproduction $E_R$ and between the assimilation efficiency $\rho$ and the size at maturity $W_{mat}$.
+This is indicative of parameter unidentifiability with the fitting algorithm.
+This is especially clear for the half-saturation constant, which varies between 3 and 144,000, all in parameter sets that differ by less than two log-liklihood units.
+This non-identifiability of $F_h$ greatly affects the estimates of other parameters.
+
+<<echo=FALSE, fig.width=5, fig.height=5, fig.cap="Pairwise plot of parameter estimates from fitting Cat's growth and reproduction dataset.", label="Cat-fits-1">>=
+ggpairs(z, c(1:5,8))
 
 
 @
 
-Moreover, many of the ``consensus'' parameter estimates (in the sense that these estimates were very common) seem biologically unreasonable.
-For example, all of the 25 best-fitting parameter sets have estimates of the half-saturation constant less than 500 cells/mL, which, given translates into 0.0036 mgC/L.
-McCauley et al. 2008 used a half-saturation constant of 0.164 mgC/L, which is 50 times higher.
-All of the 25 best-fitting parameter sets have estimates of $\kappa$ greater than 0.8, whereas McCauley et al. has an estimate of 0.23.
-
 I think the best thing to do is to try fixing $F_h$ at different values, and see how that affects the other parameter estimates, since $F_h$  is specified by the feeding model, which was also ambiguous - relationships between parameters of the fitting model were highly constrained, but the parameter estimates themselves were highly flexible.
-Although I doubt if there is a parameter set with a higher likelihood that was overlooked by the algorithm, my sense is that it may be that the likelihood surface is quite flat, so $f_h$ can run off towards 0, dragging all of the other parameter estimates with it.
+Although I doubt if there is a parameter set with a higher likelihood that was overlooked by the algorithm, my sense is that it may be that the likelihood surface is quite flat, so $F_h$ can run off towards 0 or infinity, dragging all of the other parameter estimates with it.
 The profile likelihood will be very informative in this regard.
-I will also vary $v$, to see if that makes any difference to the fits, since that parameter is also fixed \emph{a priori}.
+
+<<echo=FALSE, fig.width=5, fig.height=5, fig.cap="Parameter estimates and likelihoods as the half-saturation constant and mobilization flux are varied. The black dots indicate the parameter estimates with lowest negative log-likelihood.", label="Fh-profile">>=
+x10 <- readRDS("Profile_lik_Fh_uninfected_animals_5-11.RDS")
+
+Fhseq <- c(100,500,seq(1000,20000,1000))
+y <- lapply(1:length(Fhseq), function(i) subset(x10[[i]], lik < min(lik)+2 & conv==0) %>% mutate(., Fh=Fhseq[i], col=ifelse(lik==min(lik),1,0)) %>% do.call("rbind",.) %>% t) %>% do.call("rbind",.) %>% as.data.frame %>% gather(., "param", "estimate", 1:8) %>% arrange(., col)
+y$param <- factor(y$param, levels=c("rho","K","km","ER","Wmat","Lobs","Robs","lik"))
+
+ggplot(subset(y, param%in%c("ER","K","km","rho","Wmat","lik"))) +
+    facet_grid(param~., scales="free_y") +
+        geom_point(aes(x=Fh, y=estimate, color=as.factor(col))) +
+            theme_bw() +
+                theme(legend.position='none') +
+                    scale_colour_manual(values=c("gray","black"))
+
+
+@
+
 
 Fig. \ref{fig:Fh-profile} shows pretty clearly that many of the key parameters are dependent on the value of $F_h$.
-In particular, the best estimates of both $\rho$ and $k_m$ decrease almost linearly with the fixed value of $F_h$.
-$\kappa$, $E_R$, and $W_{mat}$, on the other hand, vary with $F_h$ when it is small, but as $F_h$ increases beyond approximately 10,000, the estimates remain fairly consistent.
 Another obvious take-away from this plot is that $\kappa$ and $E_R$ are hard to estimate.
-
-Basically, the take-away here is that there is very little information to fix either the value of $F_h$ or $v$, which I had already suspected.
+Basically, there is very little information to fix either the value of $F_h$ (or $v$, which I have previously confirmed).
 Fortunately, there are plenty of other datasets that have estimated values of $F_h$ that I can use to fix the value of $F_h$ for these parameter estimations.
 Nisbet et al. (2004) estimates $F_h = 0.08$ mgC/L for \emph{D. pulicaria}; McCauley et al. (1990) estimates $F_h = 0.16$ mgC/L; Hall et al. (2009) estimates $F_h = 0.1$ mgC/L for \emph{D. dentifera}; Martin et al. (2013) estimates $F_h = 1585$ cells/mL for \emph{D. magna};
 Note that $F_h$ is measured here in units of cells/mL as well; the estimate of carbon context per cell is 8.16536$\times 10^{-9}$ mgC/cell.
@@ -191,38 +390,40 @@ Comparing the parameter estimates for $F_h = 12000$ and $F_h = 20000$,
 
 \begin{tabular}{l | l | l}
 & $F_h = 12000$ & $F_h = 20000$ \\
-$\rho$ & 0.15 & 0.20 \\
-$\kappa$ & 0.682 & 0.686 \\
-$k_m$ & 0.073 & 0.054 \\
-$E_R$ & $5.4 \times 10^{-5}$ & $4.8 \times 10^{-5}$ \\
+$\rho$ & 0.152 & 0.119 \\
+$\kappa$ & 0.680 & 0.688 \\
+$k_m$ & 0.0727 & 0.0534 \\
+$E_R$ & $5.5 \times 10^{-5}$ & $4.8 \times 10^{-5}$ \\
 $W_{mat}$ & $6.2 \times 10^{-3}$ & $6.3 \times 10^{-3}$ \\
-$L_{obs}$ & 0.1 & 0.1 \\
-$R_{obs}$ & 4.45 & 4.45 \\
-loglik & 211 & 211
+$L_{obs}$ & 0.102 & 0.102 \\
+$R_{obs}$ & 32.1 & 32.1 \\
+loglik & -20.6 & -20.2
 \end{tabular}
 
 There are only very small differences between these two parameter sets, and no difference in the log-likelihood of either, indicating that they both are equally good at explaining the data.
 The relationship between these parameter estimates and other published estimates is also useful.
-For example, an estimate of $\kappa$ of 0.68 is \emph{very} different from the estimates of Nisbet et al. (2004).
+For example, the estimate of $\kappa$ of 0.68 is \emph{very} different from the estimates of Nisbet et al. (2004).
 Nisbet et al. (2004) fits a flexible spline to allocation fraction, showing that it drops from 1 to less than 0.2 very quickly.
 McCauley et al. (2008) use an estimate of 0.23 (based on Nisbet).
 Johnson et al. (2013) have estimates of $\kappa$ that vary quite considerably depending on the details of the model, from almost 0 when all parameters are left free, to between 0.3 and 0.7 when maximum size is constrained by an informative prior.
-Martin et al. (2013) estimated $\kappa$ to be 0.678, which is very close to our estimate.
+Martin et al. (2013) estimated $\kappa$ to be 0.678.
 Thus, the estimate of $\kappa$ is reasonably well-supported, since Johnson et al. and Martin et al. both fit the standard DEB model to data, whereas Nisbet et al. was using a somewhat more bespoke model.
 
-<<echo=FALSE, fig.width=5, fig.height=5, fig.cap="Parameter estimates and likelihoods as the half-saturation constant and mobilization flux are varied.", label="Fh-profile">>=
-x10 <- readRDS("Profile_lik_Fh_uninfected_animals_12-6.RDS")
-x20 <- readRDS("Profile_lik_Fh_uninfected_animals_v=20_12-23.RDS")
-x50 <- readRDS("Profile_lik_Fh_uninfected_animals_v=50_12-23.RDS")
-x100 <- readRDS("Profile_lik_Fh_uninfected_animals_v=100_12-23.RDS")
+We can compare the output of the model when $F_h$ was fixed at 12,000 cells/mL to the observed data to see how well we captured the observed growth and reproduction data.
+You can see in Fig. \ref{fig:model-data-comp-2} that the model does a very good job of capturing the mean and variance in the observed data.
+On the basis of this, I will assume that I can proceed to fitting models that include parasitism.
 
-x = list(x10,x20,x50,x100)
+<<echo=FALSE, eval=FALSE, fig.width=5, fig.height=5, fig.cap="Parameter estimates and likelihoods as the half-saturation constant and mobilization flux are varied.", label="Fh-profile-old">>=
+x10 <- readRDS("Profile_lik_Fh_uninfected_animals_5-11.RDS")
+x50 <- readRDS("Profile_lik_Fh_uninfected_animals_v=50_5-11.RDS")
+x100 <- readRDS("Profile_lik_Fh_uninfected_animals_v=100_5-11.RDS")
 
-vseq <- c(10,20,50,100)
-Fhseq <- seq(1000,20000,1000)
+x = list(x10,x50,x100)
+
+vseq <- c(10,50,100)
+Fhseq <- c(100,500,seq(1000,20000,1000))
 y <- lapply(1:length(vseq), function(j) lapply(1:length(Fhseq), function(i) subset(x[[j]][[i]], lik < min(lik)+2 & conv==0) %>% mutate(., Fh=Fhseq[i], v=paste0("v=",vseq[j]), col=ifelse(lik==min(lik),1,0))) %>% do.call("rbind",.)) %>% do.call("rbind",.) %>% gather(., "param", "estimate", 1:8) %>% arrange(., col)
 y$param <- factor(y$param, levels=c("rho","K","km","ER","Wmat","Lobs","Robs","lik"))
-y$v <- factor(y$v, levels=levels(factor(y$v))[c(1,3,4,2)])
 
 ggplot(subset(y, param%in%c("ER","K","km","rho","Wmat","lik"))) +
     facet_grid(param~v, scales="free_y") +
@@ -234,38 +435,34 @@ ggplot(subset(y, param%in%c("ER","K","km","rho","Wmat","lik"))) +
 
 @
 
-We can compare the output of the model when $F_h$ was fixed at 12,000 cells/mL to the observed data to see how well we caputred the observed growth and reproduction data.
-You can see in Fig. \ref{fig:model-data-comp} that the model does a pretty reasonable job of capturing the observed data.
-On the basis of this, I will assume that I can proceed to fitting models that include parasitism.
-
-<<echo=FALSE, fig.height=4, fig.width=6, units='in', fig.cap="Comparing model predictions to observed data. The gray line shows the deterministic prediction, and the black error bars show the model-predicted 95\\% confidence interval at each age where data was observed. The red circles are observed data, which largely falls within the confidence interval, except for some of the reproduction data.", label="model-data-comp">>=
+<<echo=FALSE, fig.height=4, fig.width=6, units='in', fig.cap="Comparing model predictions to observed data for the negative binomial error model for reproduction, with $v=10$ and $F_h=12000$.", label="model-data-comp-2">>=
 ## Load Cat's data
 library(deSolve)
-x <- read.csv("Cat_data/uninfected_growth_reproduction.csv")
-data <- x[1:103,1:3]
+xx <- read.csv("Cat_data/uninfected_growth_reproduction.csv")
+data <- xx[1:103,1:3]
 data$eggs[is.na(data$eggs)] <- 0 ## set reproduction = 0 for all individuals that have not yet matured
 ## change the name of 'times' to 'age'
 colnames(data)[1] <- 'age'
 
 source("Growth_reproduction_trajectory_matching_real_data_2.R")
-fixpars <- c(Imax=22500, g=1.45, v=10, F0=1e6/30)
-estpars <- subset(y, Fh==12000 & v=="v=10" & col==1)$estimate
-names(estpars) <- subset(y, Fh==12000 & v=="v=10" & col==1)$param
-estpars <- estpars[-length(estpars)] ## drop 'lik' from the list of parameters
-estpars <- c(Fh=12000, estpars)
-fixpars["Imax"] <- calc_Imax(unname(estpars["Fh"]))
-fixpars["g"] <- calc_g(unname(estpars["Fh"]))
+fixpars <- c(Imax=22500, Fh=12000, g=1.45, v=10, F0=1e6/30)
+## Parameter estimates for the 3 different error models
+estpars <- subset(y, Fh==12000 & v=="v=10" & col==1)$estimate[1:7]
+names(estpars) <- subset(y, Fh==12000 & v=="v=10" & col==1)$param[1:7]
+fixpars["Imax"] <- calc_Imax(unname(fixpars["Fh"]))
+fixpars["g"] <- calc_g(unname(fixpars["Fh"]))
+
 parorder <- c("Imax","Fh","g","rho","K","km","v","ER","F0","Lobs","Robs","Wmat")
 pars <- c(estpars, fixpars)
 pars[match(parorder, names(pars))] -> pars
 
 ## Set the initial conditions
-y0 <- c(F=unname(pars["F0"]),
+y <- c(F=unname(pars["F0"]),
         E=0,
         W=unname(pars["ER"]/(1+pars["rho"]/pars["v"])),
         M=0,
         R=0)
-y0["E"] <- unname(y0["W"]*pars["rho"]/pars["v"])
+y["E"] <- unname(y["W"]*pars["rho"]/pars["v"])
 
 ## Feeding
 eventdat <- data.frame(var="F",
@@ -273,7 +470,7 @@ eventdat <- data.frame(var="F",
                        value=unname(pars["F0"]),
                        method=rep(c(rep("add",4),"rep"),7))
 ## simulate the system
-ode(y0,
+ode(y,
     times=seq(0,35,0.1),
     func="derivs",
     parms=pars,
@@ -284,8 +481,9 @@ mutate(out, Wpred=W+E, Lpred=(Wpred/1.8e-3)^(1/3)) -> out
 
 ## 95% confidence interval around this deterministic prediction, measured at the moments when measurements were actually taken
 bootL <- sapply(out[unique(data$age)*10+1,"Lpred"], function(m) rnorm(1000, mean=m, sd=pars["Lobs"]))
-bootR <- sapply(out[unique(data$age)*10+1,"R"], function(m) rnorm(1000, mean=m, sd=pars["Robs"]))
+bootR <- sapply(out[unique(data$age)*10+1,"R"], function(m) rnbinom(1000, mu=m, size=pars["Robs"]))
 bootR[bootR < 0] <- 0 ## set all negative observations to be equal to 0
+
 
 ##
 par(mfrow=c(1,2), oma=rep(0.5,4), mar=c(5,5,0,0))
@@ -298,194 +496,8 @@ for (i in 1:ncol(bootR)) if(out[unique(data$age)[i]*10+1,"R"] > 0) lines(rep(uni
 points(data$age, data$eggs, col=1, cex=1.5)
 
 
-
 @
 
-\section*{Infected animals}
-There are many different possibilities for the model of parasite replication, but I want to consider three basic variants that differ in terms of where the parasite gets its energy.
-The first assumes that parasites use reserves as a resource, as in Hall et al. 2009.
-The second assumes that parasites capture some fraction of the reserves that have been mobilized for growth.
-The third assumes that parasites use soma as a resource.
-I was somewhat ambiguous about which of models 2 and 3 I was actually considering in my Proc. B paper.
-
-Within each of these different energetic architectures, there are multiple possible ways to model parasite replication and development.
-For example, for the model where the parasite uses reserves as a resource, the equation for parasite replication could be
-\begin{equation}
-\frac{dP}{dt} = e_P f(E) P - m P,
-\end{equation}
-where $f(E)$ is the parasite's ``functional response'', $e_P$ is the assimilation efficiency of the parasite, and $m$ is the parasite within-host mortality rate.
-Practically speaking, it may be quite hard to estimate the value of $m$, so it may prove easier to just remove that term from the model.
-
-However, there are multiple developmental stages for \emph{Pasteuria}, and we have no idea what each stage is doing, energetically.
-What we actually count are mature spores, not immature spores.
-There are multiple ways of accounting for maturation and development.
-For example, if we assume that mature spores are inert (as far as their theft of host resources), then we could imagine the model
-\begin{align}
-\frac{dP}{dt} &= e_P f(E) P - m P, \\
-\frac{dZ}{dt} &= m P,
-\end{align}
-where $m$ now has the interpretation of a maturation rate for the parasite.
-The difficulty here is that the rate is almost certainly 0 for a long time, whereas this model, because it assumes that development time is exponentially distributed, would have mature spores appear instantaneously.
-We could instead assume the existence of several immature stages; an exponential distribution for the length of each of these intermediate stages will generate an overall maturation rate that is gamma-distributed.
-The question is whether, in such a scenario, maturation rate should be considered a fixed parameter, or related to the parasite's energy theft.
-For example, if there were $n$ parasite stages, then you could assume the model
-\begin{align}
-\frac{dP_0}{dt} &= e_P a_P E P_0 - m_0 E P_0, \\
-\frac{dP_i}{dt} &= m_{i-1} E P_{i-1} - m_i E P_i \text{ for $1 < i < n$},  \\
-\frac{dP_n}{dt} &= m_{i-1} E P_{i-1}.
-\end{align}
-Of course, this adds a lot of parameters that have to be estimated (all of the $m_i$, in particular), with no data that can really provide much guidance for these parameter values.
-Another possibility would be assume a delay-differential equation model.
-This could assume a fixed development period or, like the models used for \emph{Daphnia} consumer-resource interactions, it could have the delay itself vary depending on parasite resource theft.
-The fixed-delay model would be:
-\begin{align}
-\frac{dP}{dt} &= e_P f(E(t)) P(t) - e_P f(E(t-\tau)) P(t-\tau), \\
-\frac{dZ}{dt} &= e_P f(E(t-\tau)) P(t-\tau).
-\end{align}
-Note that we are assuming that all of the parasites ``born'' survive to maturity; if parasites experience a constant rate of mortality, $\mu$, then the maturation term would need to be multiplied by $e^{-\mu \tau}$ to account for survivorship to maturity.
-The variable-delay model is more complicated.
-Let the development rate of a spore be $g(t) = m f(E(t))$ (essentially saying that the development rate is proportional to resource ingestion) and let $\tau(t)$ be the length of the immature stage at time $t$.
-Following the arguments of Nisbet \& Gurney 1983, and assuming that there is no mortality of immature spores (an assumption of convenience), the number of parasite maturing at time $t$ is
-\begin{equation}
-\frac{g(t)}{g(t-\tau(t))}P(t-\tau(t)) = \frac{f(E(t))}{f(E(t-\tau(t)))}P(t-\tau(t)).
-\end{equation}
-The dynamics of immature and mature spores are then
-\begin{align}
-\frac{dP}{dt} &= e_P f(E(t)) P(t) - \frac{f(E(t))}{f(E(t-\tau(t)))}P(t-\tau(t)), \\
-\frac{dZ}{dt} &= \frac{f(E(t))}{f(E(t-\tau(t)))}P(t-\tau(t)).
-\end{align}
-We also have to specify the dynamics of the delay itself.
-Again following Nisbet \& Gurney, this equation is
-\begin{equation}
-\frac{d\tau(t)}{dt} = 1 - \frac{g(t)}{g(t-\tau(t))} = 1 - \frac{f(E(t))}{f(E(t-\tau(t)))}.
-\end{equation}
-The variable-delay equation is actually pretty parameter-sparse.
-
-All of the forgoing was assuming that the parasite gets its energy from reserves.
-If instead the parasite gets its energy from somatic tissue then the dynamics of parasite replication and development are
-\begin{equation}
-\frac{dP}{dt} = e_P f(W) P - m P,
-\end{equation}
-with all of the same possibilities for dealing with development that we discussed above.
-
-Finally, if the parasite gets its energy from the allocation to growth $\kappa P_C$, then the dynamics of parasite replication may be modelled as
-\begin{equation}
-\frac{dP}{dt} = e_P \phi(P) \kappa P_C - m P = \frac{\phi_{max} P}{P_h + P} \kappa P_C - m P.
-\end{equation}
-The form is more complicated here because the parasite can only steal a fraction $\phi(P)$ of the allocation; that is, $\phi(P)$ is bounded between 0 and 1, excluding some functional forms from consideration.
-As $P$ gets very large, under this model, the parasite will steal a fraction $\phi_{max}$ of the growth allocation for itself.
-Again, we can consider the same variants to deal with development.
-
-There are other possibilities as well, that are even more qualitative.
-For example, consider a situation where every parasites steals energy at a constant rate, regardless of the amount of energy available, but where the total parasite abundance is capped by host body size.
-Assume that the parasite gets its energy from somatic tissue, just for concreteness of the example.
-Then the dynamics of host growth and parasite replication could be modeled as:
-\begin{align}
-\frac{dW}{dt} &= \kappa P_C - k_m W - e P, \\
-\frac{dP}{dt} &= r P \left(1 - \frac{P}{s W}\right),
-\end{align}
-where $e$ is the rate of energy theft per parasite, $r$ is the maximum per-capita growth rate of the parasite, and $s$ is the maximum number of parasites per unit of somatic tissue.
-I'm not sure how to implement a variable delay into this model, but non-variable delays could be considered.
-
-
-<<echo=FALSE>>=
-x <- readRDS("RDS_files/Feeding_model_fitting_infecteds_spore_dependent_2.RDS")
-lapply(1:length(x),
-       function(i) subset(x[[i]], lik < min(lik)+1) %>% mutate(., best=ifelse(lik==min(lik),1,0), fh=seq(100,10000,100)[i])) -> x
-res <- vector()
-for (i in 1:length(x)) res <- rbind(res, x[[i]])
-res$lik <- -res$lik
-gather(res, var, val, 1:4) -> res2
-
-## what are the best estimates of
-subset(res2, best==1 & var=="h")$val %>% mean
-subset(res2, best==1 & var=="a")$val %>% mean
-with(subset(res2, best==1 & var=="Imax"), summary(lm(val~fh))) ## intercept = 5.531e3, slope = 0.5526
-
-
-@
-
-<<echo=FALSE>>=
-
-library(deSolve)
-
-y0 <- c(F=unname(pars["F0"]),
-        E=0,
-        W=unname(5.39e-5/(1+pars["rho"]/pars["v"])),
-        P=100,
-        Z=0)
-y0["E"] <- unname(y0["W"]*pars["rho"]/pars["v"])
-
-## Feeding
-eventdat <- data.frame(var="F",
-                       time=1:35,
-                       value=unname(pars["F0"]),
-                       method=rep(c(rep("add",4),"rep"),7))
-
-if (is.loaded("tm_deb_parasite_1.so")) dyn.unload("tm_deb_parasite_1.so")
-system("rm tm_deb_parasite_1.so")
-system("rm tm_deb_parasite_1.o")
-system("R CMD SHLIB tm_deb_parasite_1.c")
-dyn.load("tm_deb_parasite_1.so")
-## the only parameters that need to be estimated - all other parameters are fixed
-## parameters for Model 1
-par1 <- c(rho=0.152, K=0.68, km=0.073, v=10, F0=1e6/30, Lobs=0.0102, aP=1e-8, hP=1e-5, eP=1e11, m=0.1, tau=1, Pobs=1000)
-## simulate the system
-ode(y0,
-    times=seq(0,35,0.1),
-    func="derivs",
-    parms=par1,
-    dllname="tm_deb_parasite_1",
-    initfunc="initmod",
-    events=list(data=eventdat)) %>% as.data.frame -> out
-mutate(out, Wpred=W+E, Lpred=(Wpred/1.8e-3)^(1/3)) -> out
-tail(out)
-dyn.unload("tm_deb_parasite_1.so")
-
-if (is.loaded("tm_deb_parasite_2.so")) dyn.unload("tm_deb_parasite_2.so")
-system("rm tm_deb_parasite_2.so")
-system("rm tm_deb_parasite_2.o")
-system("R CMD SHLIB tm_deb_parasite_2.c")
-dyn.load("tm_deb_parasite_2.so")
-## the only parameters that need to be estimated - all other parameters are fixed
-## parameters for Model 2
-par2 <- c(rho=0.152, K=0.68, km=0.073, v=10, F0=1e6/30, Lobs=0.0102, phimax=0.5, hP=1e7, eP=1e11, m=0.1, tau=1, Pobs=1000)
-## simulate the system
-ode(y0,
-    times=seq(0,35,0.1),
-    func="derivs",
-    parms=par2,
-    dllname="tm_deb_parasite_2",
-    initfunc="initmod",
-    events=list(data=eventdat)) %>% as.data.frame -> out
-mutate(out, Wpred=W+E, Lpred=(Wpred/1.8e-3)^(1/3)) -> out
-tail(out)
-dyn.unload("tm_deb_parasite_2.so")
-
-
-if (is.loaded("tm_deb_parasite_3.so")) dyn.unload("tm_deb_parasite_3.so")
-system("rm tm_deb_parasite_3.so")
-system("rm tm_deb_parasite_3.o")
-system("R CMD SHLIB tm_deb_parasite_3.c")
-dyn.load("tm_deb_parasite_3.so")
-## the only parameters that need to be estimated - all other parameters are fixed
-## parameters for Model 1
-par3 <- c(rho=0.152, K=0.68, km=0.073, v=10, F0=1e6/30, Lobs=0.0102, aP=1e-12, hP=1e-5, eP=1e11, m=0.1, tau=1, Pobs=1000)
-## simulate the system
-ode(y0,
-    times=seq(0,35,0.1),
-    func="derivs",
-    parms=par3,
-    dllname="tm_deb_parasite_3",
-    initfunc="initmod",
-    events=list(data=eventdat)) %>% as.data.frame -> out
-mutate(out, Wpred=W+E, Lpred=(Wpred/1.8e-3)^(1/3)) -> out
-tail(out)
-dyn.unload("tm_deb_parasite_3.so")
-
-
-
-@
 
 
 \end{document}

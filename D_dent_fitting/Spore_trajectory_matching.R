@@ -1,0 +1,330 @@
+library(deSolve)
+library(magrittr)
+library(subplex)
+library(pomp)
+library(parallel)
+library(plyr)
+library(tidyr)
+library(ggplot2)
+
+## I need to think carefully about how to deal with maturation. The DEB model will allow individuals to reproduce immediately. I could treat size at maturity as a parameter to be estimated. Or I could simply say, for each individual, that size at maturity is whatever size reproduction was first observed. I will have to play around with both of these models. I will start with a model where age at maturity has to be estimated along with the other parameters. Thus, size at maturity must be included in the source code for simulating the model.
+
+
+## Transform the parameters.  The optimization routines work best if
+## the parameter values are unconstrained. Most of the parameters vary
+## between 0 and Inf; these can be made unconstrained by simple
+## log-transforming. The parameter K, on the other hand, can only vary
+## between 0 and 1. To put a parameter that varies between 0 and 1 on
+## an unconstrained scale, we use the logit transform.
+par_transform <- function(pars, transform) {
+    for (i in 1:length(pars)) {
+        if (transform[i]=="log")
+            pars[i] <- log(pars[i])
+        if (transform[i]=="logit")
+            pars[i] <- log(pars[i]/(1-pars[i]))
+    }
+    return(pars)
+}
+## Untransform the parameters
+par_untransform <- function(pars, transform) {
+    for (i in 1:length(pars)) {
+        if (transform[i]=="log")
+            pars[i] <- exp(pars[i])
+        if (transform[i]=="logit")
+            pars[i] <- exp(pars[i])/(1+exp(pars[i]))
+    }
+    return(pars)
+}
+
+optimizer <- function(estpars, fixpars, parorder, transform, obsdata, model, Np=100, eval.only=FALSE, type="trajectory_matching", method="subplex") {
+    ## load the model
+    dyn.load(paste0(model,".so"))
+
+    estpars <- par_transform(pars=estpars, transform=transform)
+    if (any(is.na(estpars)))
+        opt <- list(params=estpars,
+                    lik=NA)
+    else if (eval.only==TRUE) {
+        if (type=="trajectory_matching")
+            x <- tm_obj(estpars=estpars,
+                        data=obsdata,
+                        fixpars=fixpars,
+                        parorder=parorder,
+                        transform=transform,
+                        model=model)
+        else if (type=="particle_filter")
+            x <- pf_obj(estpars=estpars,
+                        data=obsdata,
+                        fixpars=fixpars,
+                        parorder=parorder,
+                        transform=transform,
+                        model=model,
+                        Np=Np)
+        opt <- list(params=par_untransform(estpars,transform),
+                    lik=x)
+    }
+    else {
+        if (type=="trajectory_matching") {
+            if (method=="subplex")
+                x <- try(subplex(par=estpars,
+                                 fn=tm_obj,
+                                 data=obsdata,
+                                 fixpars=fixpars,
+                                 parorder=parorder,
+                                 transform=transform,
+                                 model=model
+                                 ))
+            else
+                x <- try(optim(par=estpars,
+                               fn=tm_obj,
+                               method=method,
+                               data=obsdata,
+                               fixpars=fixpars,
+                               parorder=parorder,
+                               transform=transform,
+                               model=model,
+                           control=list(maxit=5000)))
+        }
+        else if (type=="particle_filter") {
+            if (method=="subplex")
+                x <- try(subplex(par=estpars,
+                             fn=pf_obj,
+                             data=obsdata,
+                             fixpars=fixpars,
+                             parorder=parorder,
+                             transform=transform,
+                             Np=Np))
+            else
+                x <- try(optim(par=estpars,
+                           fn=pf_obj,
+                           method=method,
+                           data=obsdata,
+                           fixpars=fixpars,
+                           parorder=parorder,
+                           transform=transform,
+                           Np=Np,
+                           control=list(maxit=5000)))
+        }
+        if (inherits(x, 'try-error'))
+            opt <- list(params=par_untransform(estpars,transform),
+                        lik=NA,
+                        conv=NA)
+        else
+            opt <- list(params=par_untransform(x$par,transform),
+                        lik=x$value,
+                        conv=x$convergence)
+    }
+    return(opt)
+}
+
+## Trajectory matching
+tm_obj <- function(estpars, data, fixpars, parorder, transform, model) {
+     ## Put the estimated parameters back on the natural scale
+    estpars <- par_untransform(estpars, transform)
+    ## combine the parameters to be estimated and the fixed parameters
+    ## into a single vector, with an order specified by parorder
+    pars <- c(estpars, fixpars)
+    pars[match(parorder, names(pars))] -> pars
+    if(any(names(pars)!=parorder)) stop("parameter are in the wrong order")
+
+    ## Initial condition: assuming that E/W = rho/v and E+W=ER, then W
+    ## + W*rho/v = ER, W(1+rho/v)=ER, W=ER/(1+rho/v)
+    if (length(grep("delay", model))==1) {
+        y0 <- c(Pi=unname(pars["P0"]), Pm=0)
+        try(dede(y0,
+                 times=seq(0,35,0.1),
+                 func="derivs",
+                 parms=pars,
+                 dllname=model,
+                 initfunc="initmod")) -> out
+    } else {
+        y0 <- c(P=unname(pars["P0"]))
+        try(ode(y0,
+                times=seq(0,35,0.1),
+                func="derivs",
+                parms=pars,
+                dllname=model,
+                initfunc="initmod")) -> out
+    }
+
+    if (inherits(out, "try-error"))
+        lik <- -Inf
+    else if (max(out[,"time"]) < max(data$age))
+        lik <- -Inf
+    else if (any(is.nan(out)))
+        lik <- -Inf
+    else if (any(out < 0))
+        lik <- -Inf
+    ## If no errors, compute the likelihood
+    else {
+        ## extract only the data points that can be compared against the true data
+        as.data.frame(out[out[,'time']%in%data$age,]) -> pred
+
+        ## compute the probability of observing the data, given the prediction
+        if (length(grep("delay", model))==1)
+            sapply(unique(data$age),
+                   function(d)
+                       dnbinom(x=data$spores[data$age==d],
+                               mu=pred$Pm[pred$time==d],
+                               size=pars["Pobs"],
+                               log=TRUE) %>% sum
+                   ) %>% sum -> lik
+        else
+            sapply(unique(data$age),
+                   function(d)
+                       dnbinom(x=data$spores[data$age==d],
+                               mu=pred$P[pred$time==d],
+                               size=pars["Pobs"],
+                               log=TRUE) %>% sum
+                   ) %>% sum -> lik
+
+    }
+    return(-lik)
+}
+
+optimizer2 <- function(estpars, fixpars, parorder, transform, obsdata, model, Np=100, eval.only=FALSE, type="trajectory_matching", method="subplex") {
+    ## load the model
+    dyn.load(paste0(model,".so"))
+
+    estpars <- par_transform(pars=estpars, transform=transform)
+    if (any(is.na(estpars)))
+        opt <- list(params=estpars,
+                    lik=NA)
+    else if (eval.only==TRUE) {
+        if (type=="trajectory_matching")
+            x <- tm_obj2(estpars=estpars,
+                        data=obsdata,
+                        fixpars=fixpars,
+                        parorder=parorder,
+                        transform=transform,
+                        model=model)
+        else if (type=="particle_filter")
+            x <- pf_obj(estpars=estpars,
+                        data=obsdata,
+                        fixpars=fixpars,
+                        parorder=parorder,
+                        transform=transform,
+                        model=model,
+                        Np=Np)
+        opt <- list(params=par_untransform(estpars,transform),
+                    lik=x)
+    }
+    else {
+        if (type=="trajectory_matching") {
+            if (method=="subplex")
+                x <- try(subplex(par=estpars,
+                                 fn=tm_obj2,
+                                 data=obsdata,
+                                 fixpars=fixpars,
+                                 parorder=parorder,
+                                 transform=transform,
+                                 model=model
+                                 ))
+            else
+                x <- try(optim(par=estpars,
+                               fn=tm_obj2,
+                               method=method,
+                               data=obsdata,
+                               fixpars=fixpars,
+                               parorder=parorder,
+                               transform=transform,
+                               model=model,
+                           control=list(maxit=5000)))
+        }
+        else if (type=="particle_filter") {
+            if (method=="subplex")
+                x <- try(subplex(par=estpars,
+                             fn=pf_obj,
+                             data=obsdata,
+                             fixpars=fixpars,
+                             parorder=parorder,
+                             transform=transform,
+                             Np=Np))
+            else
+                x <- try(optim(par=estpars,
+                           fn=pf_obj,
+                           method=method,
+                           data=obsdata,
+                           fixpars=fixpars,
+                           parorder=parorder,
+                           transform=transform,
+                           Np=Np,
+                           control=list(maxit=5000)))
+        }
+        if (inherits(x, 'try-error'))
+            opt <- list(params=par_untransform(estpars,transform),
+                        lik=NA,
+                        conv=NA)
+        else
+            opt <- list(params=par_untransform(x$par,transform),
+                        lik=x$value,
+                        conv=x$convergence)
+    }
+    return(opt)
+}
+
+## Trajectory matching
+tm_obj2 <- function(estpars, data, fixpars, parorder, transform, model) {
+     ## Put the estimated parameters back on the natural scale
+    estpars <- par_untransform(estpars, transform)
+    ## combine the parameters to be estimated and the fixed parameters
+    ## into a single vector, with an order specified by parorder
+    pars <- c(estpars, fixpars)
+    pars[match(parorder, names(pars))] -> pars
+    if(any(names(pars)!=parorder)) stop("parameter are in the wrong order")
+
+    ## Initial condition: assuming that E/W = rho/v and E+W=ER, then W
+    ## + W*rho/v = ER, W(1+rho/v)=ER, W=ER/(1+rho/v)
+    if (length(grep("delay", model))==1) {
+        y0 <- c(Pi=unname(pars["P0"]), Pm=0)
+        try(dede(y0,
+                 times=seq(0,35,0.1),
+                 func="derivs",
+                 parms=pars,
+                 dllname=model,
+                 initfunc="initmod")) -> out
+    } else {
+        y0 <- c(P=unname(pars["P0"]))
+        try(ode(y0,
+                times=seq(0,35,0.1),
+                func="derivs",
+                parms=pars,
+                dllname=model,
+                initfunc="initmod")) -> out
+    }
+
+    if (inherits(out, "try-error"))
+        lik <- -Inf
+    else if (max(out[,"time"]) < max(data$age))
+        lik <- -Inf
+    else if (any(is.nan(out)))
+        lik <- -Inf
+    else if (any(out < 0))
+        lik <- -Inf
+    ## If no errors, compute the likelihood
+    else {
+        ## extract only the data points that can be compared against the true data
+        as.data.frame(out[out[,'time']%in%data$age,]) -> pred
+
+        ## compute the probability of observing the data, given the prediction
+        if (length(grep("delay", model))==1)
+            sapply(unique(data$age),
+                   function(d)
+                       dnorm(x=data$spores[data$age==d],
+                               mean=pred$Pm[pred$time==d],
+                               sd=pars["Pobs"],
+                               log=TRUE) %>% sum
+                   ) %>% sum -> lik
+        else
+            sapply(unique(data$age),
+                   function(d)
+                       dnorm(x=data$spores[data$age==d],
+                             mean=pred$P[pred$time==d],
+                             sd=pars["Pobs"],
+                             log=TRUE) %>% sum
+                   ) %>% sum -> lik
+
+    }
+    return(-lik)
+}
+

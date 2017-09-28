@@ -1,0 +1,76 @@
+############## Type I functional response ##############
+
+for (i in 1:50) print("################################################")
+print("E exploiter Type I with delay")
+source("Trajectory_matching_deb_parasite_E_TypeI_delay.R")
+
+############## Type I functional response w/parasite mortality ##############
+
+for (i in 1:50) print("################################################")
+print("E exploiter Type I with delay")
+source("Trajectory_matching_deb_parasite_E_TypeI_delay_m.R")
+
+for (i in 1:50) print("################################################")
+print("E exploiter Type I with delay and mortality")
+source("Trajectory_matching_deb_parasite_E_TypeI_delay_m_2.R")
+
+for (i in 1:50) print("################################################")
+print("E exploiter Type I with delay and mortality")
+source("Trajectory_matching_deb_parasite_E_TypeI_delay_m_3.R")
+
+############## Type II functional response ##############
+
+for (i in 1:50) print("################################################")
+print("E exploiter Type I with delay")
+source("Trajectory_matching_deb_parasite_E_TypeII_delay.R")
+
+for (i in 1:50) print("################################################")
+print("E exploiter Type I with delay")
+source("Trajectory_matching_deb_parasite_E_TypeII_delay_2.R")
+
+for (i in 1:50) print("################################################")
+print("E exploiter Type I with delay")
+source("Trajectory_matching_deb_parasite_E_TypeII_delay_3.R")
+
+############## Type II functional response w/parasite mortality ##############
+
+for (i in 1:50) print("################################################")
+print("E exploiter Type I with delay")
+source("Trajectory_matching_deb_parasite_E_TypeII_delay_m.R")
+
+for (i in 1:50) print("################################################")
+print("E exploiter Type I with delay and mortality")
+source("Trajectory_matching_deb_parasite_E_TypeII_delay_m_2.R")
+
+for (i in 1:50) print("################################################")
+print("E exploiter Type I with delay and mortality")
+source("Trajectory_matching_deb_parasite_E_TypeII_delay_m_3.R")
+
+############### Logistic ##################
+
+for (i in 1:50) print("################################################")
+print("E exploiter Type I with delay")
+source("Trajectory_matching_deb_parasite_E_logistic_delay.R")
+
+for (i in 1:50) print("################################################")
+print("E exploiter Type I with delay")
+source("Trajectory_matching_deb_parasite_E_logistic_delay_2.R")
+
+for (i in 1:50) print("################################################")
+print("E exploiter Type I with delay")
+source("Trajectory_matching_deb_parasite_E_logistic_delay_3.R")
+
+############### Logistic w/mortality ##################
+
+for (i in 1:50) print("################################################")
+print("E exploiter Type I with delay")
+source("Trajectory_matching_deb_parasite_E_logistic_delay_m.R")
+
+for (i in 1:50) print("################################################")
+print("E exploiter Type I with delay")
+source("Trajectory_matching_deb_parasite_E_logistic_delay_2_m.R")
+
+for (i in 1:50) print("################################################")
+print("E exploiter Type I with delay")
+source("Trajectory_matching_deb_parasite_E_logistic_delay_3_m.R")
+

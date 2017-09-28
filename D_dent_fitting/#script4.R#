@@ -1,0 +1,38 @@
+## Allowing assimilation efficiency to be plastic instead of somatic maintenance rate
+
+
+for (i in 1:50) print("################################################")
+print("E exploiter Type I with delay")
+#source("Trajectory_matching_deb_parasite_W_TypeI_delay_2.R")
+
+for (i in 1:50) print("################################################")
+print("E exploiter Type I with delay and mortality")
+#source("Trajectory_matching_deb_parasite_W_TypeI_delay_m_2.R")
+
+for (i in 1:50) print("################################################")
+print("E exploiter logistic with delay")
+#source("Trajectory_matching_deb_parasite_E_logistic_delay_2.R")
+
+for (i in 1:50) print("################################################")
+print("E exploiter logistic with delay")
+#source("Trajectory_matching_deb_parasite_W_logistic_delay_2.R")
+
+
+for (i in 1:50) print("################################################")
+print("E exploiter Type I with delay")
+#source("Trajectory_matching_deb_parasite_W_TypeI_delay_3.R")
+
+for (i in 1:50) print("################################################")
+print("E exploiter Type I with delay and mortality")
+#source("Trajectory_matching_deb_parasite_W_TypeI_delay_m_3.R")
+
+for (i in 1:50) print("################################################")
+print("E exploiter logistic with delay")
+source("Trajectory_matching_deb_parasite_E_logistic_delay_3.R")
+
+for (i in 1:50) print("################################################")
+print("E exploiter logistic with delay")
+source("Trajectory_matching_deb_parasite_W_logistic_delay_3.R")
+
+
+

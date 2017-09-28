@@ -135,6 +135,7 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform, err) {
     ## compute Imax and g based on the estimate of fh
     pars["Imax"] <- calc_Imax(unname(pars["Fh"]))
     pars["g"] <- calc_g(unname(pars["Fh"]))
+    print(pars)
 
     ## Generic set of food addition events
     eventdat <- data.frame(var="F",
@@ -192,18 +193,6 @@ tm_obj <- function(estpars, data, fixpars, parorder, transform, err) {
                    ) %>% sum -> lik
         else if (err=="normal_cv") {
             ## Have to be more careful here: if the model predicts 0 reproduction, that makes the sd of the normal ddistribution 0 as well, which means that the log-likelihood will be Inf. So compute the reproduction likelihood carefully - possibly by changing all zeros to some small non-zero number.
-            print(sapply(unique(data$age),
-                   function(d)
-                       c(dnorm(x=data$length[data$age==d],
-                               mean=pred$Lobs[pred$time==d],
-                               sd=pars["Lobs"],
-                               log=TRUE) %>% sum,
-                         dnorm(x=data$eggs[data$age==d],
-                               mean=(pred$R[pred$time==d]+0.001),
-                               sd=(pred$R[pred$time==d]+0.001)*pars["Robs"],
-                               log=TRUE) %>% sum
-                         ) %>% sum
-                   ))
             sapply(unique(data$age),
                    function(d)
                        c(dnorm(x=data$length[data$age==d],
